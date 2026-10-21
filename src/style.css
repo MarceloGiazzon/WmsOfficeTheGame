@@ -1,0 +1,85 @@
+:root {
+  --bg-dark: #0f141c;
+  --bg-card: #161e2b;
+  --bg-card-hover: #1e293b;
+  --border-color: #2b394f;
+  --accent-cyan: #00d2ff;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+body, html { width: 100%; height: 100%; overflow: hidden; background: var(--bg-dark); color: var(--text-main); font-family: var(--font-sans); }
+#app { display: flex; flex-direction: column; width: 100vw; height: 100vh; }
+
+.hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: rgba(15, 20, 28, 0.95);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 10;
+  gap: 12px;
+}
+
+.logo-tag { font-size: 0.65rem; color: var(--accent-cyan); font-weight: 800; letter-spacing: 1px; }
+.hud-branding h1 { font-size: 1.15rem; font-weight: 800; }
+.hud-branding h1 span { color: var(--accent-cyan); }
+.hud-telemetry { display: flex; gap: 12px; align-items: center; }
+
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
+}
+.kpi-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 700; }
+.kpi-value { font-size: 0.95rem; font-weight: 700; }
+.kpi-value.highlight { color: var(--accent-green); }
+.font-mono { font-family: var(--font-mono); }
+
+.hud-controls { display: flex; gap: 6px; background: var(--bg-card); padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); }
+.btn-ctrl { background: transparent; border: none; color: var(--text-muted); font-weight: 700; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+.btn-ctrl.active { background: var(--accent-cyan); color: #000; }
+
+.viewport-container { flex: 1; position: relative; overflow: hidden; background: #0b0f14; }
+#warehouse-canvas { width: 100%; height: 100%; display: block; }
+.viewport-floating-actions { position: absolute; top: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
+.btn-floating { width: 40px; height: 40px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; cursor: pointer; font-size: 1.1rem; }
+
+.inspector-card { position: absolute; top: 16px; left: 16px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 14px; border-radius: 12px; width: 260px; z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+.inspector-card.hidden { display: none; }
+.inspector-header { display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px; }
+.inspector-header h3 { font-size: 0.95rem; color: var(--accent-cyan); }
+.btn-icon { background: none; border: none; color: var(--text-muted); cursor: pointer; }
+.prop-row { display: flex; flex-direction: column; margin-bottom: 8px; font-size: 0.8rem; }
+.prop-row span { color: var(--text-muted); font-size: 0.7rem; }
+.badge-abc { color: var(--accent-amber); }
+
+.strategy-drawer { background: var(--bg-card); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 10; max-height: 250px; }
+.drawer-handle { display: flex; flex-direction: column; align-items: center; padding: 6px; cursor: pointer; background: rgba(22,30,43,0.8); }
+.handle-bar { width: 36px; height: 4px; background: var(--border-color); border-radius: 2px; margin-bottom: 4px; }
+.drawer-title { font-size: 0.75rem; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; }
+.drawer-content { padding: 12px 18px; overflow-y: auto; }
+.strategy-columns { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 16px; }
+.config-panel { background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; }
+.config-panel h3 { font-size: 0.85rem; margin-bottom: 4px; }
+.config-hint { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; font-size: 0.75rem; }
+.form-select { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 6px; border-radius: 6px; font-size: 0.8rem; }
+.btn-primary { background: var(--accent-cyan); color: #000; font-weight: 700; border: none; padding: 8px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 0.8rem; }
+.events-log { list-style: none; font-size: 0.7rem; color: var(--text-muted); max-height: 90px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+
+@media (max-width: 900px) {
+  .hud-header { flex-wrap: wrap; }
+  .hud-telemetry { order: 3; width: 100%; overflow-x: auto; }
+  .strategy-columns { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>WmsOffice: The Game</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+  <link href="[https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap)" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- HUD Superior -->
+    <header class="hud-header">
+      <div class="hud-branding">
+        <span class="logo-tag">NPDev Logistics Engine</span>
+        <h1>WmsOffice <span>The Game</span></h1>
+      </div>
+
+      <div class="hud-telemetry">
+        <div class="kpi-card">
+          <span class="kpi-label">TEMPO SIMULADO</span>
+          <span id="kpi-clock" class="kpi-value font-mono">08:00:00</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">SCORE EFICIÊNCIA</span>
+          <span id="kpi-score" class="kpi-value font-mono highlight">94.2%</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">DISTÂNCIA TOTAL</span>
+          <span id="kpi-distance" class="kpi-value font-mono">1.240 m</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">OCUPAÇÃO</span>
+          <span id="kpi-occupancy" class="kpi-value font-mono">68%</span>
+        </div>
+      </div>
+
+      <div class="hud-controls">
+        <button id="btn-pause" class="btn-ctrl" title="Pausar">⏸</button>
+        <button id="btn-play-1x" class="btn-ctrl active" title="Velocidade 1x">1x</button>
+        <button id="btn-play-2x" class="btn-ctrl" title="Velocidade 2x">2x</button>
+        <button id="btn-play-5x" class="btn-ctrl" title="Velocidade 5x">5x</button>
+      </div>
+    </header>
+
+    <!-- Viewport 2D Canvas -->
+    <main class="viewport-container">
+      <canvas id="warehouse-canvas"></canvas>
+
+      <div class="viewport-floating-actions">
+        <button id="btn-zoom-in" class="btn-floating" title="Zoom In">+</button>
+        <button id="btn-zoom-out" class="btn-floating" title="Zoom Out">-</button>
+        <button id="btn-reset-cam" class="btn-floating" title="Centralizar">🎯</button>
+        <button id="btn-toggle-heatmap" class="btn-floating" title="Heatmap Tráfego">🔥</button>
+      </div>
+
+      <div id="inspector-card" class="inspector-card hidden">
+        <div class="inspector-header">
+          <h3 id="inspector-title">Posição A-01-02</h3>
+          <button id="inspector-close" class="btn-icon">✕</button>
+        </div>
+        <div class="inspector-body">
+          <div class="prop-row"><span>Rua / Bloco:</span><b id="inspector-rua">Rua 01</b></div>
+          <div class="prop-row"><span>Produto:</span><b id="inspector-produto">SKU-9921</b></div>
+          <div class="prop-row"><span>Rotatividade (ABC):</span><b id="inspector-abc" class="badge-abc">Classe A</b></div>
+          <div class="prop-row"><span>Acessos / Picking:</span><b id="inspector-pickings">48 ciclos</b></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Drawer Inferior com Regras de Armazenamento -->
+    <section class="strategy-drawer" id="strategy-drawer">
+      <div class="drawer-handle" id="drawer-toggle">
+        <span class="handle-bar"></span>
+        <span class="drawer-title">Configurações de Alocação & Simulação</span>
+      </div>
+
+      <div class="drawer-content">
+        <div class="strategy-columns">
+          <div class="config-panel">
+            <h3>Política de Armazenagem</h3>
+            <p class="config-hint">Regra aplicada quando novos paletes chegam na doca.</p>
+            <div class="form-group">
+              <label for="select-policy">Estratégia:</label>
+              <select id="select-policy" class="form-select">
+                <option value="ABC_PROXIMITY">Curva ABC por Proximidade de Doca</option>
+                <option value="FIFO_FIRST_AVAILABLE">FIFO + Primeira Posição Disponível</option>
+                <option value="VOLUME_CONSOLIDATION">Consolidação de Lote</option>
+                <option value="RANDOM_STRESS">Aleatório (Cenário de Teste / Caos)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="config-panel">
+            <h3>Carga de Trabalho</h3>
+            <div class="form-group">
+              <label for="select-scenario">Cenário Seed:</label>
+              <select id="select-scenario" class="form-select">
+                <option value="warehouse-a-small">Warehouse A - Pequeno Porte (200 SKUs)</option>
+                <option value="warehouse-b-large">Warehouse B - Megacentro (1.500 SKUs)</option>
+              </select>
+            </div>
+            <button id="btn-inject-batch" class="btn-primary">Injetar Novo Lote de NF</button>
+          </div>
+
+          <div class="config-panel">
+            <h3>Log Operacional</h3>
+            <ul id="sim-events-log" class="events-log font-mono">
+              <li> Simulação pronta. Clique e arraste o armazém.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
