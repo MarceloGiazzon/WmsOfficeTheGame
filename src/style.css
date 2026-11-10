@@ -250,20 +250,9 @@ button, select, input { font-family: inherit; }
   .modal-fundo:not([hidden]) .modal, .chip-politica.flash { animation: none; }
 }
 
+/* O layout de toque (HUD compacto, gaveta como bottom sheet, inspector em faixa, alvos de 44 px, safe-area) mora em
+   src/ui/mobile.css, que vem depois deste arquivo; aqui ficam só os ajustes dos modais (pré-partida e resultado). */
 @media (max-width: 900px) {
-  .hud-header { flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
-  .logo-tag { display: none; }
-  .hud-branding { flex: 1 1 auto; }
-  .hud-branding h1 { font-size: 1rem; }
-  .btn-ctrl { padding: 6px 9px; }
-  .hud-telemetry { order: 3; width: 100%; overflow-x: auto; padding-bottom: 2px; }
-  .kpi-card { flex: none; padding: 4px 9px; }
-  .kpi-label { font-size: 0.58rem; }
-  .kpi-sub { display: none; }
-  .kpi-score { order: -1; } /* o score parcial é o primeiro da faixa: sem rolar, aparece junto com o relógio e as ordens */
-  .hud-status { padding: 6px 12px; gap: 6px 10px; }
-  .strategy-columns { grid-template-columns: 1fr; }
-  .strategy-drawer { max-height: 46vh; }
   .prejogo-colunas, .resultado-colunas { grid-template-columns: 1fr; gap: 14px; }
 }
 
@@ -277,7 +266,4 @@ button, select, input { font-family: inherit; }
   .rodape-resumo { flex-basis: 100%; }
   .cartao-dados { grid-template-columns: 1fr 1fr; }
   .score-valor { font-size: 3.4rem; }
-  .status-item .status-rotulo { display: none; } /* "Cenário" é óbvio; economiza a linha para o chip de estado caber ao lado */
-  .status-item { flex: 1 1 auto; min-width: 0; }
-  .chip-politica { order: 3; flex: 1 1 100%; justify-content: center; }
 }

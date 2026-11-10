@@ -676,7 +676,7 @@ sem erros — as 7 mensagens "Failed to load resource" são das requisições qu
 - [x] ~~Desempate da curva ABC por `codigo` em vez de `id`~~ — feito em `297c8ef` (online e offline jogam o mesmo estoque inicial: 85,52 nos dois, conferido no navegador).
 - [ ] Pendências da UI: o aviso/retentativa não tem *backoff* (só `online` e o botão); a sessão não é validada no servidor ao restaurar (o 1º 401 derruba); item de outro usuário do mesmo aparelho fica invisível para quem está logado; o `index.html`/cabeçalho foram só encaixados por JS — se o layout mobile reorganizar o cabeçalho, ajustar os dois pontos de encaixe em `indicadorRede.ts`.
 
-### F6. Escala e polimento ✅ (2026-11-10, exceto o tutorial — entra depois da F4)
+### F6. Escala e polimento ✅ (2026-11-10)
 
 Como ficou (`npm test`: 185 testes; verificado no Chrome headless em desktop 1280×800 e celular 390×844 com toque e pinça).
 
@@ -757,9 +757,20 @@ thread passa de 45% a 5x. PixiJS acrescentaria dependência (~100+ KB gz), perda
 hit-testing próprio, sem gargalo que o justifique. Reavaliar se (a) aparecer cenário com ≫ 10 000 locais, ou (b) a medição em celular real/APK
 (`?perf=1`) mostrar JS ≥ 8 ms por quadro a 5x. Degraus antes dele: camada de ocupação como textura de baixa resolução e `devicePixelRatio` correto.
 
+- [x] **Tutorial curto do primeiro cenário** (2026-11-10): guia de 8 passos com destaque nos elementos reais (véu escuro com
+  "furos" em SVG + balão): o mapa (docas, racks, empilhadeiras), relógio e velocidade, ordens e SLA, score parcial, política
+  (o que é e como trocar), inspector, log (abre a gaveta e a devolve como estava) e o botão "?". Abre sozinho **no primeiro
+  turno de quem nunca o viu** (flag `wmsoffice.tutorial.visto` em `localStorage`, com `sessionStorage` de reserva se ele
+  lançar — sem nenhum dos dois, só uma vez por carregamento da página, nunca em loop); **pausa a sim** enquanto aberto e
+  a retoma ao fechar; pula a qualquer momento (botão "Pular" ou Esc); reabre pelo "?" do cabeçalho. Acessível: `role="dialog"`
+  modal com título/texto associados, app `inert`, foco preso e devolvido (o mesmo `Modal` da pré-partida, que também desliga
+  os atalhos do jogo), setas navegam, texto em região `aria-live`. O balão se reposiciona (abaixo/acima/lado/dentro do
+  alvo) e nunca sai da tela, inclusive na área segura do celular. Lógica pura e testada em `src/app/tutorial.ts` (passos,
+  máquina de estados, flag, quando mostrar) e `src/app/balao.ts` (geometria do balão); tela em `src/ui/tutorial.ts` +
+  `tutorial.css`. Gancho no `main.ts`: `aoAbrir`/`aoFechar` (pausa/retoma) e `abrirSeNovato()` ao fim de `iniciarPartida`.
+
 **Pendências**
 
-- [ ] **Tutorial curto do primeiro cenário** (depois da F4).
 - [ ] **`devicePixelRatio`**: o canvas é 1 px de bitmap por px de CSS; em celular (DPR 2–3) fica borrado. Pede `width = CSS × DPR` com a câmera
   e o `input` em px de CSS e o `Renderer` aplicando o DPR — mexe nos três, fica para o F7 (e aumenta o custo de raster 4–9×: medir de novo).
 - [ ] Medir em aparelho real/APK com `?perf=1` (aqui só há headless: GPU Intel por ANGLE/Vulkan e compositor em software).
@@ -784,14 +795,18 @@ máquina de desenvolvimento; nada foi executado em aparelho ou emulador.**
   (não versionado). Inspecionado com `aapt`/`apksigner`: pacote, `minSdk 22`/`targetSdk 34`, só `INTERNET`, assets
   idênticos ao `dist/`.
 - [x] **Pacote web offline** (o que vai dentro do APK), em Chrome headless servindo `assets/public` em `https://localhost`
-  com toda a rede bloqueada: sem erro de JS, sem `/api`, sim anda (1x/5x), `WH-B-MEGA` carrega. Ressalva: as **fontes
-  do Google** (`<link>` no `index.html`) são a única requisição externa — falham offline (fallback do sistema); self-host
-  pendente.
+  com toda a rede bloqueada: sem erro de JS, sem `/api`, sim anda (1x/5x), `WH-B-MEGA` carrega. A única requisição
+  externa daquele teste (as fontes do Google) deixou de existir: as fontes agora são locais.
 - [ ] **Teste em aparelho/emulador**: instalar o APK, modo avião, imersivo, rotação, toque, FPS no `WH-B-MEGA`,
   segundo plano (lista em `MOBILE.md`).
-- [ ] **Layout de toque do HUD/drawer** — depende do merge da UI/render em andamento. Achado: em paisagem de celular
-  (800×360) o canvas fica com altura 0 (HUD + drawer aberto ocupam tudo). Lista de mudanças em `MOBILE.md`
-  (`viewport-fit=cover`/safe-area, `100dvh`, HUD compacto, drawer fechado/sobreposto, alvos ≥ 44 px, pinça, fontes locais).
+- [x] **Layout de toque do HUD/drawer** (2026-11-10): `viewport-fit=cover` + `env(safe-area-inset-*)`; HUD compacto (relógio,
+  ordens, atrasadas e score sempre visíveis; distância/conflitos/ocupação num painel que o botão abre por cima do mapa);
+  gaveta como bottom sheet sobreposto ao mapa, fechada por padrão no celular (pílula) e arrastável pela alça; inspector em
+  faixa; alvos ≥ 44 px (também em tablet, por `pointer: coarse`); `tap-highlight`/`overscroll-behavior`/`touch-action:
+  manipulation` nos controles. Mapa com 70–75% da altura em paisagem (800×360 e 844×390) e ~80% em retrato. Verificado em
+  1280×800, 390×844, 844×390 e 800×360 (sem transbordo, sem erro de console, sem request externo). **Fontes locais:**
+  Plus Jakarta Sans e JetBrains Mono (OFL) em `public/fonts/` + `src/ui/fontes.css`; o `<link>` do Google saiu. Detalhes
+  em `MOBILE.md`. Fica fora daqui a **pinça** (item de zoom da F6, no módulo de entrada do mapa).
 - [ ] Teste offline completo da F5 (cenário em cache → jogar → sincronizar depois) — depende da F5.
 - [ ] Base do `NPDevClient` no APK por URL absoluta (`VITE_NPDEV_URL`, com troca em tempo de execução) e CORS de
   `https://localhost` no NPDev (N5) — **documentado** em `MOBILE.md`, não implementado (F5/N5).

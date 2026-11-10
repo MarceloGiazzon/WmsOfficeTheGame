@@ -1,10 +1,16 @@
 // Drawer inferior: política (trocável durante o turno), cenário e log operacional.
+// No desktop é uma faixa fixa abaixo do mapa. No celular (layout compacto, ver mobile.css) é um bottom sheet SOBRE o
+// mapa: recolhido vira uma pílula, e a alça aceita toque e arrasto (para cima abre, para baixo recolhe).
 
+import { deslocamentoVisual, resultadoDoArraste } from '../app/gaveta';
 import { ROTULO_DIFICULDADE } from '../app/fonteCenarios';
 import { TEXTO_POLITICA } from '../app/politicasTexto';
 import { POLITICAS, type Cenario, type Politica } from '../sim/model';
 import { formatarHora, type Evento, type Snapshot } from '../sim/simulation';
 import { definirTexto, el } from './dom';
+
+/** Mesma consulta de mídia do layout compacto em mobile.css (celular em retrato ou paisagem, janela pequena). */
+const LAYOUT_COMPACTO = '(max-width: 900px), (max-height: 500px)';
 
 export class Drawer {
   private readonly politica = el<HTMLSelectElement>('select-policy');
@@ -16,18 +22,87 @@ export class Drawer {
   private readonly gaveta = el('strategy-drawer');
   private ultimoEvento: Readonly<Evento> | undefined;
 
+  /** O último arrasto da alça já decidiu a ação; o clique que o navegador dispara em seguida não pode desfazê-la. */
+  private suprimirClique = false;
+
   constructor(aoMudarPolitica: (p: Politica) => void, aoTrocarCenario: () => void) {
     this.politica.replaceChildren(...POLITICAS.map(p => new Option(TEXTO_POLITICA[p].rotulo, p)));
     this.politica.addEventListener('change', () => aoMudarPolitica(this.politica.value as Politica));
     el('btn-trocar-cenario').addEventListener('click', aoTrocarCenario);
-    this.alca.addEventListener('click', () => this.recolher(!this.gaveta.classList.contains('collapsed')));
+    this.alca.addEventListener('click', () => {
+      if (this.suprimirClique) { this.suprimirClique = false; return; }
+      this.recolher(this.aberta);
+    });
+    this.ligarArrasto();
+    // Esc dentro da gaveta aberta (celular) devolve o mapa inteiro
+    this.gaveta.addEventListener('keydown', e => {
+      if (e.key !== 'Escape' || !this.aberta || !this.compacto()) return;
+      e.stopPropagation();
+      this.recolher(true);
+      this.alca.focus();
+    });
     // No celular a gaveta começa recolhida: o mapa precisa do espaço, e a política ativa já aparece no HUD.
-    if (window.matchMedia('(max-width: 900px)').matches) this.recolher(true);
+    if (this.compacto()) this.recolher(true);
+  }
+
+  private compacto(): boolean {
+    return window.matchMedia(LAYOUT_COMPACTO).matches;
+  }
+
+  get aberta(): boolean {
+    return !this.gaveta.classList.contains('collapsed');
+  }
+
+  /** Abre ou recolhe (o tutorial abre a gaveta para mostrar o log e devolve como estava). */
+  definirAberta(aberta: boolean): void {
+    this.recolher(!aberta);
   }
 
   private recolher(sim: boolean): void {
     this.gaveta.classList.toggle('collapsed', sim);
     this.alca.setAttribute('aria-expanded', String(!sim));
+  }
+
+  /**
+   * Arrasto da alça (só no layout compacto): a gaveta aberta acompanha o dedo para baixo; ao soltar, `resultadoDoArraste`
+   * decide. Pointer Events cobrem dedo, caneta e mouse; `touch-action: none` na alça (mobile.css) impede o navegador de
+   * transformar o arrasto em rolagem e cancelar o gesto.
+   */
+  private ligarArrasto(): void {
+    let id: number | null = null;
+    let y0 = 0;
+    let abertaNoInicio = false;
+    const terminar = () => {
+      id = null;
+      this.gaveta.style.transform = '';
+      this.gaveta.style.transition = '';
+    };
+    this.alca.addEventListener('pointerdown', e => {
+      this.suprimirClique = false;
+      if (!this.compacto() || e.button !== 0) return;
+      id = e.pointerId;
+      y0 = e.clientY;
+      abertaNoInicio = this.aberta;
+      this.alca.setPointerCapture(e.pointerId);
+    });
+    this.alca.addEventListener('pointermove', e => {
+      if (e.pointerId !== id) return;
+      const dy = deslocamentoVisual(e.clientY - y0, abertaNoInicio);
+      if (dy > 0) {
+        this.gaveta.style.transition = 'none';
+        this.gaveta.style.transform = `translateY(${dy}px)`;
+      }
+    });
+    this.alca.addEventListener('pointerup', e => {
+      if (e.pointerId !== id) return;
+      const r = resultadoDoArraste(e.clientY - y0, abertaNoInicio);
+      terminar();
+      if (r === 'toque') return; // o clique que vem a seguir alterna
+      this.suprimirClique = true;
+      if (r === 'abrir') this.recolher(false);
+      else if (r === 'recolher') this.recolher(true);
+    });
+    this.alca.addEventListener('pointercancel', terminar);
   }
 
   /** Abre a gaveta e leva o foco ao seletor (o chip "Política ativa" do HUD chama isto). */

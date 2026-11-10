@@ -47,6 +47,29 @@ export class Hud {
     }
     this.politicaChip.addEventListener('click', aoAbrirPolitica);
     this.verResultado.addEventListener('click', aoVerResultado);
+    this.ligarIndicadoresExtras();
+  }
+
+  /**
+   * Celular: distância, conflitos e ocupação ficam num painel que o botão "mais indicadores" abre por cima do mapa
+   * (o HUD essencial — relógio, ordens, atrasadas e score — fica sempre visível). No desktop o botão nem aparece.
+   */
+  private ligarIndicadoresExtras(): void {
+    const cabecalho = el('hud-header');
+    const botao = el('btn-hud-mais');
+    const definir = (aberto: boolean) => {
+      cabecalho.classList.toggle('expandido', aberto);
+      botao.setAttribute('aria-expanded', String(aberto));
+      botao.setAttribute('aria-label', aberto ? 'Esconder os indicadores extras' : 'Mostrar mais indicadores');
+    };
+    botao.addEventListener('click', () => definir(!cabecalho.classList.contains('expandido')));
+    // tocar no mapa (ou em qualquer coisa fora do cabeçalho) fecha o painel; Esc também
+    document.addEventListener('pointerdown', e => {
+      if (cabecalho.classList.contains('expandido') && !cabecalho.contains(e.target as Node)) definir(false);
+    }, true);
+    cabecalho.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && cabecalho.classList.contains('expandido')) { definir(false); botao.focus(); }
+    });
   }
 
   marcarVelocidade(v: Velocidade): void {
@@ -94,6 +117,7 @@ export class Hud {
       const t = TEXTO_POLITICA[s.politica];
       definirTexto(this.politicaNome, t.curto);
       this.politicaChip.title = `${t.rotulo}: ${t.regra} Clique para trocar.`;
+      this.politicaChip.setAttribute('aria-label', `Política ativa: ${t.rotulo}. Abre o seletor para trocar.`);
       this.politicaMostrada = s.politica;
     }
 

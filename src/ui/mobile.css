@@ -1,0 +1,190 @@
+/*
+ * Layout de toque (F7). Vem DEPOIS de style.css (importado do main.ts: no build o Vite concatena nessa ordem e no dev
+ * server o <style> entra no fim do <head>), então aqui só se sobrescreve o que o desktop define lá.
+ *
+ * Duas famílias de consulta de mídia, de propósito:
+ *   - LAYOUT compacto  = (max-width: 900px), (max-height: 500px): celular em retrato e em paisagem, janelas pequenas.
+ *     HUD em poucas linhas, gaveta vira bottom sheet SOBRE o mapa (não empilhada abaixo dele), inspector vira faixa.
+ *   - TAMANHO de toque = layout compacto OU (pointer: coarse): tablet em paisagem tem espaço de desktop, mas o dedo
+ *     continua grosso, então os alvos sobem para 44 px sem mudar a disposição.
+ * Não se mexe em `touch-action` do canvas aqui: pan/pinça são do módulo de entrada do mapa (src/render/input.ts).
+ */
+
+/* ---------------------------------------------------------------- base (todas as telas) */
+
+* { -webkit-tap-highlight-color: transparent; }
+html, body { overscroll-behavior: none; }
+/* some o atraso de 300 ms do toque duplo e o zoom por toque duplo nos controles (o canvas tem o próprio touch-action) */
+button, select, input, label, summary, a { touch-action: manipulation; }
+
+#app {
+  position: relative; /* a gaveta (bottom sheet) e o painel de indicadores extras se ancoram aqui */
+  width: 100%;
+  /* viewport-fit=cover deixa a página sob o notch / barra de gestos: o conteúdo precisa se afastar deles */
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
+}
+
+.modal-fundo {
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+}
+
+/* distância, conflitos e ocupação: no desktop o grupo "some" e os cartões continuam na linha dos indicadores */
+.hud-extras { display: contents; }
+
+/* "?" (tutorial) e "mais indicadores": mesmo visual do grupo de velocidade */
+.hud-acoes {
+  display: flex; gap: 4px; padding: 4px; border-radius: 8px;
+  background: var(--bg-card); border: 1px solid var(--border-color);
+}
+.btn-ajuda { font-size: 1rem; }
+.hud-acoes .btn-ctrl { display: inline-flex; align-items: center; justify-content: center; }
+.hud-acoes .btn-hud-mais { display: none; } /* só existe no layout compacto */
+.hud-acoes .btn-ctrl[aria-expanded='true'] svg { transform: rotate(180deg); }
+
+/* seta da alça da gaveta: só aparece na pílula do celular */
+.drawer-seta { display: none; }
+
+/* ---------------------------------------------------------------- alvos de toque >= 44 px */
+
+@media (max-width: 900px), (max-height: 500px), (pointer: coarse) {
+  .btn-ctrl { min-width: 44px; min-height: 44px; padding: 0 12px; }
+  .hud-controls, .hud-acoes { gap: 2px; padding: 2px; }
+  .btn-floating { width: 44px; height: 44px; }
+  .btn-icon { min-width: 44px; min-height: 44px; font-size: 1.1rem; }
+  .btn-primary, .btn-secundario, .btn-fantasma, .btn-pequeno { min-height: 44px; }
+  .chip-politica { min-height: 44px; }
+  .form-select { min-height: 44px; font-size: 0.9rem; }
+  .drawer-handle { min-height: 44px; }
+  .viewport-floating-actions { gap: 6px; }
+}
+
+/* ---------------------------------------------------------------- layout compacto */
+
+@media (max-width: 900px), (max-height: 500px) {
+  /* ---- HUD: uma linha de controles + uma de indicadores essenciais; o resto num painel que o botão abre */
+  .hud-header { position: relative; z-index: 40; flex-wrap: wrap; align-items: center; padding: 4px 10px; gap: 4px 8px; }
+  .logo-tag { display: none; }
+  .hud-branding { order: 0; flex: 1 1 auto; min-width: 0; }
+  .hud-branding h1 { font-size: 1rem; }
+  .hud-controls { order: 1; }
+  .hud-acoes { order: 2; }
+  .hud-telemetry { order: 3; flex: 1 1 100%; width: 100%; gap: 6px; }
+  .kpi-card { flex: 1 1 auto; padding: 3px 8px; }
+  .kpi-label { font-size: 0.58rem; overflow: hidden; text-overflow: ellipsis; }
+  .kpi-label-extra { display: none; }
+  .kpi-sub { display: none; }
+  .kpi-value { font-size: 0.9rem; }
+  .kpi-score .kpi-value { font-size: 1.05rem; }
+
+  .hud-acoes .btn-hud-mais { display: inline-flex; }
+  .hud-extras { display: none; }
+  .hud-header.expandido .hud-extras {
+    display: flex; gap: 6px; position: absolute; left: 0; right: 0; top: 100%;
+    padding: 8px 10px; background: var(--bg-dark); border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+  }
+  .hud-header.expandido .hud-extras .kpi-card { flex: 1 1 0; padding: 5px 8px; }
+  .hud-header.expandido .hud-extras .kpi-sub { display: block; white-space: normal; }
+
+  /* ---- faixa de estado: cenário (encolhe com reticências), política, situação do turno */
+  .hud-status { padding: 2px 10px; gap: 4px 10px; }
+  .status-item { flex: 1 1 auto; min-width: 0; }
+  #status-cenario { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .status-item .status-rotulo { display: none; } /* "Cenário" é óbvio; economiza espaço para os chips */
+
+  /* ---- botões flutuantes do mapa: encostados na borda, com folga pequena */
+  .viewport-floating-actions { top: 8px; right: 8px; }
+
+  /* ---- inspector: de cartão de 260 px no canto vira uma faixa no topo do mapa, sem cobrir a coluna de zoom */
+  .inspector-card { top: 8px; left: 8px; right: 66px; width: auto; max-height: 60%; overflow-y: auto; padding: 4px 10px 8px; border-radius: 10px; }
+  .inspector-header { align-items: center; padding-bottom: 2px; margin-bottom: 4px; }
+  .inspector-header .btn-icon { margin: -2px -8px -2px 0; } /* alvo de 44 px sem engordar a faixa */
+  .inspector-body { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .prop-row { margin-bottom: 0; }
+
+  /* ---- gaveta: bottom sheet SOBRE o mapa (o mapa não perde altura quando ela abre) */
+  .strategy-drawer {
+    position: absolute; z-index: 30; bottom: 0;
+    left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px);
+    max-height: min(62%, 440px);
+    border: 1px solid var(--border-color); border-bottom: 0; border-radius: 14px 14px 0 0;
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.55);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .drawer-handle { flex: none; border-radius: 14px 14px 0 0; touch-action: none; /* o arrasto da alça é nosso (drawer.ts) */ }
+  .drawer-content { padding: 8px 12px 12px; overscroll-behavior: contain; }
+  .strategy-columns { grid-template-columns: 1fr; gap: 10px; }
+  .events-log { max-height: 140px; }
+
+  /* recolhida: só uma pílula no centro-baixo, para cobrir o mínimo do mapa */
+  .strategy-drawer.collapsed {
+    left: 50%; right: auto; transform: translateX(-50%);
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    max-height: none; padding-bottom: 0;
+    background: none; border: 0; box-shadow: none; pointer-events: none;
+  }
+  .strategy-drawer.collapsed .drawer-handle {
+    pointer-events: auto; width: auto; flex-direction: row; align-items: center; justify-content: center; gap: 8px;
+    padding: 0 18px; white-space: nowrap; border-radius: 999px;
+    background: var(--bg-card); border: 1px solid var(--accent-cyan); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+  .strategy-drawer.collapsed .handle-bar,
+  .strategy-drawer.collapsed .drawer-title-extra { display: none; }
+  .strategy-drawer.collapsed .drawer-seta { display: block; color: var(--accent-cyan); }
+}
+
+/* gaveta aberta em tela larga o bastante: as três colunas do desktop (o celular em paisagem tem largura de sobra) */
+@media (min-width: 640px) and (max-width: 900px), (min-width: 640px) and (max-height: 500px) {
+  .strategy-columns { grid-template-columns: 1.2fr 0.8fr 1.2fr; gap: 10px; }
+  .events-log { max-height: 110px; }
+}
+
+/* ---------------------------------------------------------------- celular em retrato (estreito) */
+
+@media (max-width: 600px) {
+  .hud-branding { display: none; } /* o espaço é dos controles; o nome do jogo está na pré-partida */
+  .hud-controls { flex: 1 1 auto; }
+  .hud-controls .btn-ctrl { flex: 1 1 0; }
+  .chip-politica { order: 3; flex: 1 1 100%; justify-content: center; } /* a política ocupa a linha de baixo, inteira */
+}
+
+/* faixa larga o bastante: título e propriedades do inspector lado a lado (poupa uma linha de altura) */
+@media (min-width: 600px) and (max-width: 900px), (min-width: 600px) and (max-height: 500px) {
+  .inspector-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 18px; }
+  .inspector-header { display: contents; }
+  .inspector-header h3 { grid-column: 1; grid-row: 1; white-space: nowrap; }
+  .inspector-header .btn-icon { grid-column: 3; grid-row: 1; }
+  .inspector-body { grid-column: 2; grid-row: 1; }
+}
+
+/* ---------------------------------------------------------------- celular em paisagem (baixo e largo) */
+
+@media (max-height: 500px) and (min-width: 601px) {
+  .hud-header { flex-wrap: nowrap; }
+  .hud-branding { display: none; }
+  .hud-telemetry { order: 0; flex: 1 1 0; min-width: 0; width: auto; }
+  .hud-status { flex-wrap: nowrap; }
+  .hud-status .status-item { flex: 1 1 0; }
+  /* pouca altura: a gaveta sobe até logo abaixo do HUD (cabeçalho + faixa de estado ≈ 120 px), sem cobrir os controles */
+  .strategy-drawer { max-height: calc(100% - 120px); }
+
+  /* modais: pouca altura, então cabeçalho enxuto e o corpo rola */
+  .modal-cabecalho { padding: 8px 16px 6px; }
+  .modal-cabecalho h2 { font-size: 1.1rem; }
+  .modal-sub { display: none; }
+  .modal-corpo { padding: 10px 16px; }
+  .modal-rodape { padding: 8px 16px; }
+  .score-valor { font-size: 2.6rem; }
+}
+
+@media (min-width: 640px) and (max-width: 900px) {
+  .prejogo-colunas { grid-template-columns: 1fr 1.2fr; gap: 16px; }
+  .resultado-colunas { grid-template-columns: 1.2fr 1fr; gap: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-acoes .btn-ctrl[aria-expanded='true'] svg { transition: none; }
+}
