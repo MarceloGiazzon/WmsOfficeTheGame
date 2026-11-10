@@ -41,6 +41,7 @@ export const TEXTO_POLITICA: Readonly<Record<Politica, TextoPolitica>> = {
     curto: 'WmsOffice',
     rotulo: 'WmsOffice real (regras do WMS)',
     regra: 'Aplica a regra de sugestão de destino do WmsOffice (sugerirDestino) aos locais livres: melhor rua do ' +
-      'ranking do cenário e, no empate, o menor id de local (ordem de texto). Roda no navegador, igual ao Java.',
+      'ranking do cenário e, no empate, o menor id de local (ordem de texto). Com login, cada palete é decidido pelo ' +
+      'servidor (o jogo espera a resposta); sem login ou se o servidor falhar, a mesma regra roda neste aparelho.',
   },
 };

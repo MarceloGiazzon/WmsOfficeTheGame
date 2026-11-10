@@ -5,7 +5,8 @@
 //   AbcProximidade    — classe A nos locais mais próximos da expedição, B nos seguintes, C no resto.
 //   Consolidacao      — junta o produto na mesma rua (porta da regra "mesmo lote primeiro" de sugerirDestino).
 //   WmsReal           — a regra do WMS Office: `AllocationCapability.sugerirDestino` (porta TS em wmsReal.ts) com os
-//                       candidatos ranqueados pelo `RankingRua`. A parte online (flow no backend) é da F5.
+//                       candidatos ranqueados pelo `RankingRua`. Aqui é a porta TS; com login, o app pergunta ao flow
+//                       `SugerirDestinoJogo` do backend (src/app/decisorWmsReal.ts) e esta função é o plano B.
 //   CrossDocking      — desvia o palete descarregado direto para uma doca de saída quando há saída pendente do
 //                       produto (isso é decidido no motor, em simulation.ts). O que não for desviado é guardado
 //                       como em AbcProximidade, para a comparação isolar o ganho do desvio.
@@ -100,12 +101,17 @@ function menor(a: readonly number[], b: readonly number[]): boolean {
  * nulo) e a regra se reduz a: melhor rua do ranking, depois o id do local em ordem de texto (como o Java).
  */
 function wmsReal(ctx: ContextoPolitica, loteId: string): string | null {
+  const r = sugerirDestino(null, { loteId, candidatos: candidatosWmsReal(ctx) });
+  return r.sucesso ? r.localArmazenagemId : null;
+}
+
+/** A entrada de `sugerirDestino` para um palete: os locais livres, cada um com a prioridade da sua rua no `RankingRua`. */
+export function candidatosWmsReal(ctx: ContextoPolitica): CandidatoDestino[] {
   const candidatos: CandidatoDestino[] = [];
   for (const l of ctx.layout.locais) {
     if (livre(ctx, l)) candidatos.push({ localArmazenagemId: l.localId, loteOcupanteId: null, prioridade: ctx.ranking.get(l.ruaId) ?? null });
   }
-  const r = sugerirDestino(null, { loteId, candidatos });
-  return r.sucesso ? r.localArmazenagemId : null;
+  return candidatos;
 }
 
 /** FIFO: os `qtd` paletes mais antigos do produto ainda não reservados (empate: o mais perto da expedição). */

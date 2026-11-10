@@ -6,6 +6,7 @@
 import type { Metricas, PacoteCenario } from '../sim/model';
 import { calcularScore } from '../sim/score';
 import { Simulacao } from '../sim/simulation';
+import { sugerirDestino, type EntradaSugerirDestino } from '../sim/wmsReal';
 import type { FetchLike } from './npdevClient';
 
 type Linha = Record<string, unknown>;
@@ -41,6 +42,11 @@ export class ServidorFalso {
   readonly chamadas: Chamada[] = [];
   /** `false` = conexão recusada (o `fetch` rejeita com TypeError). */
   rede = true;
+  /**
+   * `SugerirDestinoJogo` responde com a mesma regra do Java (a porta TS, que o teste de paridade confere). Preencha para
+   * fazer o "servidor" escolher outro local (divergência) — ou um id qualquer, como um servidor com defeito.
+   */
+  escolhaDoDestino: ((entrada: EntradaSugerirDestino) => string | null) | null = null;
   /** Partidas e scores gravados. */
   readonly partidas = new Map<string, Linha>();
   readonly scores = new Map<string, Linha>();
@@ -279,6 +285,12 @@ export class ServidorFalso {
   }
 
   private flow(nome: string, entrada: Linha, jogador: string): Resposta {
+    if (nome === 'SugerirDestinoJogo') {
+      const e = entrada as unknown as EntradaSugerirDestino;
+      const r = sugerirDestino(null, e);
+      const escolha = r.sucesso && this.escolhaDoDestino ? this.escolhaDoDestino(e) : r.localArmazenagemId;
+      return this.envelope({ localArmazenagemId: escolha, motivo: r.motivo, sucesso: r.sucesso });
+    }
     const partida = this.partidas.get(String(entrada?.partidaId));
     if (nome !== 'ConcluirPartida' && nome !== 'AbandonarPartida') return { status: 404, corpo: { error: 'flow desconhecido' } };
     if (!partida || partida.jogador !== jogador) {

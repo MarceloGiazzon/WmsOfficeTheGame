@@ -21,6 +21,8 @@ import { NpdevClient, type FetchLike } from './npdevClient';
 import { buscarCenario, carregarPacote, listarCenarios } from './pacote';
 import { diferencasDePacote } from './pacoteEquivalencia';
 import { abandonarPartida, concluirPartida, iniciarPartida, ranking } from './partidas';
+import { sugerirDestinoNoServidor } from './alocacao';
+import { DecisorWmsReal } from '../app/decisorWmsReal';
 
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
 const VIVO = env.NPDEV_LIVE === '1';
@@ -170,6 +172,33 @@ suite(`ao vivo (${URL_BASE})`, () => {
       expect(rest.score).toBeGreaterThan(0);
       expect(rest.concluidas).toBeGreaterThanOrEqual(Math.floor(embutido.ordens.length * 0.9));
     }, 120_000);
+  });
+
+  // WmsReal online: o servidor (Java) decide cada palete de um turno inteiro; tem de dar o MESMO turno do jogo offline,
+  // porque a porta TS é a mesma regra (o teste de paridade do backend confere os casos; aqui, o turno todo).
+  describe.each(['WH-A-PEQUENO', 'WH-B-MEGA'])('WmsReal online no %s: o servidor decide o turno inteiro', codigo => {
+    it('mesmo resultado do turno offline, com todas as decisões vindas do servidor e nenhuma divergência', async () => {
+      const pacote = embutidos[codigo];
+      // o 1º flow depois de o app subir pode estourar o timeout do plugin: aquece antes (o jogo faz isso em `aquecer()`)
+      await comRetentativa(() => sugerirDestinoNoServidor(jogador, { loteId: 'aquecimento', candidatos: [{ localArmazenagemId: 'a', prioridade: 1 }] }));
+      const antes = f.estado.chamadas;
+      const decisor = new DecisorWmsReal(jogador);
+      const dur = pacote.cenario.fimTurnoSeg - pacote.cenario.inicioTurnoSeg;
+      const online = new Simulacao(pacote, 'WmsReal');
+      const t0 = Date.now();
+      for (let i = 0; i < dur; i++) { const espera = online.tickSuspenso(decisor.decidir); if (espera) await espera; }
+      const segundos = (Date.now() - t0) / 1000;
+      const offline = new Simulacao(pacote, 'WmsReal');
+      for (let i = 0; i < dur; i++) offline.tick();
+
+      const e = decisor.estatistica;
+      console.log(`[WmsReal online ${codigo}] ${e.servidor} decisões pelo servidor, ${e.local} locais, ${e.divergencias} divergências; ${(segundos).toFixed(1)} s (${(segundos * 1000 / Math.max(1, e.servidor)).toFixed(0)} ms por decisão)`);
+      expect(e).toEqual({ servidor: offline.auditoria().paletesGuardados, local: 0, divergencias: 0, falha: null });
+      expect(f.estado.chamadas - antes).toBe(e.servidor);
+      expect(online.metricas()).toEqual(offline.metricas());
+      expect(online.snapshot().score).toEqual(offline.snapshot().score);
+      expect(online.snapshot().eventos).toEqual(offline.snapshot().eventos);
+    }, 300_000);
   });
 
   it('obterPacote: rede → cache; com a rede caída, usa o cache; convidado usa o embutido', async () => {

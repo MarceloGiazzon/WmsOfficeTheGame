@@ -6,6 +6,7 @@
 //   cenários ─► FonteRede (servidor → cache → embutido)
 //   cada turno ─► PartidaOnline (criar no início, concluir/abandonar) ─► fila de envio ─► ranking
 
+import { NpdevError } from '../net/erros';
 import { criarRede } from '../net/rede';
 import { Avisos } from '../ui/avisos';
 import { TelaFila } from '../ui/filaPendentes';
@@ -14,6 +15,7 @@ import { TelaLogin } from '../ui/login';
 import { Abandonos } from './abandonos';
 import { BASE_API } from './configRede';
 import type { FonteCenarios, PacoteCarregado } from './fonteCenarios';
+import { DecisorWmsReal } from './decisorWmsReal';
 import { FonteEmbutida } from './fonteEmbutida';
 import { FonteRede } from './fonteRede';
 import { PartidaOnline } from './partidaOnline';
@@ -34,6 +36,12 @@ export interface AppRede {
   novaPartida(carregado: PacoteCarregado, politica: Politica): PartidaOnline;
   /** Abre o login; resolve `true` se o jogador entrou. */
   pedirLogin(): Promise<boolean>;
+  /**
+   * Quem decide o destino dos paletes quando a política é WmsReal, para um turno: com login, o servidor (flow
+   * `SugerirDestinoJogo`), com a regra do jogo como plano B; sem login, a regra do jogo. `aoAguardar` avisa quando o jogo
+   * fica parado esperando o servidor.
+   */
+  novoDecisor(aoAguardar: (aguardando: boolean) => void): DecisorWmsReal;
 }
 
 /** "Sair" não espera o servidor mais que isto: abandonar a partida é bom, mas não vale travar o botão. */
@@ -133,5 +141,16 @@ export function ligarRede(opcoes: OpcoesAppRede): AppRede {
     },
 
     pedirLogin: () => pedirLogin(),
+
+    novoDecisor(aoAguardar): DecisorWmsReal {
+      return new DecisorWmsReal(rede.cliente, {
+        aoAguardar,
+        aoFalhar: (causa, erro) => {
+          // sessão vencida já tem o seu aviso (ControladorSessao): não repete
+          if (erro instanceof NpdevError && erro.tipo === 'nao_autenticado') return;
+          avisos.mostrar(`O servidor não respondeu à política WMS Office Real (${causa}). O resto do turno usa a regra do jogo, que é a mesma do servidor.`, 'alerta');
+        },
+      });
+    },
   };
 }

@@ -8,6 +8,8 @@
 
 import { acaoDoAtalho } from './app/atalhos';
 import { ligarRede } from './app/appRede';
+import { resumoDecisoes, type DecisorWmsReal } from './app/decisorWmsReal';
+import { EsperaVisivel } from './app/esperaVisivel';
 import type { FonteCenarios, OrigemCenario } from './app/fonteCenarios';
 import type { PartidaOnline } from './app/partidaOnline';
 import { Relogio, VELOCIDADES, type Velocidade } from './app/relogio';
@@ -48,6 +50,15 @@ class Jogo {
   private readonly fonte: FonteCenarios = this.rede.fonte;
   /** A partida do turno atual no servidor (criar ao iniciar, concluir ao fim, abandonar ao desistir). */
   private partidaOnline: PartidaOnline | null = null;
+  /**
+   * WmsReal online: quem decide o destino dos paletes quando a política é WmsReal (o servidor, com a regra do jogo como
+   * plano B). Um por turno; sem login é só a regra do jogo.
+   */
+  private decisor: DecisorWmsReal | null = null;
+  /** O tick que está parado esperando o servidor: enquanto não resolve, o relógio da sim não anda (o desenho segue). */
+  private aguardandoServidor: Promise<void> | null = null;
+  /** O "Aguardando o servidor…" do HUD só aparece se a espera durar (o normal são ~45 ms por palete). */
+  private readonly esperaVisivel = new EsperaVisivel(v => this.hud.marcarAguardandoServidor(v));
   /** Aviso de quando o cenário NÃO veio do servidor (rede caiu e o jogo usou cache/embutido): vai para a tela de resultado. */
   private avisoCenario: string | undefined;
   /**
@@ -184,6 +195,12 @@ class Jogo {
       return;
     }
     const sim = new Simulacao(carregado.pacote, politica);
+    // WmsReal online: o turno anterior não pergunta mais nada ao servidor; o deste turno nasce já aquecendo o flow
+    this.decisor?.parar();
+    this.aguardandoServidor = null;
+    this.esperaVisivel.terminar();
+    this.decisor = this.rede.novoDecisor(a => (a ? this.esperaVisivel.iniciar() : this.esperaVisivel.terminar()));
+    if (politica === 'WmsReal') this.decisor.aquecer();
     // F5: trocar de cenário/reiniciar no meio do turno abandona a partida do servidor; a nova nasce para este turno
     void this.partidaOnline?.desistir();
     this.partidaOnline = this.rede.novaPartida(carregado, politica);
@@ -218,8 +235,13 @@ class Jogo {
     perf?.inicio(agora);
     let ticks = 0;
     if (sim) {
-      ticks = this.relogio.avancar(dt); // 0 com a sim pausada (pré-partida, resultado e pausa)
-      for (let i = 0; i < ticks && !sim.terminado; i++) sim.tick();
+      // 0 com a sim pausada (pré-partida, resultado e pausa); e com um tick esperando o servidor o relógio nem corre:
+      // o tempo real que passa esperando não vira tempo simulado (o turno não depende da latência)
+      ticks = this.aguardandoServidor ? 0 : this.relogio.avancar(dt);
+      for (let i = 0; i < ticks && !sim.terminado; i++) {
+        const espera = this.decisor ? sim.tickSuspenso(this.decisor.decidir) : (sim.tick(), null);
+        if (espera) { this.esperarServidor(espera); break; } // os ticks que sobravam neste quadro ficam para depois da resposta
+      }
       perf?.fase('sim');
       const s = sim.snapshot();
       this.renderer.desenhar(s, this.camera, { heatmap: this.heatmap, vaoSelecionado: this.vaoSelecionado });
@@ -240,9 +262,16 @@ class Jogo {
     requestAnimationFrame(this.frame);
   };
 
+  private esperarServidor(espera: Promise<void>): void {
+    this.aguardandoServidor = espera;
+    const liberar = (): void => { if (this.aguardandoServidor === espera) this.aguardandoServidor = null; };
+    espera.then(liberar, e => { liberar(); console.error('tick da simulação falhou', e); });
+  }
+
   /** Fim do turno: a sim já parou sozinha; pausa o relógio e abre o resultado com o estado final do mapa atrás. */
   private encerrarPartida(s: Snapshot): void {
     this.fase = 'encerrada';
+    this.decisor?.parar();
     this.definirVelocidade(0);
     const resultado = this.pacote ? resultadoDaPartida(s, this.pacote.cenario) : null;
     if (!resultado) return; // sem ordens no cenário não há score: o log e o HUD já mostram "—"
@@ -265,7 +294,7 @@ class Jogo {
 
   /** Extras do servidor + origem real do cenário + o aviso de queda de rede do carregamento (se houve). */
   private extrasCom(extras: ExtrasResultado): ExtrasResultado {
-    const mensagem = [this.avisoCenario, extras.mensagem].filter(Boolean).join(' ');
+    const mensagem = [this.avisoCenario, extras.mensagem, this.decisor ? resumoDecisoes(this.decisor.estatistica) : null].filter(Boolean).join(' ');
     return { ...extras, origem: this.origem, ...(mensagem ? { mensagem } : {}) };
   }
 
@@ -273,6 +302,7 @@ class Jogo {
     const sim = this.sim;
     if (!sim || this.fase !== 'jogando' || sim.snapshot().politica === p) return;
     sim.setPolitica(p);
+    if (p === 'WmsReal') this.decisor?.aquecer();
     this.drawer.avisarTroca(sim.snapshot().relogioSeg, p);
     this.hud.destacarPolitica();
   }

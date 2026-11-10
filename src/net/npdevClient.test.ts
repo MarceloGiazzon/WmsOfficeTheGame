@@ -181,6 +181,18 @@ describe('NpdevClient: erros explícitos (nunca sucesso falso)', () => {
     expect(erro).toMatchObject({ tipo: 'timeout', recuperavel: true });
   });
 
+  it('o prazo de uma chamada pode ser menor que o do cliente (quem espera com o jogo parado)', async () => {
+    const servidor = new ServidorFalso({ pacotes: [] });
+    servidor.adicionarUsuario('jogador', 'senha');
+    const c = new NpdevClient({ fetch: servidor.fetch, timeoutMs: 60_000 }); // o padrão seria esperar 1 min
+    await c.login('jogador', 'senha');
+    servidor.travarProximas(1, ch => ch.caminho === '/flows/X/execute');
+    const t0 = Date.now();
+    const erro = await c.post('/flows/X/execute', {}, { timeoutMs: 20 }).catch(e => e);
+    expect(erro).toMatchObject({ tipo: 'timeout' });
+    expect(Date.now() - t0).toBeLessThan(5_000);
+  });
+
   it('200 com corpo que não é JSON (ex.: HTML de proxy/portal cativo) é resposta_invalida', async () => {
     const { c } = await logado({ status: 200, bruto: '<html>Bem-vindo ao Wi-Fi</html>' });
     await expect(c.get('/x')).rejects.toMatchObject({ tipo: 'resposta_invalida', status: 200 });

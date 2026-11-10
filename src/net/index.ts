@@ -16,7 +16,9 @@
 
 export * from './erros';
 export { NpdevClient } from './npdevClient';
-export type { FetchLike, Http, OpcoesCliente, ParametrosQuery, Sessao, Usuario } from './npdevClient';
+export type { FetchLike, Http, OpcoesCliente, OpcoesChamada, ParametrosQuery, Sessao, Usuario } from './npdevClient';
+export { sugerirDestinoNoServidor } from './alocacao';
+export type { PerguntaDestino } from './alocacao';
 export { buscarCenario, carregarPacote, listarCenarios, validarPacote } from './pacote';
 export {
   ArmazenamentoIndexedDb, ArmazenamentoMemoria, CachePacotes, criarArmazenamentoPadrao, ErroArmazenamento, FORMATO_CACHE,

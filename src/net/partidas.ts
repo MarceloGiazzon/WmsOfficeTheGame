@@ -17,7 +17,7 @@ import type { Metricas, Politica } from '../sim/model';
 import { POLITICAS } from '../sim/model';
 import { erroDeResposta, NpdevError } from './erros';
 import { listarConceito, lerQuery } from './leitura';
-import type { Http } from './npdevClient';
+import type { Http, OpcoesChamada } from './npdevClient';
 import { booleano, enumerado, erroDeFormato, inteiro, objeto, texto, type Obj } from './validacao';
 
 /** Versão do conjunto de regras do motor (`src/sim`). Sobe quando uma regra muda (os goldens de simulation.test.ts mudam junto). */
@@ -100,8 +100,8 @@ function recusa(motivo: string, corpo: unknown): NpdevError {
 }
 
 /** Resposta de `POST /flows/<nome>/execute`: devolve o `output`, lançando se o flow falhou. */
-async function executarFlow(http: Http, nome: string, entrada: Record<string, unknown>): Promise<Obj> {
-  const env = objeto(await http.post(`/flows/${nome}/execute`, entrada), `flow ${nome}`);
+export async function executarFlow(http: Http, nome: string, entrada: Record<string, unknown>, opcoes?: OpcoesChamada): Promise<Obj> {
+  const env = objeto(await http.post(`/flows/${nome}/execute`, entrada, opcoes), `flow ${nome}`);
   if (env.status === 'FAILED') throw erroDeResposta(422, env);
   if (env.status !== 'OK') throw erroDeFormato(`flow ${nome} com status ${String(env.status)}`);
   return objeto(env.output, `flow ${nome}.output`);

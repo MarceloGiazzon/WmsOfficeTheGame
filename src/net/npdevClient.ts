@@ -35,7 +35,13 @@ export interface Http {
   readonly logado: boolean;
   readonly usuario: string | null;
   get(caminho: string, query?: ParametrosQuery): Promise<unknown>;
-  post(caminho: string, corpo: unknown): Promise<unknown>;
+  post(caminho: string, corpo: unknown, opcoes?: OpcoesChamada): Promise<unknown>;
+}
+
+/** Ajustes de uma chamada só. */
+export interface OpcoesChamada {
+  /** Prazo desta chamada; sem ele vale o do cliente (20 s). Quem espera a resposta com o jogo parado usa um bem menor. */
+  timeoutMs?: number;
 }
 
 export type FetchLike = (url: string, init: {
@@ -168,8 +174,8 @@ export class NpdevClient implements Http {
     return this.requisitar('GET', caminho, { query, autenticado: true });
   }
 
-  post(caminho: string, corpo: unknown): Promise<unknown> {
-    return this.requisitar('POST', caminho, { corpo, autenticado: true });
+  post(caminho: string, corpo: unknown, opcoes?: OpcoesChamada): Promise<unknown> {
+    return this.requisitar('POST', caminho, { corpo, autenticado: true, timeoutMs: opcoes?.timeoutMs });
   }
 
   private url(caminho: string, query?: ParametrosQuery): string {
@@ -179,7 +185,7 @@ export class NpdevClient implements Http {
     return `${this.base}${caminho.startsWith('/') ? '' : '/'}${caminho}${s ? `?${s}` : ''}`;
   }
 
-  private async requisitar(metodo: 'GET' | 'POST', caminho: string, o: { query?: ParametrosQuery; corpo?: unknown; autenticado: boolean }): Promise<unknown> {
+  private async requisitar(metodo: 'GET' | 'POST', caminho: string, o: { query?: ParametrosQuery; corpo?: unknown; autenticado: boolean; timeoutMs?: number }): Promise<unknown> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (o.autenticado) {
       const s = this.sessaoValida();
@@ -195,7 +201,7 @@ export class NpdevClient implements Http {
     if (!fetchImpl) throw new NpdevError('rede', 'fetch indisponível neste ambiente.');
 
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), this.timeoutMs);
+    const timer = setTimeout(() => ctl.abort(), o.timeoutMs ?? this.timeoutMs);
     let status: number;
     let ok: boolean;
     let bruto: string;

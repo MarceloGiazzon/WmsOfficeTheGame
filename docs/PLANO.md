@@ -476,7 +476,7 @@ Como ficou (`npm test`: 146 testes; os 5 modos rodam nos dois cenários com os m
 | `FifoPrimeiraLivre` | primeiro local livre na ordem de varredura |
 | `AbcProximidade` | classe A nos 20% de locais mais próximos da expedição, B nos 30% seguintes, C no resto |
 | `Consolidacao` | o local livre da rua que já guarda mais paletes do produto (os a caminho contam); empate: melhor rua do `RankingRua`, posição mais perto da doca, andar mais baixo. É a porta da regra "mesmo lote primeiro" de `sugerirDestino` adaptada a um palete por local |
-| `WmsReal` | `AllocationCapability.sugerirDestino` (porta TS em [`wmsReal.ts`](../src/sim/wmsReal.ts)) sobre os locais livres, com a prioridade da rua no `RankingRua`. Offline; o flow online é da F5 |
+| `WmsReal` | `AllocationCapability.sugerirDestino` (porta TS em [`wmsReal.ts`](../src/sim/wmsReal.ts)) sobre os locais livres, com a prioridade da rua no `RankingRua`. A porta TS é o motor offline e o plano B; com login o destino vem do flow `SugerirDestinoJogo` (F5, abaixo) |
 | `CrossDocking` | palete descarregado vai direto da doca de entrada para a de saída se há saída pendente do mesmo produto; o resto é guardado como em `AbcProximidade` |
 
 - [x] **Cross-docking no motor**: com a política ativa, a saída pendente conta como estoque os paletes do produto que
@@ -691,7 +691,39 @@ sem erros — as 7 mensagens "Failed to load resource" são das requisições qu
 - [ ] `VERSAO_MOTOR` (`partidas.ts`) é manual: subir quando uma regra do motor mudar. **Agora tem consequência:** o ranking
   só compara a mesma versão, então esquecer de subir mistura scores de regras diferentes, e subir zera o ranking visível.
   (Um item enfileirado offline leva a versão de quando foi jogado.)
-- [ ] Política **WmsReal online** (flow `SugerirDestinoJogo`, D2) continua só com a porta TS offline.
+- [x] **Política WmsReal online** (flow `SugerirDestinoJogo`, D2) — feito. Decisões e números:
+  - **Por palete, não por lote** (D2 dizia "por lote de recebimento"): o motor escolhe o destino no despacho, palete a palete, e
+    um lote de 1–2 paletes não economiza chamada. Medido num turno completo: **WH-A 56 decisões** (~10 locais livres cada) e
+    **WH-B 493 decisões** (~570 locais livres cada: 282 mil candidatos por turno, da ordem de 25 MB se mandasse a lista inteira — estimativa, ~90 bytes por candidato com UUID).
+  - **Só a faixa de melhor prioridade vai ao servidor** (`candidatosQueConcorrem`, [`wmsReal.ts`](../src/sim/wmsReal.ts)): a ordenação do
+    Java é (mesmo lote, menor prioridade, id em texto), então quem tem prioridade pior nunca ganha; o desempate — a parte que o
+    servidor tem de resolver — continua com ele. A redução é conferida contra a lista inteira (fixtures de paridade + 5000 entradas
+    aleatórias, com mutação). Medido no turno inteiro: WH-B manda **em média 27 candidatos por pergunta (máx. 92)** — 13 mil
+    no turno em vez de 282 mil (21× menos); WH-A, em média 3 (máx. 8).
+  - **O relógio da sim para enquanto espera**: `Simulacao.tickSuspenso(decisor)` ([`simulation.ts`](../src/sim/simulation.ts)) roda o tick como
+    gerador e o deixa parado no `yield` da pergunta; relógio e estado só andam quando a resposta chega. Resultado: com as mesmas
+    respostas, o turno é **o mesmo** seja qual for a latência (testado com atrasos variáveis, WH-A e WH-B), e o `tick()` síncrono
+    continua igual (turno completo da WH-B: 141–164 ms antes e depois, dentro do ruído da máquina). `terminado` só vira verdadeiro quando o último tick terminou, para o resultado nunca sair
+    de um tick pela metade. Resposta que não é um local livre cai na porta TS.
+  - **O servidor manda** ([`decisorWmsReal.ts`](../src/app/decisorWmsReal.ts)): a resposta dele é o destino, mesmo se diferir da porta TS —
+    e a diferença é **contada e mostrada** na tela de resultado ("WMS Office Real: o servidor escolheu o destino de todos os 56
+    paletes. Todas iguais à regra do jogo."). **Falhou uma vez (rede, prazo de 6 s, sessão, formato), o resto do turno usa a porta
+    TS** — a mesma regra — sem insistir com o jogo parado; aviso uma vez (a sessão vencida já tem o seu). Convidado: nenhuma
+    chamada, e o resultado diz "jogada sem o servidor". O 1º flow depois de o servidor subir leva ~3 s: `aquecer()` faz uma pergunta
+    à toa no começo do turno (ou ao trocar para WmsReal).
+  - **Custo**: ~50 ms por decisão no servidor local → **~25 s de espera acumulada num turno da WH-B** (~3 s na WH-A). A faixa
+    "Aguardando o servidor…" só aparece se uma espera passar de 350 ms. Se a latência de rede real pesar (APK), a saída é um flow
+    novo que devolva a ordem de preferência inteira de uma vez (a ordem é estática no jogo) — exige mudar o backend; não feito.
+  - **Evidência**: `npm test` 607 passam (eram 556; mais 16 ao vivo, pulados sem `NPDEV_LIVE=1`), `typecheck` e `build` limpos. **Ao vivo na 8200** (`NPDEV_LIVE=1`, `live.test.ts`): turno completo da WH-A e da WH-B com o
+    servidor decidindo **todos** os paletes (56 e 493), **0 divergências**, mesmo resultado do offline (métricas, score, log
+    inteiro); `f3_paridade_alocacao.py` ok. **Chrome headless** (1280×800 e 390×844, relógio acelerado): servidor lento (espera
+    vista, relógio do HUD parado nela, 2 esperas de ~0,9 s), servidor que some na 11ª decisão (aviso, 10 + 46 paletes, mesmo score), convidado (zero
+    chamadas), celular (chip cabe, sem rolagem horizontal); console sem erros. O banco foi limpo (as partidas de teste apagadas pelo admin).
+  - **Achado**: o pacote que o servidor serve tem UUIDs, e o desempate por id em texto os faz escolher outros locais que os aliases do
+    embutido — WH-A WmsReal dá **82,86** com o pacote do servidor (online, convidado com cache e offline iguais entre si) e 83,79 com o
+    embutido. Não é bug (já estava no §F2/F3), mas explica por que o número do navegador não bate com a tabela da F3.
+  - `VERSAO_MOTOR` não mudou (a regra offline é a mesma). **Se a regra do Java mudar, suba a versão**: o servidor passa a decidir
+    diferente do que o cliente offline faria e o ranking não pode misturar.
 - [x] ~~Desempate da curva ABC por `codigo` em vez de `id`~~ — feito em `297c8ef` (online e offline jogam o mesmo estoque inicial: 85,52 nos dois, conferido no navegador).
 - [x] ~~Retentativa sem *backoff*~~ — feito: quando uma rodada para por falha de rede/servidor com partida na fila, o `Sincronizador`
   tenta de novo sozinho (5 s, 10 s, 20 s… até 5 min, ±20% de aleatoriedade); `online`, "Enviar agora", login e fim de partida

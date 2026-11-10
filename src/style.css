@@ -84,6 +84,7 @@ button, select, input { font-family: inherit; }
 .chip-estado[data-estado='ativo'] { color: var(--accent-green); border-color: var(--accent-green); }
 .chip-estado[data-estado='pausa'] { color: var(--accent-amber); border-color: var(--accent-amber); }
 .chip-estado[data-estado='fim'] { color: var(--text-main); border-color: var(--text-muted); }
+.chip-estado[data-estado='espera'] { color: var(--accent-amber); border-color: var(--accent-amber); }
 
 .selo {
   display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 0.68rem; font-weight: 700;

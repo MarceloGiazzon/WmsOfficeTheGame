@@ -16,8 +16,9 @@ import { construirLayout, type Layout, type LayoutDoca, type Ponto } from './lay
 import { calcularCurvaAbc, gerarEstoqueInicial, OCUPACAO_INICIAL_CENTESIMOS, type CurvaAbc } from './estoque';
 import type { EstadoLocal, Metricas, Ordem, PacoteCenario, Politica } from './model';
 import { Malha, type Trecho } from './pathing';
-import { escolherDestino, escolherOrigens, type ContextoPolitica } from './politicas';
+import { candidatosWmsReal, escolherDestino, escolherOrigens, type ContextoPolitica } from './politicas';
 import { calcularScore, type ResultadoScore } from './score';
+import { sugerirDestino, type CandidatoDestino } from './wmsReal';
 import { calcularDistanciaTeorica } from './teorica';
 
 export type { EstadoLocal } from './model';
@@ -53,6 +54,22 @@ export interface Evento {
   seg: number;
   texto: string;
 }
+
+/**
+ * A pergunta "onde guardo este palete?" no formato de entrada de `sugerirDestino`: o lote (a ordem de entrada) e todos
+ * os locais livres, cada um com a prioridade da sua rua. Cada local guarda um palete, então ninguém é "do mesmo lote".
+ */
+export interface ConsultaDestino {
+  readonly loteId: string;
+  readonly candidatos: readonly CandidatoDestino[];
+}
+
+/**
+ * Quem responde a `ConsultaDestino` quando a política é WmsReal e o jogo quer outra fonte que não a porta TS (o servidor).
+ * Devolve o id do local escolhido (ou null: sem destino agora). Pode demorar: ver `Simulacao.tickSuspenso`. Não deve
+ * rejeitar; se rejeitar, o motor usa a porta TS. Um id que não é um local livre também cai na porta TS.
+ */
+export type DecisorDestino = (consulta: ConsultaDestino) => string | null | Promise<string | null>;
 
 /** Uma entrada do histórico de políticas: a política que passou a valer em `seg` (a primeira é a inicial, no início do turno). */
 export interface TrocaPolitica {
@@ -120,6 +137,9 @@ type Tarefa = { seq: number; criadaSeg: number } & (
 /** Prazo que ordena o despacho: o da ordem a que a tarefa serve (no cross-docking, o mais apertado das duas). */
 const prazoDaTarefa = (t: Tarefa): number => (t.tipo === 'CrossDock' ? Math.min(t.ordem.prazoSeg, t.saida.prazoSeg) : t.ordem.prazoSeg);
 
+/** Um tick (ou o despacho dentro dele): cada `yield` é uma pergunta de destino, e a resposta volta pelo `next`. */
+type PassoDoTick = Generator<ConsultaDestino, void, string | null>;
+
 interface DocaInterna {
   doca: LayoutDoca;
   ocupadaPor: OrdemEstado | null;
@@ -153,6 +173,8 @@ export class Simulacao {
   private tarefas: Tarefa[] = [];
   private tarefasDesordenadas = false;
   private seqTarefa = 0;
+  /** Há um tick parado no meio, esperando o decisor (ver `tickSuspenso`). */
+  private pendente: Promise<void> | null = null;
 
   private readonly travas = new Map<string, string>();
   private readonly filasTrava = new Map<string, string[]>();
@@ -212,24 +234,94 @@ export class Simulacao {
       `(${(OCUPACAO_INICIAL_CENTESIMOS / 100).toFixed(0)}% de ocupação, pesos da curva ABC).`);
   }
 
-  get terminado(): boolean {
+  /** O relógio chegou ao fim do turno. (O último tick pode ainda estar parado esperando o decisor: ver `terminado`.) */
+  private get tempoEsgotado(): boolean {
     return this.relogioSeg >= this.pacote.cenario.fimTurnoSeg;
   }
 
-  /** Avança 1 segundo simulado. Não faz nada depois do fim do turno. */
+  /** O turno acabou DE VERDADE: o tempo esgotou e o último tick terminou (inclusive `encerrarTurno`, que fecha o log e o score). */
+  get terminado(): boolean {
+    return this.tempoEsgotado && this.pendente === null;
+  }
+
+  /** Avança 1 segundo simulado. Não faz nada depois do fim do turno. Síncrono: a política WmsReal usa a porta TS. */
   tick(): void {
-    if (this.terminado) return;
+    if (this.tempoEsgotado || this.pendente) return; // com um tick suspenso no meio, nada anda até ele terminar
+    this.antesDoDespacho();
+    if (this.tarefas.length > 0) this.despachar(false).next(); // sem consulta externa o gerador nunca suspende: um `next()` basta
+    this.depoisDoDespacho();
+  }
+
+  /**
+   * Como `tick()`, mas com a política WmsReal o destino de cada palete é perguntado ao `decisor` (o servidor). Devolve
+   * `null` se o tick terminou sem esperar (resposta imediata, ou outra política), ou uma promessa que resolve quando ele
+   * terminou. Enquanto ela não resolve o tick está PARADO no meio — o relógio e o estado só andam quando a resposta
+   * chega —, então o turno não depende de quanto o servidor demora: com as mesmas respostas, o mesmo resultado.
+   * Não chame `tick()` nem `tickSuspenso()` de novo antes de a promessa resolver.
+   */
+  tickSuspenso(decisor: DecisorDestino): Promise<void> | null {
+    if (this.pendente) return this.pendente; // já há um tick esperando: devolve a mesma promessa, sem andar
+    if (this.politica !== 'WmsReal') { this.tick(); return null; }
+    if (this.tempoEsgotado) return null;
+    const passo = this.passo(true);
+    const espera = this.conduzir(passo, passo.next(), decisor);
+    if (espera === null) return null;
+    const fim: Promise<void> = espera.finally(() => { if (this.pendente === fim) this.pendente = null; });
+    this.pendente = fim;
+    return fim;
+  }
+
+  private conduzir(passo: PassoDoTick, atual: IteratorResult<ConsultaDestino, void>, decisor: DecisorDestino): Promise<void> | null {
+    while (!atual.done) {
+      const consulta = atual.value;
+      let resposta: string | null | Promise<string | null>;
+      try { resposta = decisor(consulta); } catch { resposta = this.destinoDaPortaTs(consulta); }
+      if (typeof resposta === 'object' && resposta !== null) { // promessa: espera, com o tick parado no meio
+        return resposta
+          .catch(() => this.destinoDaPortaTs(consulta))
+          .then(r => this.conduzir(passo, passo.next(r), decisor) ?? undefined);
+      }
+      atual = passo.next(resposta);
+    }
+    return null;
+  }
+
+  /** A resposta da porta TS de `sugerirDestino`: o plano B quando o decisor falha. */
+  private destinoDaPortaTs(c: ConsultaDestino): string | null {
+    const r = sugerirDestino(null, { loteId: c.loteId, candidatos: [...c.candidatos] });
+    return r.sucesso ? r.localArmazenagemId : null;
+  }
+
+  /**
+   * Um tick, como gerador para poder parar no meio: só o despacho suspende (cada `yield` é uma `ConsultaDestino` e a
+   * resposta volta pelo `next`). Com `consultar = false` nunca suspende.
+   */
+  private *passo(consultar: boolean): PassoDoTick {
+    if (this.tempoEsgotado) return;
+    this.antesDoDespacho();
+    yield* this.despachar(consultar);
+    this.depoisDoDespacho();
+  }
+
+  private antesDoDespacho(): void {
     this.relogioSeg += 1;
     this.liberarOrdens();
     this.avancarDocasEntrada();
     this.iniciarSaidas();
-    this.despachar();
+  }
+
+  private depoisDoDespacho(): void {
     for (const e of this.equipamentos) this.avancarEquipamento(e);
-    if (this.terminado) this.encerrarTurno();
+    if (this.tempoEsgotado) this.encerrarTurno();
+  }
+
+  /** A política que vale agora. */
+  get politicaAtual(): Politica {
+    return this.politica;
   }
 
   setPolitica(p: Politica): void {
-    if (this.terminado || p === this.politica) return; // depois do fim do turno nada mais é alocado: não vira "troca" no histórico
+    if (this.tempoEsgotado || p === this.politica) return; // depois do fim do turno nada mais é alocado: não vira "troca" no histórico
     this.politica = p;
     this.registrarTroca(p);
     this.registrar(`Política alterada para ${p} (vale para as próximas alocações).`);
@@ -418,7 +510,7 @@ export class Simulacao {
     this.tarefasDesordenadas = true;
   }
 
-  private despachar(): void {
+  private *despachar(consultar: boolean): PassoDoTick {
     if (this.tarefas.length === 0) return;
     let ociosos = this.equipamentos.filter(e => e.passos.length === 0);
     if (ociosos.length === 0) return;
@@ -438,8 +530,13 @@ export class Simulacao {
           restantes.push(t);
           continue;
         }
-        destinoId = this.locaisDisponiveis > 0
-          ? escolherDestino(this.politica, this.ctxPolitica, t.ordem.ordem.produtoId, t.ordem.ordem.id) : null;
+        if (this.locaisDisponiveis === 0) destinoId = null;
+        else if (consultar && this.politica === 'WmsReal') {
+          const consulta: ConsultaDestino = { loteId: t.ordem.ordem.id, candidatos: candidatosWmsReal(this.ctxPolitica) };
+          destinoId = yield consulta; // o tick fica parado aqui até o decisor responder
+          // resposta que não é um local livre (servidor com defeito, ou política trocada no meio): a porta TS decide
+          if (destinoId !== null && this.locais.get(destinoId)?.situacao !== 'Disponivel') destinoId = this.destinoDaPortaTs(consulta);
+        } else destinoId = escolherDestino(this.politica, this.ctxPolitica, t.ordem.ordem.produtoId, t.ordem.ordem.id);
         if (destinoId === null) { restantes.push(t); continue; } // sem local livre: espera uma saída liberar
       }
       const partida = t.tipo === 'Picking' ? this.localLayout.get(t.origemId)!.acesso : t.doca.acesso;

@@ -35,6 +35,8 @@ export class Hud {
   private readonly verResultado = el('btn-ver-resultado');
 
   private velocidade: Velocidade = 1;
+  private aguardandoServidor = false;
+  private terminadoAgora = false;
   private politicaMostrada: Politica | null = null;
   private flashTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -70,6 +72,25 @@ export class Hud {
     cabecalho.addEventListener('keydown', e => {
       if (e.key === 'Escape' && cabecalho.classList.contains('expandido')) { definir(false); botao.focus(); }
     });
+  }
+
+  /** O jogo está parado esperando o servidor decidir o destino de um palete (política WmsReal). */
+  marcarAguardandoServidor(aguardando: boolean): void {
+    this.aguardandoServidor = aguardando;
+    this.desenharEstado();
+  }
+
+  private desenharEstado(): void {
+    if (this.terminadoAgora) {
+      definirTexto(this.estado, 'Turno encerrado');
+      this.estado.dataset.estado = 'fim';
+    } else if (this.aguardandoServidor) {
+      definirTexto(this.estado, 'Aguardando o servidor…');
+      this.estado.dataset.estado = 'espera';
+    } else {
+      definirTexto(this.estado, this.velocidade === 0 ? 'Pausado' : `Em andamento · ${this.velocidade}x`);
+      this.estado.dataset.estado = this.velocidade === 0 ? 'pausa' : 'ativo';
+    }
   }
 
   marcarVelocidade(v: Velocidade): void {
@@ -121,9 +142,8 @@ export class Hud {
       this.politicaMostrada = s.politica;
     }
 
-    if (s.terminado) definirTexto(this.estado, 'Turno encerrado');
-    else definirTexto(this.estado, this.velocidade === 0 ? 'Pausado' : `Em andamento · ${this.velocidade}x`);
-    this.estado.dataset.estado = s.terminado ? 'fim' : this.velocidade === 0 ? 'pausa' : 'ativo';
+    this.terminadoAgora = s.terminado;
+    this.desenharEstado();
     this.verResultado.hidden = !s.terminado;
   }
 }

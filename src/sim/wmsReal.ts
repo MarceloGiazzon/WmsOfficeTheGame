@@ -124,6 +124,24 @@ export function sugerirDestino(crossDockings: readonly CrossDockingRef[] | null,
   };
 }
 
+/**
+ * Só os candidatos que ainda podem ganhar de `sugerirDestino`, sem mudar o resultado: a ordenação do Java é (1) mesmo
+ * lote primeiro, (2) menor prioridade, (3) id em texto. Então, se alguém é do mesmo lote, só os do mesmo lote com a
+ * menor prioridade entre eles concorrem; se ninguém é, só os de menor prioridade. É o que permite perguntar ao servidor
+ * sobre uma rua em vez de sobre o armazém inteiro (WH-B: ~570 locais livres por decisão → algumas dezenas) sem o
+ * cliente decidir nada: o desempate, que é a parte que o servidor tem de resolver, continua com ele.
+ * Se o Java mudar a ordenação, o teste de paridade com as fixtures quebra, e `wmsReal.test.ts` confere esta redução
+ * contra a lista inteira.
+ */
+export function candidatosQueConcorrem(loteId: string | null | undefined, candidatos: readonly CandidatoDestino[]): CandidatoDestino[] {
+  if (candidatos.length === 0) return [];
+  const doLote = candidatos.filter(c => mesmoId(c.loteOcupanteId, loteId));
+  const pool = doLote.length > 0 ? doLote : candidatos;
+  let melhor = Infinity;
+  for (const c of pool) melhor = Math.min(melhor, prioridade(c.prioridade));
+  return pool.filter(c => prioridade(c.prioridade) === melhor);
+}
+
 /** `AllocationCapability.sugerirOrigem` (FEFO: validade, depois prioridade). */
 export function sugerirOrigem(crossDockings: readonly CrossDockingRef[] | null, entrada: EntradaSugerirOrigem): ResultadoSugerirOrigem {
   const necessaria = paraLong(entrada.quantidadeNecessaria);
