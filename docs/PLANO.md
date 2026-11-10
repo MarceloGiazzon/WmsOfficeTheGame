@@ -283,7 +283,32 @@ GET cenário → { cenario, armazem, areas[], ruas[], locais[], produtos[], orde
 - [x] Vitest como dev dependency; scripts `test`, `typecheck`.
 - [x] Commits com mensagem descritiva daqui em diante.
 
-### F1. Separação sim / render / ui
+### F1. Separação sim / render / ui ✅ (2026-11-10)
+
+Como ficou (`npm test`: 51 testes; verificado no navegador — WH-A, inspector, WH-B, heatmap, zoom):
+
+```
+src/
+  sim/      model.ts (tipos = concepts + pacote N4) · rng.ts (mulberry32, = Java) · score.ts (= Java, fixtures
+            compartilhadas) · layout.ts (geometria em cm, pontos de acesso) · simulation.ts (estado + tick + snapshot)
+  render/   camera.ts (cm ↔ px, zoom ancorado) · renderer.ts (desenha o snapshot) · input.ts (arrastar/roda/clique)
+  ui/       hud.ts · inspector.ts · drawer.ts
+  app/      relogio.ts (tempo real → ticks; 1x = 30 s simulados por segundo real, turno de 10 h em 20 min)
+  data/     cenarios/WH-A-PEQUENO.json, WH-B-MEGA.json — pacotes gerados dos seeds do backend
+            (backend/npdev/tools/gerar_pacotes_front.py); WH-B carregado sob demanda
+  main.ts   liga tudo: rAF → Relogio → n × tick() → render + UI
+```
+
+- Sim pura: sem DOM, sem `Math.random`, sem relógio de parede; passo fixo de 1 s simulado (a velocidade só muda
+  quantos ticks rodam por frame). O render e a UI recebem um `Snapshot` com tipos `readonly`.
+- Geometria (`GEOMETRIA` em `layout.ts`): posição 120 cm, rack 110 cm, corredor 300 cm, corredor principal 400 cm,
+  doca 400 × 350 cm. Docas de saída no alto (perto de R01, prioridade 1 do `RankingRua`), de entrada embaixo.
+  Andares ocupam o mesmo x,y (o render agrupa em "vãos").
+- Sai o protótipo: layout/ocupação/rotas aleatórios, `NPDevClient` com sucesso falso (o cliente real entra na F5) e o
+  botão "Injetar NF". KPIs mostram só o que existe (relógio, ordens liberadas, ocupação; score "—" até a F2).
+- A sim da F1 já libera as ordens no horário e registra no log; equipamentos ficam parados nas docas (F2).
+
+Plano original:
 
 ```
 src/
@@ -305,7 +330,8 @@ src/
 
 ### F2. Núcleo da simulação (com mock local)
 
-- [ ] Layout a partir de `Rua.qtdPosicoes × qtdAndares`; docas a partir das `Area` de recebimento/expedição.
+- [x] Layout a partir de `Rua.qtdPosicoes × qtdAndares`; docas a partir das `Area` de recebimento/expedição (F1).
+- [ ] Estoque inicial gerado do seed do cenário (os cenários começam vazios e há ordens de saída desde 08:00).
 - [ ] Ordens liberadas por `liberacaoSeg`; fila por doca.
 - [ ] Inbound: política escolhe o local → tarefa de putaway → equipamento livre mais próximo.
 - [ ] Outbound: `sugerirOrigem` (FIFO por validade) → tarefa de picking → doca de saída.

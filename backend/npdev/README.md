@@ -42,6 +42,9 @@ Concepts `Sim*`, capability `simulacao`, role `JOGADOR` e seeds de cenários —
 | N2 | Capability `simulacao` (`calcularScore`, `validarScore`, `gerarOrdens`); flows `CalcularScoreSimulacao`, `ConcluirPartida`, `GerarOrdensSimulacao`, `SugerirDestinoJogo` | `python3 backend/npdev/tests/n2_simulacao_capability.py` (offline) e `n2_simulacao_flows.py` (ao vivo) |
 | N3 | Role `Jogador` + regras por linha (`access`) em `SimPartida`/`SimScore`/WMS; queries `CenariosAtivos`, `OrdensPorCenario`, `RankingPorCenario`; flow `AbandonarPartida`; seeds `cenario-wh-a-pequeno` e `cenario-wh-b-mega` (`tools/gerar_seeds_cenarios.py`, `tools/semear_cenarios.py`) | `n3_jogador.py` (ao vivo) |
 
+Ao mudar os seeds dos cenários: `python3 backend/npdev/tools/gerar_seeds_cenarios.py` (seeds) e
+`python3 backend/npdev/tools/gerar_pacotes_front.py` (pacotes offline do front em `src/data/cenarios/`).
+
 Regenerar + compilar + subir (preserva as chaves JWT): `backend/npdev/rebuild.sh` (`--reset-db` para banco novo
 com admin e cenários).
 

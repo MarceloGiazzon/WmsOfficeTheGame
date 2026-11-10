@@ -1,86 +1,102 @@
-import { WarehouseEngine } from './game/WarehouseEngine';
-import { NPDevClient } from './services/npdevClient';
-import { LocalArmazenagem, PoliticaAlocacao } from './models/types';
+// Bootstrap: liga sim (estado) → render (canvas) → ui (DOM). Cada camada só conhece a de baixo.
+//
+//   requestAnimationFrame ─► Relogio.avancar(dt) ─► n × Simulacao.tick()
+//                         └► Renderer.desenhar(snapshot)  +  Hud/Drawer.atualizar(snapshot)
 
-class GameController {
-  private engine!: WarehouseEngine;
-  private client: NPDevClient = new NPDevClient();
-  private speed: number = 1.0;
-  private simulatedSeconds: number = 8 * 3600;
+import { Relogio } from './app/relogio';
+import { Camera } from './render/camera';
+import { ligarEntrada } from './render/input';
+import { Renderer } from './render/renderer';
+import type { PacoteCenario, Politica } from './sim/model';
+import { Simulacao } from './sim/simulation';
+import { Drawer } from './ui/drawer';
+import { Hud } from './ui/hud';
+import { Inspector } from './ui/inspector';
 
-  constructor() {
-    window.addEventListener('DOMContentLoaded', () => this.init());
+// Pacotes offline gerados dos seeds do backend (backend/npdev/tools/gerar_pacotes_front.py).
+// F5 troca esta fonte pelo backend (com cache para offline).
+const CENARIOS: Record<string, () => Promise<{ default: unknown }>> = {
+  'WH-A-PEQUENO': () => import('./data/cenarios/WH-A-PEQUENO.json'),
+  'WH-B-MEGA': () => import('./data/cenarios/WH-B-MEGA.json'),
+};
+
+class Jogo {
+  private readonly canvas = document.getElementById('warehouse-canvas') as HTMLCanvasElement;
+  private readonly renderer = new Renderer(this.canvas.getContext('2d')!);
+  private readonly camera = new Camera();
+  private readonly relogio = new Relogio();
+  private sim: Simulacao | null = null;
+  private politica: Politica = 'AbcProximidade';
+  private heatmap = false;
+  private vaoSelecionado: string | null = null;
+  private ultimoFrame = 0;
+
+  private readonly hud = new Hud(v => { this.relogio.velocidade = v; });
+  private readonly inspector = new Inspector(() => { this.vaoSelecionado = null; });
+  private readonly drawer = new Drawer(
+    Object.keys(CENARIOS),
+    p => { this.politica = p; this.sim?.setPolitica(p); },
+    c => void this.carregar(c),
+  );
+
+  async iniciar(): Promise<void> {
+    this.redimensionar();
+    window.addEventListener('resize', () => this.redimensionar());
+    ligarEntrada(this.canvas, this.camera, p => this.clicar(p.x, p.y));
+    const centro = () => ({ x: this.canvas.width / 2, y: this.canvas.height / 2 });
+    document.getElementById('btn-zoom-in')!.addEventListener('click', () => this.camera.zoom(1.25, centro()));
+    document.getElementById('btn-zoom-out')!.addEventListener('click', () => this.camera.zoom(1 / 1.25, centro()));
+    document.getElementById('btn-reset-cam')!.addEventListener('click', () => this.enquadrar());
+    document.getElementById('btn-toggle-heatmap')!.addEventListener('click', () => { this.heatmap = !this.heatmap; });
+    this.hud.marcarVelocidade(this.relogio.velocidade);
+
+    await this.carregar('WH-A-PEQUENO');
+    requestAnimationFrame(this.frame);
   }
 
-  private init() {
-    const canvas = document.getElementById('warehouse-canvas') as HTMLCanvasElement;
-    this.engine = new WarehouseEngine(canvas, (l) => this.showInspector(l));
-
-    const speeds = [
-      { id: 'btn-pause', v: 0 }, { id: 'btn-play-1x', v: 1 },
-      { id: 'btn-play-2x', v: 2 }, { id: 'btn-play-5x', v: 5 }
-    ];
-    speeds.forEach(s => {
-      document.getElementById(s.id)?.addEventListener('click', () => {
-        speeds.forEach(b => document.getElementById(b.id)?.classList.remove('active'));
-        document.getElementById(s.id)?.classList.add('active');
-        this.speed = s.v;
-      });
-    });
-
-    document.getElementById('btn-zoom-in')?.addEventListener('click', () => this.engine.zoom(0.2));
-    document.getElementById('btn-zoom-out')?.addEventListener('click', () => this.engine.zoom(-0.2));
-    document.getElementById('btn-reset-cam')?.addEventListener('click', () => this.engine.resetCamera());
-    document.getElementById('btn-toggle-heatmap')?.addEventListener('click', () => this.engine.toggleHeatmap());
-    document.getElementById('inspector-close')?.addEventListener('click', () => {
-      document.getElementById('inspector-card')?.classList.add('hidden');
-    });
-
-    document.getElementById('btn-inject-batch')?.addEventListener('click', async () => {
-      this.log('Novo lote de NF-e injetado na Doca 01.');
-      await this.client.injetarLoteNotasFiscais('warehouse-a-small');
-    });
-
-    document.getElementById('select-policy')?.addEventListener('change', async (e) => {
-      const val = (e.target as HTMLSelectElement).value as PoliticaAlocacao;
-      this.log(`Política alterada: ${val}`);
-      await this.client.atualizarPolitica(val);
-    });
-
-    setInterval(() => {
-      if (this.speed > 0) {
-        this.simulatedSeconds += this.speed;
-        this.engine.update(this.speed);
-        const clock = document.getElementById('kpi-clock');
-        if (clock) clock.innerText = this.formatTime(this.simulatedSeconds);
-      }
-    }, 1000 / 30);
+  private async carregar(codigo: string): Promise<void> {
+    const pacote = (await CENARIOS[codigo]()).default as PacoteCenario;
+    this.sim = new Simulacao(pacote, this.politica);
+    this.vaoSelecionado = null;
+    this.inspector.esconder();
+    this.drawer.selecionar(codigo, this.politica);
+    this.enquadrar();
   }
 
-  private showInspector(local: LocalArmazenagem) {
-    const card = document.getElementById('inspector-card');
-    card?.classList.remove('hidden');
-    (document.getElementById('inspector-title') as HTMLElement).innerText = `Posição: ${local.codigo}`;
-    (document.getElementById('inspector-rua') as HTMLElement).innerText = local.ruaNome;
-    (document.getElementById('inspector-produto') as HTMLElement).innerText = local.produtoNome || 'Livre';
-    (document.getElementById('inspector-abc') as HTMLElement).innerText = `Classe ${local.classeABC || 'N/A'}`;
-    (document.getElementById('inspector-pickings') as HTMLElement).innerText = `${local.acessosPicking} ciclos`;
+  private frame = (agora: number): void => {
+    const dt = this.ultimoFrame ? agora - this.ultimoFrame : 0;
+    this.ultimoFrame = agora;
+    const sim = this.sim;
+    if (sim) {
+      const ticks = this.relogio.avancar(dt);
+      for (let i = 0; i < ticks && !sim.terminado; i++) sim.tick();
+      const s = sim.snapshot();
+      this.renderer.desenhar(s, this.camera, { heatmap: this.heatmap, vaoSelecionado: this.vaoSelecionado });
+      this.hud.atualizar(s);
+      this.drawer.atualizarLog(s.eventos);
+    }
+    requestAnimationFrame(this.frame);
+  };
+
+  private clicar(x: number, y: number): void {
+    if (!this.sim) return;
+    const s = this.sim.snapshot();
+    const vao = this.renderer.vaoEm(s.layout, x, y);
+    this.vaoSelecionado = vao?.chave ?? null;
+    if (vao) this.inspector.mostrar(vao, s, this.sim.pacote);
+    else this.inspector.esconder();
   }
 
-  private log(msg: string) {
-    const ul = document.getElementById('sim-events-log');
-    if (!ul) return;
-    const li = document.createElement('li');
-    li.innerText = `[${this.formatTime(this.simulatedSeconds)}] ${msg}`;
-    ul.prepend(li);
+  private redimensionar(): void {
+    const pai = this.canvas.parentElement!;
+    this.canvas.width = pai.clientWidth;
+    this.canvas.height = pai.clientHeight;
   }
 
-  private formatTime(s: number) {
-    const h = String(Math.floor(s / 3600) % 24).padStart(2, '0');
-    const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
-    const sec = String(Math.floor(s % 60)).padStart(2, '0');
-    return `${h}:${m}:${sec}`;
+  private enquadrar(): void {
+    if (!this.sim) return;
+    this.camera.enquadrar(this.sim.layout.largura, this.sim.layout.altura, this.canvas.width, this.canvas.height);
   }
 }
 
-new GameController();
+void new Jogo().iniciar();

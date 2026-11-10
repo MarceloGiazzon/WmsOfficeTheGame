@@ -4,10 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>WmsOffice: The Game</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230b1120'/%3E%3Crect x='3' y='4' width='10' height='3' fill='%233b82f6'/%3E%3Crect x='3' y='9' width='10' height='3' fill='%23f59e0b'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/src/style.css" />
-  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
-  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
-  <link href="[https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap)" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="app">
@@ -24,16 +25,16 @@
           <span id="kpi-clock" class="kpi-value font-mono">08:00:00</span>
         </div>
         <div class="kpi-card">
-          <span class="kpi-label">SCORE EFICIÊNCIA</span>
-          <span id="kpi-score" class="kpi-value font-mono highlight">94.2%</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-label">DISTÂNCIA TOTAL</span>
-          <span id="kpi-distance" class="kpi-value font-mono">1.240 m</span>
+          <span class="kpi-label">ORDENS LIBERADAS</span>
+          <span id="kpi-orders" class="kpi-value font-mono">0/0</span>
         </div>
         <div class="kpi-card">
           <span class="kpi-label">OCUPAÇÃO</span>
-          <span id="kpi-occupancy" class="kpi-value font-mono">68%</span>
+          <span id="kpi-occupancy" class="kpi-value font-mono">0%</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">SCORE EFICIÊNCIA</span>
+          <span id="kpi-score" class="kpi-value font-mono highlight">—</span>
         </div>
       </div>
 
@@ -58,15 +59,10 @@
 
       <div id="inspector-card" class="inspector-card hidden">
         <div class="inspector-header">
-          <h3 id="inspector-title">Posição A-01-02</h3>
+          <h3 id="inspector-title">Posição</h3>
           <button id="inspector-close" class="btn-icon">✕</button>
         </div>
-        <div class="inspector-body">
-          <div class="prop-row"><span>Rua / Bloco:</span><b id="inspector-rua">Rua 01</b></div>
-          <div class="prop-row"><span>Produto:</span><b id="inspector-produto">SKU-9921</b></div>
-          <div class="prop-row"><span>Rotatividade (ABC):</span><b id="inspector-abc" class="badge-abc">Classe A</b></div>
-          <div class="prop-row"><span>Acessos / Picking:</span><b id="inspector-pickings">48 ciclos</b></div>
-        </div>
+        <div id="inspector-body" class="inspector-body"></div>
       </div>
     </main>
 
@@ -84,31 +80,23 @@
             <p class="config-hint">Regra aplicada quando novos paletes chegam na doca.</p>
             <div class="form-group">
               <label for="select-policy">Estratégia:</label>
-              <select id="select-policy" class="form-select">
-                <option value="ABC_PROXIMITY">Curva ABC por Proximidade de Doca</option>
-                <option value="FIFO_FIRST_AVAILABLE">FIFO + Primeira Posição Disponível</option>
-                <option value="VOLUME_CONSOLIDATION">Consolidação de Lote</option>
-                <option value="RANDOM_STRESS">Aleatório (Cenário de Teste / Caos)</option>
-              </select>
+              <select id="select-policy" class="form-select"></select>
             </div>
           </div>
 
           <div class="config-panel">
-            <h3>Carga de Trabalho</h3>
+            <h3>Cenário</h3>
+            <p class="config-hint">Trocar de cenário reinicia o turno.</p>
             <div class="form-group">
-              <label for="select-scenario">Cenário Seed:</label>
-              <select id="select-scenario" class="form-select">
-                <option value="warehouse-a-small">Warehouse A - Pequeno Porte (200 SKUs)</option>
-                <option value="warehouse-b-large">Warehouse B - Megacentro (1.500 SKUs)</option>
-              </select>
+              <label for="select-scenario">Cenário:</label>
+              <select id="select-scenario" class="form-select"></select>
             </div>
-            <button id="btn-inject-batch" class="btn-primary">Injetar Novo Lote de NF</button>
           </div>
 
           <div class="config-panel">
             <h3>Log Operacional</h3>
             <ul id="sim-events-log" class="events-log font-mono">
-              <li> Simulação pronta. Clique e arraste o armazém.</li>
+              <li>Carregando cenário…</li>
             </ul>
           </div>
         </div>

@@ -83,3 +83,7 @@ body, html { width: 100%; height: 100%; overflow: hidden; background: var(--bg-d
   .hud-telemetry { order: 3; width: 100%; overflow-x: auto; }
   .strategy-columns { grid-template-columns: 1fr; }
 }
+
+.strategy-drawer.collapsed .drawer-content {
+  display: none;
+}
