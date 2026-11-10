@@ -184,39 +184,70 @@ Sem aparelho, o que vai dentro do APK foi validado emulando o que o Capacitor fa
   pacote; **nenhuma chamada `/api`**; nenhum erro de JavaScript (`pageerror`) em retrato (390×844) e paisagem (800×360).
 - A simulação anda sozinha: relógio 08:00 → 08:16 em ~10 s (4 s em 1x + 5 s em 5x), ordens liberadas/concluídas e distância
   sobem, score calculado; troca para `WH-B-MEGA` offline funciona.
-- **Única requisição bloqueada: as fontes do Google** (`fonts.googleapis.com`, `<link>` no `index.html`) — gera 1 linha
-  `Failed to load resource: net::ERR_INTERNET_DISCONNECTED` no console e a página cai nas fontes do sistema
-  (`system-ui` / `monospace`). Não quebra o jogo, mas **não é 100% offline na aparência**: para fechar, trazer
-  *Plus Jakarta Sans* e *JetBrains Mono* para dentro do pacote (`@fontsource/*` ou `.woff2` em `public/`) e remover o
-  `<link>` externo — mexe em `index.html`/`style.css`, ficou para depois do merge da UI.
-- O mesmo teste achou o problema de layout em paisagem de celular (ver [Layout de toque](#layout-de-toque-pendente)).
+- **Fontes: resolvido.** Na época a única requisição bloqueada eram as fontes do Google (`<link>` no `index.html`: 1 erro no
+  console e queda para `system-ui`). Agora *Plus Jakarta Sans* e *JetBrains Mono* (SIL OFL 1.1) são arquivos do próprio
+  pacote — ver [Fontes locais](#fontes-locais) — e o jogo não pede nada externo (conferido com interceptação de requests).
+- O mesmo teste achou o problema de layout em paisagem de celular (ver [Layout de toque](#layout-de-toque)).
 
 Não coberto por esse teste: o WebView real do Android (Chromium do sistema, pode ser mais antigo), desempenho, toque,
 ciclo de vida do app.
 
-## Layout de toque (pendente)
+## Layout de toque
 
-O layout atual é de desktop. No teste com viewport de celular em **paisagem (800×360) o canvas fica com altura 0** —
-cabeçalho com KPIs + o drawer inteiro (aberto por padrão) consomem toda a altura — e em retrato o HUD ocupa ~40% da tela.
-A reescrita de HTML/CSS de toque ficou para depois do merge da UI. O que precisa mudar:
+Feito na F7 (HTML/CSS em `index.html`, `src/style.css`, `src/ui/mobile.css`; comportamento em `src/ui/drawer.ts` e
+`src/ui/hud.ts`). O achado antigo — paisagem 800×360 com o mapa espremido e o HUD comendo ~40% da tela em retrato — está
+resolvido: o mapa ocupa 70–75% da altura em paisagem e ~80% em retrato, com a gaveta aberta ou fechada.
 
-1. `index.html`: `viewport-fit=cover` na meta viewport (senão `env(safe-area-inset-*)` vale 0 sob o notch); manter
-   `user-scalable=no`.
-2. `#app`: `100vh` → `100dvh` (barras do WebView/teclado); `padding` com `env(safe-area-inset-top/right/bottom/left)`.
-3. HUD compacto: em altura < ~480 px uma única linha (KPIs essenciais: relógio, ordens, score; o resto num painel
-   expansível); remover título/"logo-tag" em telas pequenas.
-4. Drawer: **fechado por padrão** (`.collapsed`) e como *bottom sheet* sobreposto ao canvas (`position: absolute`),
-   não empilhado abaixo dele; o mapa não pode perder altura quando o drawer abre.
-5. Alvos de toque ≥ 44×44 px: `.btn-ctrl` (pausa/velocidade), `.btn-floating` (40 px), `#inspector-close` (`.btn-icon`,
-   sem tamanho), alça do drawer, selects.
-6. Inspector (`.inspector-card`, 260 px fixo, no canto): em tela pequena virar faixa/sheet encostada na borda, sem cobrir
-   os botões de zoom.
-7. Gestos: `src/render/input.ts` só trata **um** ponteiro (arrasto) — falta **pinça** para zoom (F6) e evitar que o
-   2º dedo dispare clique.
-8. Toques: `-webkit-tap-highlight-color: transparent`, `overscroll-behavior: none`, `touch-action: manipulation`
-   nos botões (some o atraso de 300 ms); `user-select: none` já existe.
-9. Fontes: self-host (acima).
-10. Ao girar a tela o canvas é redimensionado por `resize` (já existe) — conferir se a câmera re-enquadra.
+Duas consultas de mídia, de propósito: **layout compacto** = `(max-width: 900px), (max-height: 500px)` (muda a
+disposição) e **tamanho de toque** = compacto **ou** `(pointer: coarse)` (só sobe os alvos para 44 px: um tablet em
+paisagem mantém o layout de desktop, mas com botões que o dedo acerta).
+
+- **Meta viewport e safe-area**: `viewport-fit=cover`; `#app` tem `padding` com `env(safe-area-inset-top/right/left)`, a
+  gaveta e os modais respeitam também o inset de baixo. `100dvh` já estava no `#app` (com `100vh` de reserva).
+- **HUD compacto**: uma linha de controles (pausa/1x/2x/5x, "?" do tutorial, "mais indicadores") e uma de indicadores
+  essenciais (relógio, ordens, atrasadas, score). Distância, conflitos e ocupação ficam num painel que o botão (chevron) abre
+  *por cima* do mapa — o mapa não muda de altura; tocar fora ou Esc fecha. Em paisagem baixa tudo cabe numa linha só e o
+  título do jogo some. A faixa de estado (cenário, política ativa, situação do turno) segue visível; em retrato a política
+  ocupa a linha inteira.
+- **Gaveta como bottom sheet**: `position: absolute` sobre o mapa, **fechada por padrão** no layout compacto, onde vira uma
+  pílula centralizada embaixo ("Configurações"); aberta, ocupa até ~62% da altura (em paisagem baixa, até logo abaixo do HUD) e
+  rola por dentro. A alça aceita **toque** (alterna) e **arrasto** (para cima abre, para baixo recolhe; a folha acompanha o
+  dedo) — regra pura em `src/app/gaveta.ts`, com teste. Esc recolhe e devolve o foco à alça. Em paisagem larga as três
+  colunas do desktop voltam; em retrato ficam empilhadas.
+- **Inspector**: de cartão de 260 px no canto vira uma faixa no topo do mapa (propriedades em linha; em ≥ 600 px o título e
+  as propriedades dividem a mesma linha), deixando livre a coluna de zoom/heatmap.
+- **Alvos ≥ 44 px**: controles de velocidade, "?", botões flutuantes, fechar do inspector, alça da gaveta, chip da política,
+  seletor e botões dos modais. Conferido por script: nenhum botão/seletor/rótulo de rádio visível com menos de 44 px nos
+  quatro viewports.
+- **Toque**: `-webkit-tap-highlight-color: transparent`, `overscroll-behavior: none` e `touch-action: manipulation` nos
+  controles (some o atraso do toque duplo). O `touch-action` do canvas e os gestos de pan/pinça são do módulo de entrada do
+  mapa (`src/render/input.ts`), não deste layout.
+- **Modais** (pré-partida e resultado): cabeçalho enxuto em paisagem baixa, duas colunas a partir de 640 px, rodapé de
+  botões de 44 px, `padding` respeitando a safe-area.
+
+### Fontes locais
+
+`public/fonts/` guarda um arquivo **variável** por família (todos os pesos num woff2), só o subset *latin* (cobre o
+português; o que ficar de fora cai na pilha do sistema): `PlusJakartaSans-latin-var.woff2` (27 KB) e
+`JetBrainsMono-latin-var.woff2` (31 KB), mais os textos da licença (**SIL OFL 1.1**, que permite redistribuir junto do app
+desde que a licença e o copyright acompanhem). Os `@font-face` (`font-display: swap`) estão em `src/ui/fontes.css`; o
+Vite acrescenta o `base` do build (`/jogo/` no NPDev), então o mesmo CSS serve ao dev server, ao NPDev e ao APK. Foi
+escolhido baixar as fontes (e não trocar por fontes do sistema) para manter o visual atual idêntico entre dev, web e APK.
+
+### Verificação
+
+Chrome headless (Puppeteer fora do repo) em 1280×800, 390×844, 844×390 e 800×360, com interceptação de requests: pré-partida,
+WH-A e WH-B em jogo, inspector, gaveta aberta e fechada, painel de indicadores, resultado e tutorial — sem transbordo
+horizontal, sem erro de console e sem requisição externa; toque e arrasto da gaveta com eventos de toque emulados.
+
+### O que ainda falta neste tema
+
+- **Pinça e 2º dedo** no mapa (`src/render/input.ts` só trata um ponteiro): é do trabalho de gestos/zoom da F6.
+- **Girar a tela**: o canvas é redimensionado (`ResizeObserver`) e o centro do mapa se mantém, mas não há re-enquadramento
+  automático — "Centralizar" (🎯) resolve; decidir se vale enquadrar sozinho.
+- O canvas não usa `devicePixelRatio` (mapa borrado em telas de alta densidade) — também da F6/render.
+- Conferir em aparelho real: altura útil com a barra do Chrome/WebView, notch, teclado do `<select>` nativo e o toque na
+  alça (a lista "O que falta testar em aparelho real" abaixo continua valendo).
 
 ## Limitações conhecidas
 
