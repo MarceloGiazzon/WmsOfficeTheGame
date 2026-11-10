@@ -171,6 +171,18 @@ describe('estadoEnvio e origem', () => {
     expect(estadoEnvio({ validadoServidor: false }).tipo).toBe('naoValidado');
   });
 
+  it('envio em andamento, guardado, recusado ou perdido: cada um tem o seu aviso (nunca "local")', () => {
+    expect(estadoEnvio({ envio: 'enviando' })).toEqual({ tipo: 'enviando', texto: 'Enviando a partida ao servidor…' });
+    expect(estadoEnvio({ envio: 'pendente' }).tipo).toBe('pendente');
+    expect(estadoEnvio({ envio: 'pendente' }).texto).toMatch(/fila de envio/);
+    expect(estadoEnvio({ envio: 'recusada' }).tipo).toBe('recusada');
+    expect(estadoEnvio({ envio: 'falhou' }).texto).toMatch(/nem guardar/);
+  });
+
+  it('o veredito do servidor vale mais que o estado do envio', () => {
+    expect(estadoEnvio({ envio: 'enviando', validadoServidor: true }).tipo).toBe('validado');
+  });
+
   it('rótulo da origem: conhecido, livre ou ausente', () => {
     expect(rotuloOrigem('embutido')).toBe('Embutido (offline)');
     expect(rotuloOrigem('rede')).toBe('Servidor');

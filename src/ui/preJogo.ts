@@ -2,7 +2,7 @@
 // A tela não sabe de onde os cenários vêm (ver `FonteCenarios`): recebe os resumos e devolve escolhas.
 
 import { formatarDuracao, formatarHorario } from '../app/formato';
-import { ROTULO_DIFICULDADE, ROTULO_ORIGEM, type ResumoCenario } from '../app/fonteCenarios';
+import { ROTULO_DIFICULDADE, ROTULO_ORIGEM, type AvisoFonte, type ResumoCenario } from '../app/fonteCenarios';
 import { TEXTO_POLITICA } from '../app/politicasTexto';
 import { POLITICAS, type Politica } from '../sim/model';
 import { el, h, preencher } from './dom';
@@ -16,6 +16,8 @@ export interface EstadoPreJogo {
   podeCancelar: boolean;
   /** O turno atual ainda está rodando: avisa que iniciar outro o descarta (turno já encerrado não perde nada). */
   avisoDescarte: boolean;
+  /** Sobre a lista (F5): servidor inalcançável, modo convidado… Aparece acima dos cartões. */
+  aviso?: AvisoFonte | null;
 }
 
 export interface AcoesPreJogo {
@@ -87,7 +89,8 @@ export class PreJogo {
       atualizarResumo();
     }));
 
-    preencher(this.corpo, 
+    preencher(this.corpo,
+      estado.aviso ? h('p', { class: `aviso-lista aviso-lista-${estado.aviso.tipo}`, role: 'status' }, estado.aviso.texto) : null,
       h('div', { class: 'prejogo-colunas' },
         h('fieldset', { class: 'grupo' },
           h('legend', null, '1. Cenário'),

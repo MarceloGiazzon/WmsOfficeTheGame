@@ -38,6 +38,16 @@ export interface ResumoCenario {
 export interface PacoteCarregado {
   pacote: PacoteCenario;
   origem: OrigemCenario;
+  /** Quando o pacote foi baixado (ISO), se veio da rede ou do cache; `null` para o embutido. */
+  salvoEm?: string | null;
+  /** Frase para o jogador quando a fonte não foi a esperada (rede caiu e o jogo usou o cache/embutido). */
+  aviso?: string;
+}
+
+/** Aviso sobre a LISTA de cenários (ex.: servidor inalcançável, modo convidado): a pré-partida mostra acima dos cartões. */
+export interface AvisoFonte {
+  tipo: 'info' | 'alerta';
+  texto: string;
 }
 
 export interface FonteCenarios {
@@ -49,6 +59,8 @@ export interface FonteCenarios {
   listar(): Promise<ResumoCenario[]>;
   /** O pacote completo do cenário. Rejeita com `Error` de mensagem legível se o código não existir ou a origem falhar. */
   carregar(codigo: string): Promise<PacoteCarregado>;
+  /** Aviso da ÚLTIMA `listar()` (opcional): servidor inalcançável, modo convidado… `null` = nada a dizer. */
+  avisoDaLista?(): AvisoFonte | null;
 }
 
 /** Resumo de um pacote já em mãos: serve a qualquer fonte que tenha o pacote (embutida, cache, rede). */

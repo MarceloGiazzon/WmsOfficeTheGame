@@ -16,6 +16,16 @@ export class FonteEmbutida implements FonteCenarios {
     'WH-B-MEGA': () => import('../data/cenarios/WH-B-MEGA.json'),
   }) {}
 
+  /** Códigos dos cenários que viajam no app (sem carregar nenhum chunk). A `FonteRede` mescla com os do servidor. */
+  codigos(): string[] {
+    return Object.keys(this.importadores);
+  }
+
+  /** Pacote embutido, ou `undefined` se o código não é um dos embutidos (a `FonteRede` usa como último recurso). */
+  async pacoteOuNada(codigo: string): Promise<PacoteCenario | undefined> {
+    return codigo in this.importadores ? this.pacote(codigo) : undefined;
+  }
+
   async listar(): Promise<ResumoCenario[]> {
     // O resumo vem do pacote (nº de ordens etc.), então os dois chunks são baixados já na pré-partida: ~200 KB.
     const pacotes = await Promise.all(Object.keys(this.importadores).map(c => this.pacote(c)));
