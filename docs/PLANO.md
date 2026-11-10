@@ -466,15 +466,63 @@ Resultado de referência (score oficial):
   produto que está chegando: as saídas saem do estoque inicial. Para o modo valer, o gerador (ou um cenário dedicado)
   tem de produzir saídas que dependam de entradas.
 
-### F4. HUD e gameplay
+### F4. HUD e gameplay ✅ (2026-11-10, exceto o que depende do backend — fica para a F5)
 
-- [ ] Tela de seleção de cenário e política (pré-partida).
-- [x] Relógio 08:00–18:00, pausa/1x/2x/5x (F1).
-- [x] KPIs ao vivo: ordens concluídas/atrasadas, distância, ocupação, conflitos (F2).
-- [x] Inspector com dados reais (Rua-Posição-Andar, produto, acessos) — F2. Falta lote/quantidade (o pacote não tem).
-- [x] Heatmap de acessos real (contado pela sim, não aleatório) — F2.
-- [ ] Troca de política durante a partida (registrada na partida; afeta só alocações futuras).
-- [ ] Tela de resultado: breakdown das penalidades, score e comparação com o ranking.
+Como ficou (`npm test`: 189 testes; verificado no Chrome headless em 1280×800 e 390×844: pré-partida, WH-A e WH-B jogando,
+troca de política, resultado, teclado e foco, sem erros no console; os números do breakdown conferidos contra
+`calcularScore` com uma réplica determinística rodada na própria página):
+
+```
+src/app/  fonteCenarios.ts (interface FonteCenarios + resumirCenario) · fonteEmbutida.ts (implementação atual)
+          resultado.ts (ResultadoPartida, breakdown do score, linha do tempo, extras da F5) · politicasTexto.ts
+          formato.ts · atalhos.ts          ← tudo puro, com teste
+src/ui/   preJogo.ts · resultado.ts (TelaResultado) · modal.ts (foco, Esc, inert) · dom.ts · hud.ts · drawer.ts
+src/sim/  simulation.ts: só `trocasPolitica()` e `Snapshot.trocasPolitica` (aditivo; métricas, score e goldens intocados)
+```
+
+- [x] **Pré-partida** (abre ao carregar, em "Trocar cenário / reiniciar…" no drawer e em "Trocar cenário / política"
+  no resultado): cartões com nome,
+  dificuldade, ordens (entradas/saídas), locais, empilhadeiras, docas e horário do turno — tudo derivado do
+  `PacoteCenario` (`resumirCenario`) — e a política com a regra de cada uma das cinco (só a regra, sem prometer resultado).
+  O relógio fica parado e a sim nem existe até "Iniciar turno". Aberta no meio do jogo, pausa a sim; Esc / "Voltar à
+  partida" retoma de onde parou, e o rodapé avisa que iniciar outro turno descarta o atual.
+- [x] **`FonteCenarios`** (`listar()` + `carregar(codigo)`, cada cenário com `origem`: `'embutido' | 'cache' | 'rede'`,
+  mostrada como selo no cartão e no resultado). Só há a `FonteEmbutida`; a F5 pluga rede/cache implementando a mesma
+  interface (e `resumirCenario` serve a qualquer fonte que tenha o pacote). `Jogo.fonte` é o único ponto a trocar.
+- [x] **Troca de política no turno**: o seletor do drawer, o chip "Política ativa" no HUD (clicar abre o seletor), aviso
+  ao lado do seletor ("vale para os próximos paletes guardados; os que já estão a caminho seguem como estavam"),
+  destaque no log e animação no chip. A sim registra: `Simulacao.trocasPolitica(): {seg, politica}[]` (a inicial em
+  `inicioTurnoSeg`), também em `Snapshot.trocasPolitica`. Decisões: trocas no mesmo segundo simulado valem pela última
+  (nenhuma alocação aconteceu entre elas; voltar à política anterior apaga a troca) e `setPolitica` depois do fim do turno
+  é ignorada — o histórico só guarda o que pôde ter efeito.
+- [x] **Resultado** (modal ao fim do turno, sim parada no estado final do mapa): score grande; breakdown com uma linha em
+  linguagem simples e a barra de cada termo (distância, atraso, conflito, bônus de ocupação) e a conta
+  `100 − penalidades + bônus`; métricas (concluídas, atrasadas, km real × teórico, conflitos, ocupação); linha do tempo
+  das políticas; "Jogar de novo" (com a política **inicial** do turno — o botão diz qual), "Trocar cenário / política" e
+  "Ver o armazém" (Esc). O botão "Ver resultado" no HUD reabre. Os limites da fórmula (35/40/15/5 pts etc.) são
+  repetidos em `LIMITES_SCORE` porque `score.ts` não os exporta; `resultado.test.ts` os confere contra `calcularScore`.
+- [x] **Slot da F5**: `TelaResultado.mostrarResultado(resultado, extras?)` com
+  `extras = { validadoServidor?, posicaoRanking?, ranking?, mensagem?, origem? }`. Pode ser chamado de novo com o modal
+  aberto (a tela se atualiza sem mexer no foco). Sem `validadoServidor` = "partida local — não enviada ao ranking". No
+  `Jogo`, `publicarResultado` (null por padrão) é o gancho: recebe o `ResultadoPartida` (métricas + política + trocas —
+  o que o `ConcluirPartida` precisa) e devolve os extras quando o servidor responder.
+- [x] **Pausa e teclado**: pré-partida e resultado pausam; espaço (pausa/retoma) e 1/2/5 (velocidade) só valem com o turno
+  em andamento, sem modal aberto e sem foco em botão/seletor/campo (`atalhos.ts`). Clicar num botão com o mouse devolve o
+  foco ao corpo, senão o espaço "clicaria de novo" nele. Modais: o app atrás fica `inert`, Tab dá a volta, Esc fecha onde
+  faz sentido (não na pré-partida de abertura), foco volta para onde estava; o foco inicial vai no cenário marcado / no
+  diálogo — nunca num botão de ação, que um espaço de quem pausava acionaria.
+- [x] **HUD**: score parcial/final em destaque (primeiro da faixa no celular), ordens concluídas/total + liberadas,
+  atrasadas em vermelho, distância com a teórica, faixa de estado com cenário, política ativa e situação do turno
+  (pausado, em andamento, encerrado). O canvas agora acompanha o tamanho do contêiner (`ResizeObserver`): abrir/recolher o
+  drawer não estica mais o mapa.
+- [x] Relógio 08:00–18:00, pausa/1x/2x/5x (F1). KPIs ao vivo (F2). Inspector com dados reais — falta lote/quantidade (o
+  pacote não tem). Heatmap de acessos real (F2).
+- [ ] **Comparação com o ranking** na tela de resultado: o slot e a tabela existem (`extras.ranking`), mas só a F5 tem
+  de onde preencher. Também da F5: origens `'rede'`/`'cache'` na `FonteCenarios`, envio do resultado e `validadoServidor`.
+
+Pendências visíveis (fora do escopo da F4): o canvas não usa `devicePixelRatio` (o mapa fica borrado em telas de alta
+densidade — F6); a pré-partida mostra só o cartão, sem pré-visualização do armazém (montar a `Simulacao` do WH-B leva
+~0,2 s, e o modal cobre o mapa).
 
 ### F5. Integração com o NPDev
 

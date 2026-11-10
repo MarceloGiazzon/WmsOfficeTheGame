@@ -19,60 +19,77 @@
         <h1>WmsOffice <span>The Game</span></h1>
       </div>
 
-      <div class="hud-telemetry">
+      <div class="hud-telemetry" role="group" aria-label="Indicadores do turno">
         <div class="kpi-card">
           <span class="kpi-label">TEMPO SIMULADO</span>
           <span id="kpi-clock" class="kpi-value font-mono">08:00:00</span>
+          <span id="kpi-clock-sub" class="kpi-sub">turno 08:00–18:00</span>
         </div>
         <div class="kpi-card">
-          <span class="kpi-label">ORDENS LIBERADAS</span>
-          <span id="kpi-orders" class="kpi-value font-mono">0/0</span>
+          <span class="kpi-label">ORDENS CONCLUÍDAS</span>
+          <span id="kpi-orders" class="kpi-value font-mono">0 / 0</span>
+          <span id="kpi-orders-sub" class="kpi-sub">0 liberadas</span>
         </div>
-        <div class="kpi-card">
-          <span class="kpi-label">CONCLUÍDAS / ATRASADAS</span>
-          <span id="kpi-done" class="kpi-value font-mono">0 / 0</span>
+        <div class="kpi-card" id="kpi-late-card">
+          <span class="kpi-label">ATRASADAS</span>
+          <span id="kpi-late" class="kpi-value font-mono">0</span>
+          <span class="kpi-sub">fora do SLA</span>
         </div>
         <div class="kpi-card">
           <span class="kpi-label">DISTÂNCIA</span>
-          <span id="kpi-distance" class="kpi-value font-mono">0,0 km</span>
+          <span id="kpi-distance" class="kpi-value font-mono">0,00 km</span>
+          <span id="kpi-distance-sub" class="kpi-sub">teórica 0,00 km</span>
         </div>
         <div class="kpi-card">
           <span class="kpi-label">CONFLITOS</span>
           <span id="kpi-conflicts" class="kpi-value font-mono">0</span>
+          <span class="kpi-sub">esperas de corredor</span>
         </div>
         <div class="kpi-card">
           <span class="kpi-label">OCUPAÇÃO</span>
           <span id="kpi-occupancy" class="kpi-value font-mono">0%</span>
+          <span class="kpi-sub">bônus em 75–88%</span>
         </div>
-        <div class="kpi-card">
-          <span class="kpi-label">SCORE EFICIÊNCIA</span>
+        <div class="kpi-card kpi-score">
+          <span id="kpi-score-label" class="kpi-label">SCORE PARCIAL</span>
           <span id="kpi-score" class="kpi-value font-mono highlight">—</span>
+          <span id="kpi-score-sub" class="kpi-sub">de 100,00</span>
         </div>
       </div>
 
-      <div class="hud-controls">
-        <button id="btn-pause" class="btn-ctrl" title="Pausar">⏸</button>
-        <button id="btn-play-1x" class="btn-ctrl active" title="Velocidade 1x">1x</button>
-        <button id="btn-play-2x" class="btn-ctrl" title="Velocidade 2x">2x</button>
-        <button id="btn-play-5x" class="btn-ctrl" title="Velocidade 5x">5x</button>
+      <div class="hud-controls" role="group" aria-label="Velocidade da simulação">
+        <button id="btn-pause" class="btn-ctrl" type="button" title="Pausar (espaço)" aria-label="Pausar" aria-pressed="false">⏸</button>
+        <button id="btn-play-1x" class="btn-ctrl active" type="button" title="Velocidade 1x (tecla 1)" aria-label="Velocidade 1x" aria-pressed="true">1x</button>
+        <button id="btn-play-2x" class="btn-ctrl" type="button" title="Velocidade 2x (tecla 2)" aria-label="Velocidade 2x" aria-pressed="false">2x</button>
+        <button id="btn-play-5x" class="btn-ctrl" type="button" title="Velocidade 5x (tecla 5)" aria-label="Velocidade 5x" aria-pressed="false">5x</button>
       </div>
     </header>
 
+    <!-- Faixa de estado: cenário, política ativa e situação do turno -->
+    <div class="hud-status" id="hud-status">
+      <span class="status-item"><span class="status-rotulo">Cenário</span> <b id="status-cenario">—</b> <span id="status-dificuldade" class="selo"></span></span>
+      <button id="status-politica" class="chip-politica" type="button" title="Política ativa — clique para trocar">
+        <span class="status-rotulo">Política ativa</span> <b id="status-politica-nome">—</b> <span aria-hidden="true">▾</span>
+      </button>
+      <span id="status-estado" class="chip-estado" role="status">Aguardando início</span>
+      <button id="btn-ver-resultado" class="btn-secundario btn-pequeno" type="button" hidden>Ver resultado</button>
+    </div>
+
     <!-- Viewport 2D Canvas -->
     <main class="viewport-container">
-      <canvas id="warehouse-canvas"></canvas>
+      <canvas id="warehouse-canvas" aria-label="Mapa do armazém"></canvas>
 
       <div class="viewport-floating-actions">
-        <button id="btn-zoom-in" class="btn-floating" title="Zoom In">+</button>
-        <button id="btn-zoom-out" class="btn-floating" title="Zoom Out">-</button>
-        <button id="btn-reset-cam" class="btn-floating" title="Centralizar">🎯</button>
-        <button id="btn-toggle-heatmap" class="btn-floating" title="Heatmap Tráfego">🔥</button>
+        <button id="btn-zoom-in" class="btn-floating" type="button" title="Zoom In" aria-label="Aproximar">+</button>
+        <button id="btn-zoom-out" class="btn-floating" type="button" title="Zoom Out" aria-label="Afastar">-</button>
+        <button id="btn-reset-cam" class="btn-floating" type="button" title="Centralizar" aria-label="Centralizar o armazém">🎯</button>
+        <button id="btn-toggle-heatmap" class="btn-floating" type="button" title="Heatmap Tráfego" aria-label="Mostrar ou esconder o mapa de calor de tráfego">🔥</button>
       </div>
 
       <div id="inspector-card" class="inspector-card hidden">
         <div class="inspector-header">
           <h3 id="inspector-title">Posição</h3>
-          <button id="inspector-close" class="btn-icon">✕</button>
+          <button id="inspector-close" class="btn-icon" type="button" aria-label="Fechar inspeção">✕</button>
         </div>
         <div id="inspector-body" class="inspector-body"></div>
       </div>
@@ -80,40 +97,69 @@
 
     <!-- Drawer Inferior com Regras de Armazenamento -->
     <section class="strategy-drawer" id="strategy-drawer">
-      <div class="drawer-handle" id="drawer-toggle">
+      <button class="drawer-handle" id="drawer-toggle" type="button" aria-expanded="true" aria-controls="drawer-content">
         <span class="handle-bar"></span>
         <span class="drawer-title">Configurações de Alocação & Simulação</span>
-      </div>
+      </button>
 
-      <div class="drawer-content">
+      <div class="drawer-content" id="drawer-content">
         <div class="strategy-columns">
           <div class="config-panel">
             <h3>Política de Armazenagem</h3>
-            <p class="config-hint">Regra aplicada quando novos paletes chegam na doca.</p>
+            <p class="config-hint">Vale para os próximos paletes guardados; os que já estão a caminho do destino não mudam.</p>
             <div class="form-group">
               <label for="select-policy">Estratégia:</label>
               <select id="select-policy" class="form-select"></select>
             </div>
+            <p id="policy-feedback" class="policy-feedback" role="status" aria-live="polite"></p>
+            <p id="policy-regra" class="policy-regra"></p>
           </div>
 
           <div class="config-panel">
             <h3>Cenário</h3>
-            <p class="config-hint">Trocar de cenário reinicia o turno.</p>
-            <div class="form-group">
-              <label for="select-scenario">Cenário:</label>
-              <select id="select-scenario" class="form-select"></select>
-            </div>
+            <p class="config-hint">Trocar de cenário (ou reiniciar) encerra o turno atual.</p>
+            <p id="cenario-info" class="cenario-info">—</p>
+            <button id="btn-trocar-cenario" class="btn-secundario" type="button">Trocar cenário / reiniciar…</button>
           </div>
 
           <div class="config-panel">
             <h3>Log Operacional</h3>
-            <ul id="sim-events-log" class="events-log font-mono">
+            <ul id="sim-events-log" class="events-log font-mono" aria-live="off">
               <li>Carregando cenário…</li>
             </ul>
           </div>
         </div>
       </div>
     </section>
+  </div>
+
+  <!-- Pré-partida: cenário + política. Abre ao carregar e ao trocar de cenário; a sim só roda depois de "Iniciar turno". -->
+  <div id="modal-prejogo" class="modal-fundo" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="prejogo-titulo" tabindex="-1">
+      <header class="modal-cabecalho">
+        <p class="modal-eyebrow">WmsOffice: The Game</p>
+        <h2 id="prejogo-titulo">Novo turno</h2>
+        <p class="modal-sub">Escolha o cenário e a política de armazenagem. O relógio só anda depois de “Iniciar turno”.</p>
+      </header>
+      <div class="modal-corpo" id="prejogo-corpo"></div>
+      <footer class="modal-rodape" id="prejogo-rodape"></footer>
+    </div>
+  </div>
+
+  <!-- Resultado: abre ao fim do turno, com a sim parada no estado final. -->
+  <div id="modal-resultado" class="modal-fundo" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="resultado-titulo" tabindex="-1">
+      <header class="modal-cabecalho">
+        <p class="modal-eyebrow" id="resultado-eyebrow">Fim do turno</p>
+        <h2 id="resultado-titulo">Turno encerrado</h2>
+      </header>
+      <div class="modal-corpo" id="resultado-corpo"></div>
+      <footer class="modal-rodape">
+        <button id="btn-resultado-repetir" class="btn-primary" type="button">Jogar de novo (mesma política)</button>
+        <button id="btn-resultado-trocar" class="btn-secundario" type="button">Trocar cenário / política</button>
+        <button id="btn-resultado-fechar" class="btn-fantasma" type="button">Ver o armazém</button>
+      </footer>
+    </div>
   </div>
 
   <script type="module" src="/src/main.ts"></script>

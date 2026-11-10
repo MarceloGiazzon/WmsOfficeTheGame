@@ -72,6 +72,90 @@ describe('Simulacao: relógio, ordens e log', () => {
   });
 });
 
+describe('Simulacao: histórico de trocas de política', () => {
+  const inicio = pacoteA.cenario.inicioTurnoSeg;
+
+  it('começa com a política inicial no início do turno (método e snapshot)', () => {
+    const sim = new Simulacao(pacoteA, 'Consolidacao');
+    expect(sim.trocasPolitica()).toEqual([{ seg: inicio, politica: 'Consolidacao' }]);
+    expect(sim.snapshot().trocasPolitica).toEqual([{ seg: inicio, politica: 'Consolidacao' }]);
+  });
+
+  it('registra cada troca no segundo simulado em que aconteceu, na ordem', () => {
+    const sim = new Simulacao(pacoteA, 'AbcProximidade');
+    rodar(sim, 600);
+    sim.setPolitica('FifoPrimeiraLivre');
+    rodar(sim, 1200);
+    sim.setPolitica('CrossDocking');
+    expect(sim.trocasPolitica()).toEqual([
+      { seg: inicio, politica: 'AbcProximidade' },
+      { seg: inicio + 600, politica: 'FifoPrimeiraLivre' },
+      { seg: inicio + 1800, politica: 'CrossDocking' },
+    ]);
+  });
+
+  it('trocar para a política que já vale não registra nada (nem no log)', () => {
+    const sim = new Simulacao(pacoteA, 'AbcProximidade');
+    const eventos = sim.snapshot().eventos.length;
+    sim.setPolitica('AbcProximidade');
+    expect(sim.trocasPolitica()).toHaveLength(1);
+    expect(sim.snapshot().eventos).toHaveLength(eventos);
+  });
+
+  it('várias trocas no mesmo segundo valem pela última; voltar à anterior apaga a troca', () => {
+    const sim = new Simulacao(pacoteA, 'AbcProximidade');
+    sim.setPolitica('Consolidacao'); // ainda no 08:00:00: a inicial nunca alocou nada
+    sim.setPolitica('WmsReal');
+    expect(sim.trocasPolitica()).toEqual([{ seg: inicio, politica: 'WmsReal' }]);
+
+    rodar(sim, 300);
+    sim.setPolitica('CrossDocking');
+    sim.setPolitica('WmsReal'); // voltou ao que já valia: sem troca
+    expect(sim.trocasPolitica()).toEqual([{ seg: inicio, politica: 'WmsReal' }]);
+    expect(sim.snapshot().politica).toBe('WmsReal');
+  });
+
+  it('a política ativa é sempre a última do histórico', () => {
+    const sim = new Simulacao(pacoteA, 'FifoPrimeiraLivre');
+    for (const p of ['Consolidacao', 'AbcProximidade', 'WmsReal'] as const) {
+      rodar(sim, 100);
+      sim.setPolitica(p);
+      const h = sim.trocasPolitica();
+      expect(h[h.length - 1].politica).toBe(sim.snapshot().politica);
+    }
+  });
+
+  it('o método devolve cópia; o snapshot só muda de referência quando há troca', () => {
+    const sim = new Simulacao(pacoteA, 'AbcProximidade');
+    sim.trocasPolitica()[0].politica = 'WmsReal';
+    expect(sim.trocasPolitica()[0].politica).toBe('AbcProximidade');
+    const antes = sim.snapshot().trocasPolitica;
+    rodar(sim, 10);
+    expect(sim.snapshot().trocasPolitica).toBe(antes);
+    sim.setPolitica('FifoPrimeiraLivre');
+    expect(sim.snapshot().trocasPolitica).not.toBe(antes);
+    expect(antes).toHaveLength(1); // o histórico antigo não é alterado no lugar
+  });
+
+  it('depois do fim do turno a troca é ignorada', () => {
+    const sim = turnoCompleto(pacoteA, 'AbcProximidade');
+    const eventos = sim.snapshot().eventos.length;
+    sim.setPolitica('FifoPrimeiraLivre');
+    expect(sim.snapshot().politica).toBe('AbcProximidade');
+    expect(sim.trocasPolitica()).toHaveLength(1);
+    expect(sim.snapshot().eventos).toHaveLength(eventos);
+  });
+
+  it('trocar de política não altera o que já aconteceu: métricas até a troca são as mesmas', () => {
+    const a = new Simulacao(pacoteA, 'AbcProximidade');
+    const b = new Simulacao(pacoteA, 'AbcProximidade');
+    rodar(a, 1800);
+    rodar(b, 1800);
+    b.setPolitica('FifoPrimeiraLivre');
+    expect(b.metricas()).toEqual(a.metricas());
+  });
+});
+
 describe('Simulacao: determinismo e golden tests', () => {
   it('mesmo cenário + mesma política → log e métricas idênticos', () => {
     const a = turnoCompleto(pacoteA, 'AbcProximidade');
