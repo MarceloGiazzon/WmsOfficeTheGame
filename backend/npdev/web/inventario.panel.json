@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "npdev-panel-provenance.v1",
+  "panel": "Inventario",
+  "screen": "web/inventario.html",
+  "screenClass": "operator-console",
+  "producer": "human",
+  "generatedFrom": {
+    "modelHash": "sha256:cbedab5f298ab34a3dc4c118355ae535e343218b274efe3d4bd8b300ef4c3781",
+    "generatedAt": "2026-07-28T21:26:29Z",
+    "generator": "bootstrap-panel-provenance.py",
+    "bundleScope": {}
+  },
+  "reads": [
+    "Area.armazemId",
+    "DocumentoFiscal.arquivo",
+    "InventarioArquivo.dataGeracao",
+    "InventarioArquivoLinha.divergente",
+    "InventarioArquivoLinha.inventarioArquivoId",
+    "InventarioArquivoLinha.quantidadeContada",
+    "InventarioArquivoLinha.quantidadeEsperada",
+    "LocalArmazenagem.andar",
+    "LocalArmazenagem.posicao",
+    "Lote.dataValidade",
+    "Lote.ocorrencia",
+    "Produto.qtdCaixasPorPallet",
+    "Rua.areaId"
+  ],
+  "writes": [],
+  "invokes": [
+    "flow:AlocarRecebimento",
+    "flow:AnalisarArquivoRecebimento",
+    "flow:GerarTemplateInventario",
+    "flow:ImportarContagemInventario"
+  ],
+  "calls": [
+    "/api/areas",
+    "/api/armazems",
+    "/api/entidades",
+    "/api/flows/AlocarRecebimento/execute",
+    "/api/flows/AnalisarArquivoRecebimento/execute",
+    "/api/flows/GerarTemplateInventario/execute",
+    "/api/flows/ImportarContagemInventario/execute",
+    "/api/inventario_arquivo_linhas",
+    "/api/inventario_arquivos",
+    "/api/inventario_arquivos/",
+    "/api/local_armazenagem_lotes",
+    "/api/local_armazenagem_lotes/",
+    "/api/local_armazenagems",
+    "/api/local_armazenagems/",
+    "/api/lotes",
+    "/api/lotes/",
+    "/api/produtos",
+    "/api/ruas"
+  ],
+  "slotOf": null,
+  "confirmed": true,
+  "unresolved": [],
+  "handWritten": true,
+  "reviewedBy": "claude-sonnet-5",
+  "notes": "Human-confirmed 2026-07-28: removed identity::Role.name/workspace::Menu.label (false positives -- generic 'name'/'label' HTML/meta tokens, not JS reads of those platform fields; grep-verified against the real screen source)."
+}

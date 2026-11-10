@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "npdev-panel-provenance.v1",
+  "panel": "Relatorios",
+  "screen": "web/relatorios.html",
+  "screenClass": "dashboard",
+  "producer": "human",
+  "generatedFrom": {
+    "modelHash": "sha256:cbedab5f298ab34a3dc4c118355ae535e343218b274efe3d4bd8b300ef4c3781",
+    "generatedAt": "2026-07-29T00:00:00Z",
+    "generator": "bootstrap-panel-provenance.py + human review",
+    "bundleScope": {}
+  },
+  "reads": [
+    "HistoricoMovimentacao.descricao",
+    "HistoricoMovimentacao.evento",
+    "HistoricoMovimentacao.ocorridoEm",
+    "HistoricoMovimentacao.movimentoId",
+    "InventarioArquivoLinha.divergente",
+    "InventarioArquivoLinha.produtoId",
+    "InventarioArquivoLinha.localArmazenagemId",
+    "InventarioArquivoLinha.quantidadeContada",
+    "InventarioArquivoLinha.quantidadeEsperada",
+    "LocalArmazenagem.andar",
+    "LocalArmazenagem.posicao",
+    "Lote.situacao",
+    "Lote.dataValidade",
+    "Lote.produtoId",
+    "Lote.ocorrencia",
+    "Lote.quantidade",
+    "Produto.nome",
+    "Produto.ativo",
+    "Produto.diasValidadePadrao",
+    "Produto.ncm",
+    "Produto.qtdCaixasPorPallet",
+    "Movimento.tipo"
+  ],
+  "writes": [],
+  "invokes": [],
+  "calls": [
+    "/api/historico_movimentacaos",
+    "/api/inventario_arquivo_linhas",
+    "/api/local_armazenagems",
+    "/api/lotes",
+    "/api/movimentos",
+    "/api/produtos"
+  ],
+  "slotOf": null,
+  "confirmed": true,
+  "unresolved": [],
+  "reviewedBy": "claude-sonnet-5",
+  "notes": "Four read-only client-side reports (Lotes em Estoque, Produtos Ativos, Divergencias de Inventario, Historico de Movimentacao) -- the screen's own comment explains why: PanelRuntime.loadDataSource never evaluates a query's filter, only its concept, so a filtered report can't be expressed as a declared Panel dataSource yet. Dropped 'identity::Role.name'/'workspace::Menu.label' shell.js false positives; added the reads the draft's IDENT-token matching missed (Lote.situacao/produtoId/quantidade, Produto.nome/ativo, InventarioArquivoLinha.produtoId/localArmazenagemId, HistoricoMovimentacao.movimentoId, Movimento.tipo) by reading each loadX function's actual field access."
+}

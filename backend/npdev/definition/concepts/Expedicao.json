@@ -1,0 +1,69 @@
+{
+  "name": "Expedicao",
+  "ui": { "label": "Expedicao" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "entidadeId", "type": "reference", "required": true,
+      "reference": { "target": "Entidade", "onDelete": "restrict" },
+      "ui": { "label": "Cliente" }
+    },
+    {
+      "name": "transportadoraId", "type": "reference", "required": false,
+      "reference": { "target": "Entidade", "onDelete": "nullify" },
+      "ui": { "label": "Transportadora" }
+    },
+    {
+      "name": "movimentoId", "type": "reference", "required": false,
+      "reference": { "target": "Movimento", "onDelete": "restrict" },
+      "ui": { "label": "Movimento" }
+    },
+    { "name": "dataExpedicao", "type": "date", "required": true, "ui": { "label": "Data de expedicao" } },
+    {
+      "name": "tipo", "type": "enum", "required": true,
+      "values": ["Normal", "Avarias"],
+      "default": "Normal",
+      "ui": { "label": "Tipo" }
+    },
+    {
+      "name": "estagio", "type": "enum", "required": true,
+      "values": ["PreExpedicao", "DemandaGerada", "MovimentacaoConcluida", "SaidaConfirmada"],
+      "default": "PreExpedicao",
+      "ui": { "label": "Estagio" }
+    },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["Normal", "Suspenso", "Cancelado"],
+      "default": "Normal",
+      "ui": { "label": "Situacao" }
+    },
+    {
+      "name": "crossDockingAtivo", "type": "boolean", "required": true, "default": false,
+      "ui": { "label": "Cross-docking ativo" }
+    }
+  ],
+  "lifecycle": {
+    "statusField": "estagio",
+    "states": [
+      { "value": "PreExpedicao", "label": "Pre-Expedicao", "initial": true },
+      { "value": "DemandaGerada", "label": "Demanda Gerada" },
+      { "value": "MovimentacaoConcluida", "label": "Movimentacao Concluida" },
+      { "value": "SaidaConfirmada", "label": "Saida Confirmada", "terminal": true }
+    ],
+    "transitions": [
+      { "from": "PreExpedicao", "to": "DemandaGerada" },
+      { "from": "DemandaGerada", "to": "MovimentacaoConcluida" },
+      { "from": "MovimentacaoConcluida", "to": "SaidaConfirmada" }
+    ]
+  },
+  "invariants": [
+    {
+      "name": "ExpedicaoMovimentoRequiredWhenConfirmada", "type": "expression",
+      "expr": "estagio != 'SaidaConfirmada' || movimentoId != null"
+    },
+    {
+      "name": "ExpedicaoCrossDockingBlocksCancelamento", "type": "expression",
+      "expr": "situacao != 'Cancelado' || crossDockingAtivo == false"
+    }
+  ]
+}

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Inventario Fisico</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input, #bar select { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #status { margin-left: auto; color: #6b7280; }
+    main { padding: 14px; max-width: 1200px; margin: 0 auto; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; box-shadow: 0 1px 3px rgba(41,85,114,.1); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; }
+    .note { font-size: 11px; opacity: .55; margin-top: -4px; margin-bottom: 10px; }
+    .row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; }
+    .row label { display: flex; flex-direction: column; font-size: 11px; opacity: .8; gap: 3px; }
+    select { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; min-width: 220px; }
+    textarea { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; width: 100%; font-family: monospace; font-size: 12px; min-height: 140px; }
+    button.action { background: #295572; color: #fff; border: 0; font-weight: 600; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+    button.secondary { background: #e4e5e6; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+    button.small { padding: 3px 8px; font-size: 12px; }
+    a.download-link { color: #295572; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+    th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid #e5e5e5; }
+    th { background: #295572; color: #ffffff; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #f0f2f5; }
+    .doc-block { border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; margin-bottom: 10px; background: #f7f9fb; }
+    .doc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }
+    .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .badge.Gerado { background: #fff3da; color: #b35900; }
+    .badge.Conferido { background: #d9e6f2; color: #295572; }
+    .badge.Confirmado { background: #d9f2d9; color: #008000; }
+    .row-divergente { background: #fbe4e4; }
+    #log { background: #f7f9fb; border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; font-size: 12px;
+      max-height: 200px; overflow: auto; white-space: pre-wrap; }
+    #log .ok { color: #008000; }
+    #log .err { color: #cc1f1f; }
+    .hint { font-size: 11px; opacity: .6; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="http://localhost:8100" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <button id="reload" class="action">Recarregar</button>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section>
+      <h2>1. Gerar Template de Contagem</h2>
+      <div class="note">Gera um InventarioArquivo (situacao Gerado) a partir da ocupacao atual de todos os locais (LocalArmazenagemLote) e um arquivo CSV para preenchimento manual da contagem.</div>
+      <div id="generateForm"></div>
+      <div id="generateResult"></div>
+    </section>
+    <section>
+      <h2>2. Importar Contagem</h2>
+      <div class="note">Cole de volta o CSV preenchido (coluna quantidadeContada) para um InventarioArquivo ja Gerado; grava as linhas e avanca Gerado&rarr;Conferido.</div>
+      <div id="importForm"></div>
+    </section>
+    <section>
+      <h2>3. Recebimento por Arquivo (CSV)</h2>
+      <div class="note">Sobe um CSV de contagem fisica no formato legado (Rua;Produto;Validade;Posicoes;Cx.Avulsa;...), pre-visualiza a resolucao de cada linha e, quando todas estiverem OK, confirma o recebimento -- criando/incrementando Lotes e alocando as posicoes.</div>
+      <div id="recForm"></div>
+      <div id="recPreview"></div>
+    </section>
+    <section>
+      <h2>Historico</h2>
+      <div id="historyBody"></div>
+    </section>
+    <section>
+      <h2>Log</h2>
+      <div id="log"></div>
+    </section>
+  </main>
+
+  <script>
+    // Inventario Fisico -- closes a gap found after the Phase-10 roadmap: Phase 6 built the
+    // gerarTemplate/importarContagem capability + flows, and Phase 7/9 built read-only divergence
+    // *reports*, but nothing let an operator actually drive the round-trip (generate template ->
+    // get file -> re-upload counts) through any page -- it was REST-only. Same hand-authored
+    // master-detail pattern as conferencia-fiscal.html/centro-trabalho.html.
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () { var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved; });
+    const apiBase = () => $('base').value.replace(/\/$/, '');
+    const apiKey = () => $('key').value.trim();
+
+    function log(message, ok) {
+      const div = document.createElement('div');
+      div.className = ok ? 'ok' : 'err';
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      $('log').prepend(div);
+    }
+    async function apiGet(path) {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + apiKey() } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+    async function apiSend(method, path, body) {
+      const res = await fetch(apiBase() + path, {
+        method, headers: { 'Authorization': 'Bearer ' + apiKey(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const text = await res.text();
+      let parsed = null;
+      try { parsed = text ? JSON.parse(text) : null; } catch (e) { /* leave null */ }
+      if (!res.ok) {
+        const msg = (parsed && (parsed.error || parsed.message)) || text || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
+      return parsed;
+    }
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+    const short = (id) => id ? id.slice(0, 8) + '...' : '';
+    const todayIso = () => new Date().toISOString().slice(0, 10);
+
+    let cache = { entidades: [], produtos: [], lotes: [], locais: [], ocupacoes: [], inventarios: [], linhas: [], ruas: [], areas: [], armazens: [] };
+
+    function produtoNome(id) { const p = cache.produtos.find(function (x) { return x.id === id; }); return p ? p.nome : short(id); }
+    function localCodigo(id) { const l = cache.locais.find(function (x) { return x.id === id; }); return l ? ('Rua ' + short(l.ruaId) + ' / Pos ' + l.posicao + ' / And ' + l.andar) : short(id); }
+    function ruasDaEntidade(entidadeId) {
+      const armazensDaEntidade = new Set(cache.armazens.filter(function (a) { return a.entidadeId === entidadeId; }).map(function (a) { return a.id; }));
+      const areasDaEntidade = new Set(cache.areas.filter(function (a) { return armazensDaEntidade.has(a.armazemId); }).map(function (a) { return a.id; }));
+      return cache.ruas.filter(function (r) { return areasDaEntidade.has(r.areaId); });
+    }
+
+    async function loadAll() {
+      $('status').textContent = 'carregando...';
+      try {
+        const [entidades, produtos, lotes, locais, ocupacoes, inventarios, linhas, ruas, areas, armazens] = await Promise.all([
+          apiGet('/api/entidades'), apiGet('/api/produtos'), apiGet('/api/lotes'),
+          apiGet('/api/local_armazenagems'), apiGet('/api/local_armazenagem_lotes'),
+          apiGet('/api/inventario_arquivos'), apiGet('/api/inventario_arquivo_linhas'),
+          apiGet('/api/ruas'), apiGet('/api/areas'), apiGet('/api/armazems')
+        ]).then(function (r) { return r.map(list); });
+        cache = { entidades, produtos, lotes, locais, ocupacoes, inventarios, linhas, ruas, areas, armazens };
+        renderGenerateForm();
+        renderImportForm();
+        renderRecForm();
+        renderHistory();
+        $('status').textContent = 'ok';
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+        log('Falha ao carregar dados: ' + e.message, false);
+      }
+    }
+
+    // ---- 1. Generate template ----
+    function renderGenerateForm() {
+      const container = $('generateForm');
+      container.innerHTML = '';
+      const sel = document.createElement('select');
+      cache.entidades.forEach(function (e) {
+        const opt = document.createElement('option');
+        opt.value = e.id; opt.textContent = e.nome + ' (' + e.tipo + ')';
+        sel.appendChild(opt);
+      });
+      const label = document.createElement('label');
+      const span = document.createElement('span'); span.textContent = 'Entidade';
+      label.append(span, sel);
+      const btn = document.createElement('button');
+      btn.className = 'action'; btn.textContent = 'Gerar Template';
+      btn.onclick = function () { generateTemplate(sel.value); };
+      const row = document.createElement('div'); row.className = 'row';
+      row.append(label, btn);
+      container.appendChild(row);
+    }
+
+    async function generateTemplate(entidadeId) {
+      try {
+        const loteById = {};
+        cache.lotes.forEach(function (l) { loteById[l.id] = l; });
+        const ocupacoesInput = cache.ocupacoes
+          .filter(function (o) { return Number(o.quantidade) > 0; })
+          .map(function (o) {
+            const lote = loteById[o.loteId];
+            return {
+              localArmazenagemId: o.localArmazenagemId,
+              produtoId: lote ? lote.produtoId : null,
+              loteId: o.loteId,
+              quantidade: o.quantidade
+            };
+          });
+        const result = await apiSend('POST', '/api/flows/GerarTemplateInventario/execute', { ocupacoes: ocupacoesInput });
+        const output = result.output || result;
+        if (!output || output.sucesso === false) {
+          log('Falha ao gerar template: ' + (output && output.motivo || 'motivo desconhecido'), false);
+          return;
+        }
+        const inv = await apiSend('POST', '/api/inventario_arquivos', {
+          entidadeId: entidadeId, dataGeracao: todayIso(), situacao: 'Gerado'
+        });
+        log('Template gerado (' + output.totalLinhas + ' linha(s)) -- InventarioArquivo ' + short(inv.id) + ' criado.', true);
+
+        const body = $('generateResult');
+        body.innerHTML = '';
+        const ta = document.createElement('textarea');
+        ta.value = output.texto;
+        ta.readOnly = true;
+        body.appendChild(ta);
+        const blob = new Blob([output.texto], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = 'inventario-' + short(inv.id) + '.csv';
+        link.className = 'download-link';
+        link.textContent = 'Baixar CSV (inventario-' + short(inv.id) + '.csv)';
+        body.appendChild(document.createElement('br'));
+        body.appendChild(link);
+
+        await loadAll();
+      } catch (e) { log('Falha ao gerar template: ' + e.message, false); }
+    }
+
+    // ---- 2. Import count ----
+    function renderImportForm() {
+      const container = $('importForm');
+      container.innerHTML = '';
+      const gerados = cache.inventarios.filter(function (i) { return i.situacao === 'Gerado'; });
+      if (!gerados.length) {
+        const hint = document.createElement('div'); hint.className = 'hint';
+        hint.textContent = 'Nenhum InventarioArquivo aguardando contagem (gere um template primeiro).';
+        container.appendChild(hint);
+        return;
+      }
+      const sel = document.createElement('select');
+      gerados.forEach(function (inv) {
+        const opt = document.createElement('option');
+        opt.value = inv.id; opt.textContent = short(inv.id) + ' -- ' + inv.dataGeracao;
+        sel.appendChild(opt);
+      });
+      const selLabel = document.createElement('label');
+      const selSpan = document.createElement('span'); selSpan.textContent = 'InventarioArquivo';
+      selLabel.append(selSpan, sel);
+
+      const ta = document.createElement('textarea');
+      ta.placeholder = 'localArmazenagemId;produtoId;loteId;quantidadeEsperada;quantidadeContada\n...';
+
+      const btn = document.createElement('button');
+      btn.className = 'action'; btn.textContent = 'Importar Contagem';
+      btn.onclick = function () { importCount(sel.value, ta.value); };
+
+      const row1 = document.createElement('div'); row1.className = 'row'; row1.appendChild(selLabel);
+      container.append(row1, ta, document.createElement('br'), btn);
+    }
+
+    async function importCount(inventarioArquivoId, texto) {
+      try {
+        const result = await apiSend('POST', '/api/flows/ImportarContagemInventario/execute', { texto: texto });
+        const output = result.output || result;
+        if (!output || output.sucesso === false) {
+          log('Falha ao importar contagem: ' + (output && output.motivo || 'motivo desconhecido'), false);
+          return;
+        }
+        for (const linha of output.linhas) {
+          await apiSend('POST', '/api/inventario_arquivo_linhas', {
+            inventarioArquivoId: inventarioArquivoId,
+            localArmazenagemId: linha.localArmazenagemId,
+            produtoId: linha.produtoId,
+            loteId: linha.loteId,
+            quantidadeEsperada: linha.quantidadeEsperada,
+            quantidadeContada: linha.quantidadeContada,
+            divergente: linha.divergente
+          });
+        }
+        const inv = cache.inventarios.find(function (i) { return i.id === inventarioArquivoId; });
+        await apiSend('PUT', '/api/inventario_arquivos/' + inventarioArquivoId, Object.assign({}, inv, { situacao: 'Conferido' }));
+        log('Contagem importada: ' + output.totalLinhas + ' linha(s), ' + output.totalDivergencias + ' divergencia(s).', true);
+        await loadAll();
+      } catch (e) { log('Falha ao importar contagem: ' + e.message, false); }
+    }
+
+    // ---- 3. Recebimento por arquivo (real CSV upload -> preview -> confirm -> allocate) ----
+    let recState = { entidadeId: null, resultado: null };
+
+    function renderRecForm() {
+      const container = $('recForm');
+      container.innerHTML = '';
+      const sel = document.createElement('select'); sel.id = 'recEntidade';
+      cache.entidades.forEach(function (e) {
+        const opt = document.createElement('option');
+        opt.value = e.id; opt.textContent = e.nome + ' (' + e.tipo + ')';
+        sel.appendChild(opt);
+      });
+      const selLabel = document.createElement('label');
+      const selSpan = document.createElement('span'); selSpan.textContent = 'Entidade';
+      selLabel.append(selSpan, sel);
+
+      const file = document.createElement('input'); file.type = 'file'; file.id = 'recFile'; file.accept = '.csv,.txt';
+
+      const btn = document.createElement('button');
+      btn.className = 'action'; btn.textContent = 'Analisar Arquivo';
+      btn.onclick = analisarArquivoRecebimento;
+
+      const row = document.createElement('div'); row.className = 'row';
+      row.append(selLabel, file, btn);
+      container.appendChild(row);
+    }
+
+    async function analisarArquivoRecebimento() {
+      const fileInput = $('recFile');
+      const file = fileInput.files[0];
+      if (!file) { log('Selecione um arquivo CSV', false); return; }
+      try {
+        const csvText = await file.text();
+        const entidadeId = $('recEntidade').value;
+
+        const posDisponiveisPorRua = {};
+        cache.locais.forEach(function (l) {
+          if (l.situacao === 'Disponivel') posDisponiveisPorRua[l.ruaId] = (posDisponiveisPorRua[l.ruaId] || 0) + 1;
+        });
+        const ruasInput = ruasDaEntidade(entidadeId).map(function (r) {
+          return { id: r.id, codigo: r.codigo, posicoesDisponiveis: posDisponiveisPorRua[r.id] || 0 };
+        });
+        const produtosInput = cache.produtos.map(function (p) {
+          return { id: p.id, codigo: p.codigo, qtdCaixasPorPallet: p.qtdCaixasPorPallet };
+        });
+
+        const result = await apiSend('POST', '/api/flows/AnalisarArquivoRecebimento/execute', {
+          csvText: csvText, ruas: ruasInput, produtos: produtosInput
+        });
+        const output = result.output || result;
+        if (!output || output.sucesso === false) {
+          log('Falha ao analisar arquivo: ' + (output && output.motivo || 'motivo desconhecido'), false);
+          return;
+        }
+
+        recState = { entidadeId: entidadeId, resultado: output };
+        renderRecPreview(output);
+        log('Arquivo analisado: ' + output.totalLinhas + ' linha(s), ' + output.totalOk + ' OK.', output.todasOk);
+      } catch (e) { log('Falha ao analisar arquivo: ' + e.message, false); }
+    }
+
+    function renderRecPreview(output) {
+      const box = $('recPreview');
+      box.innerHTML = '';
+      const table = document.createElement('table');
+      table.innerHTML = '<thead><tr><th>Linha</th><th>Rua</th><th>Produto</th><th>Validade</th><th>Pos</th><th>Avulsa</th><th>Qtd</th><th>Alerta</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      output.linhas.forEach(function (l) {
+        const tr = document.createElement('tr');
+        if (!l.ok) tr.className = 'row-divergente';
+        [l.linha, l.ruaCodigo, l.produtoCodigo, l.dataValidade || '(invalida)', l.posicoes, l.quantidadeAvulsa, l.quantidade, l.alerta]
+          .forEach(function (v) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      box.appendChild(table);
+
+      const btn = document.createElement('button');
+      btn.className = 'action'; btn.textContent = 'Confirmar Recebimento';
+      btn.disabled = !output.todasOk;
+      btn.onclick = confirmarRecebimento;
+      box.appendChild(btn);
+      if (!output.todasOk) {
+        const hint = document.createElement('div'); hint.className = 'hint';
+        hint.textContent = 'Corrija as linhas com erro (ou refaca o upload) antes de confirmar.';
+        box.appendChild(hint);
+      }
+    }
+
+    async function confirmarRecebimento() {
+      const entidadeId = recState.entidadeId;
+      const resultado = recState.resultado;
+      if (!resultado || !resultado.todasOk) { log('Corrija os erros antes de confirmar.', false); return; }
+      try {
+        const inv = await apiSend('POST', '/api/inventario_arquivos', {
+          entidadeId: entidadeId, dataGeracao: todayIso(), situacao: 'Gerado'
+        });
+
+        let lotesAcumulados = cache.lotes.slice();
+        let algumaFalha = false;
+
+        for (const linha of resultado.linhas) {
+          if (linha.alerta !== 'OK!') continue;
+
+          let lote = lotesAcumulados.find(function (l) {
+            return l.entidadeId === entidadeId && l.produtoId === linha.produtoId && l.dataValidade === linha.dataValidade;
+          });
+          if (lote) {
+            const atualizado = Object.assign({}, lote, { quantidade: Number(lote.quantidade) + linha.quantidade });
+            lote = await apiSend('PUT', '/api/lotes/' + lote.id, atualizado);
+            lotesAcumulados = lotesAcumulados.map(function (l) { return l.id === lote.id ? lote : l; });
+          } else {
+            lote = await apiSend('POST', '/api/lotes', {
+              entidadeId: entidadeId, produtoId: linha.produtoId, dataValidade: linha.dataValidade,
+              ocorrencia: 'Normal', situacao: 'Recebido', quantidade: linha.quantidade
+            });
+            lotesAcumulados.push(lote);
+          }
+
+          const [locaisFrescos, ocupacoesFrescas] = await Promise.all([
+            apiGet('/api/local_armazenagems'), apiGet('/api/local_armazenagem_lotes')
+          ]).then(function (r) { return r.map(list); });
+          const locaisDaRua = locaisFrescos.filter(function (l) { return l.ruaId === linha.ruaId; });
+          const ocupPorLocal = {};
+          ocupacoesFrescas.forEach(function (o) {
+            (ocupPorLocal[o.localArmazenagemId] = ocupPorLocal[o.localArmazenagemId] || []).push(o);
+          });
+          const mesValidade = linha.dataValidade.slice(0, 7);
+          const produto = cache.produtos.find(function (p) { return p.id === linha.produtoId; }) || {};
+          const palletSize = produto.qtdCaixasPorPallet || 1;
+          // Only bins that AlocarRecebimento could ever pick (empty, or already holding the same
+          // produto+month) are worth sending -- a bin occupied by something else is never eligible.
+          // Also cap to what this row could plausibly need: sending every position in a large Rua
+          // (thousands in a real/full-scale warehouse) blows past the flow-execute request-size
+          // limit (RuntimeRequestSizeFilter, 256KB) for no benefit, since AlocarRecebimento only
+          // ever consumes ceil(quantidade/palletSize) bins at most.
+          const candidatos = locaisDaRua
+            .map(function (loc) {
+              const oc = (ocupPorLocal[loc.id] || [])[0];
+              const loteOc = oc ? lotesAcumulados.find(function (l) { return l.id === oc.loteId; }) : null;
+              return {
+                localArmazenagemId: loc.id, posicao: loc.posicao, andar: loc.andar, situacao: loc.situacao,
+                ocupanteProdutoId: loteOc ? loteOc.produtoId : null,
+                ocupanteMesValidade: loteOc ? loteOc.dataValidade.slice(0, 7) : null,
+                quantidadeOcupada: oc ? Number(oc.quantidade) : 0
+              };
+            })
+            .filter(function (c) {
+              const vazio = c.situacao === 'Disponivel' && c.quantidadeOcupada <= 0;
+              const topOff = c.quantidadeOcupada > 0 && c.quantidadeOcupada < palletSize
+                && c.ocupanteProdutoId === linha.produtoId && c.ocupanteMesValidade === mesValidade;
+              return vazio || topOff;
+            })
+            .sort(function (a, b) { return (a.posicao - b.posicao) || (a.andar - b.andar); })
+            .slice(0, Math.ceil(linha.quantidade / palletSize) + 5);
+
+          const alocResult = await apiSend('POST', '/api/flows/AlocarRecebimento/execute', {
+            produtoId: linha.produtoId, quantidadeNecessaria: linha.quantidade,
+            palletSize: palletSize, mesValidade: mesValidade, candidatos: candidatos
+          });
+          const aloc = alocResult.output || alocResult;
+          if (!aloc || aloc.sucesso === false || !aloc.atendeuTotal) {
+            log('Falha ao alocar linha ' + linha.linha + ' (Rua ' + linha.ruaCodigo + '): ' + (aloc && aloc.motivo || 'capacidade insuficiente'), false);
+            algumaFalha = true;
+            continue;
+          }
+
+          for (const a of aloc.alocacoes) {
+            const existente = ocupacoesFrescas.find(function (o) { return o.localArmazenagemId === a.localArmazenagemId && o.loteId === lote.id; });
+            if (existente) {
+              await apiSend('PUT', '/api/local_armazenagem_lotes/' + existente.id, Object.assign({}, existente, { quantidade: Number(existente.quantidade) + a.quantidadeAlocada }));
+            } else {
+              await apiSend('POST', '/api/local_armazenagem_lotes', { localArmazenagemId: a.localArmazenagemId, loteId: lote.id, quantidade: a.quantidadeAlocada });
+            }
+            const localAtual = locaisFrescos.find(function (l) { return l.id === a.localArmazenagemId; });
+            await apiSend('PUT', '/api/local_armazenagems/' + a.localArmazenagemId, Object.assign({}, localAtual, { situacao: 'Ocupado' }));
+
+            await apiSend('POST', '/api/inventario_arquivo_linhas', {
+              inventarioArquivoId: inv.id, localArmazenagemId: a.localArmazenagemId, produtoId: linha.produtoId,
+              loteId: lote.id, quantidadeEsperada: a.quantidadeAlocada, quantidadeContada: a.quantidadeAlocada, divergente: false
+            });
+          }
+        }
+
+        const conferido = await apiSend('PUT', '/api/inventario_arquivos/' + inv.id, Object.assign({}, inv, { situacao: 'Conferido' }));
+        await apiSend('PUT', '/api/inventario_arquivos/' + inv.id, Object.assign({}, conferido, { situacao: 'Confirmado' }));
+        log('Recebimento confirmado -- InventarioArquivo ' + short(inv.id) + ' Confirmado' + (algumaFalha ? ' (com falhas de alocacao, veja o log)' : '') + '.', !algumaFalha);
+
+        recState = { entidadeId: null, resultado: null };
+        $('recPreview').innerHTML = '';
+        await loadAll();
+      } catch (e) { log('Falha ao confirmar recebimento: ' + e.message, false); }
+    }
+
+    // ---- History (master-detail) ----
+    function renderHistory() {
+      const body = $('historyBody');
+      body.innerHTML = '';
+      if (!cache.inventarios.length) {
+        const hint = document.createElement('div'); hint.className = 'hint';
+        hint.textContent = 'Nenhum inventario gerado ainda.';
+        body.appendChild(hint);
+        return;
+      }
+      cache.inventarios.forEach(function (inv) {
+        const block = document.createElement('div');
+        block.className = 'doc-block';
+        const head = document.createElement('div');
+        head.className = 'doc-head';
+        head.innerHTML = '<span><b>' + short(inv.id) + '</b> &middot; ' + inv.dataGeracao +
+          ' <span class="badge ' + inv.situacao + '">' + inv.situacao + '</span></span>';
+        if (inv.situacao === 'Conferido') {
+          const confirmBtn = document.createElement('button');
+          confirmBtn.className = 'secondary small'; confirmBtn.textContent = 'Confirmar';
+          confirmBtn.onclick = function () { confirmInventario(inv); };
+          head.appendChild(confirmBtn);
+        }
+        block.appendChild(head);
+
+        const linhas = cache.linhas.filter(function (l) { return l.inventarioArquivoId === inv.id; });
+        if (linhas.length) {
+          const table = document.createElement('table');
+          table.innerHTML = '<thead><tr><th>Local</th><th>Produto</th><th>Esperada</th><th>Contada</th><th>Divergente</th></tr></thead>';
+          const tbody = document.createElement('tbody');
+          linhas.forEach(function (l) {
+            const tr = document.createElement('tr');
+            if (l.divergente) tr.className = 'row-divergente';
+            [localCodigo(l.localArmazenagemId), produtoNome(l.produtoId), l.quantidadeEsperada,
+              l.quantidadeContada == null ? '(nao contado)' : l.quantidadeContada, l.divergente ? 'Sim' : 'Nao']
+              .forEach(function (v) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          block.appendChild(table);
+        } else {
+          const hint = document.createElement('div'); hint.className = 'hint';
+          hint.textContent = 'Aguardando contagem.';
+          block.appendChild(hint);
+        }
+        body.appendChild(block);
+      });
+    }
+
+    async function confirmInventario(inv) {
+      try {
+        await apiSend('PUT', '/api/inventario_arquivos/' + inv.id, Object.assign({}, inv, { situacao: 'Confirmado' }));
+        log('InventarioArquivo ' + short(inv.id) + ' confirmado.', true);
+        await loadAll();
+      } catch (e) { log('Falha ao confirmar: ' + e.message, false); }
+    }
+
+    $('reload').addEventListener('click', loadAll);
+    window.addEventListener('DOMContentLoaded', loadAll);
+  </script>
+</body>
+</html>

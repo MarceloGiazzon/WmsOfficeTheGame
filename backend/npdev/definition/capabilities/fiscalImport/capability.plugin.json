@@ -1,0 +1,33 @@
+{
+  "$schema": "npdev/capability-plugin.schema.json",
+  "packageFormatVersion": "1.0",
+  "packageId": "wmsoffice-fiscalimport-java-source-package",
+  "pluginId": "wmsoffice-fiscalimport-java-source-plugin",
+  "displayName": "WmsOffice Fiscal Import Capability",
+  "version": "1.0.0",
+  "description": "Pure-Java parsing/cross-reference logic for NF-e XML import and Romaneio text import: duplicate-document detection and unregistered-product flagging.",
+  "capability": "fiscalImport",
+  "capabilityType": "FiscalImportCapability",
+  "adapterId": "plugin:java-source",
+  "runtimeRef": "fiscalImportJavaSourceHandler",
+  "implementation": {
+    "kind": "javaSource",
+    "sourceRoot": "capabilities/fiscalImport/src/main/java",
+    "mainClass": "com.wmsoffice.capabilities.fiscal.FiscalImportCapability",
+    "factory": { "kind": "defaultConstructor" }
+  },
+  "operationBindings": [
+    {
+      "operation": "importarNfe", "method": "importarNfe",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "importarRomaneio", "method": "importarRomaneio",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    }
+  ],
+  "trust": { "mode": "artifact-local-source", "source": "external-artifact-bundle", "level": "developer-supplied" },
+  "generation": { "mount": "compileIntoGeneratedApp", "emitManifestContribution": true, "emitPackageDescriptor": true, "emitBinding": true }
+}

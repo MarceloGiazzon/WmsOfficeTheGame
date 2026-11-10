@@ -1,0 +1,25 @@
+{
+  "name": "ExpedicaoItem",
+  "ui": { "label": "Expedicao - Item" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "expedicaoId", "type": "reference", "required": true,
+      "reference": { "target": "Expedicao", "onDelete": "cascade" },
+      "ui": { "label": "Expedicao" }
+    },
+    {
+      "name": "produtoId", "type": "reference", "required": true,
+      "reference": { "target": "Produto", "onDelete": "restrict" },
+      "ui": { "label": "Produto" }
+    },
+    { "name": "quantidade", "type": "long", "required": true, "default": 1, "ui": { "label": "Quantidade" } },
+    {
+      "name": "autoFinalizacao", "type": "boolean", "required": true, "default": false,
+      "ui": { "label": "Auto-finalizacao" }
+    }
+  ],
+  "invariants": [
+    { "name": "ExpedicaoItemQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
+  ]
+}

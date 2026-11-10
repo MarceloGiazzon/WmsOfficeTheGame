@@ -1,0 +1,55 @@
+{
+  "name": "DocumentoFiscal",
+  "ui": { "label": "Documento Fiscal (NF-e)" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "entidadeId", "type": "reference", "required": true,
+      "reference": { "target": "Entidade", "onDelete": "restrict" },
+      "ui": { "label": "Entidade (emitente/cliente)" }
+    },
+    { "name": "numero", "type": "string", "required": true, "minLength": 1, "maxLength": 20, "ui": { "label": "Numero" } },
+    { "name": "chave", "type": "string", "required": true, "minLength": 1, "maxLength": 44, "ui": { "label": "Chave de acesso" } },
+    { "name": "dataEmissao", "type": "date", "required": true, "ui": { "label": "Data de emissao" } },
+    { "name": "emitenteCnpj", "type": "string", "required": false, "maxLength": 14, "ui": { "label": "CNPJ do emitente" } },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["Importada", "RecebimentoGerado", "Cancelada"],
+      "default": "Importada",
+      "ui": { "label": "Situacao" }
+    },
+    {
+      "name": "recebimentoId", "type": "reference", "required": false,
+      "reference": { "target": "Recebimento", "onDelete": "restrict" },
+      "ui": { "label": "Recebimento gerado" }
+    },
+    {
+      "name": "arquivo", "type": "file", "required": false,
+      "file": {
+        "contentTypes": ["application/xml", "text/xml", "application/pdf"],
+        "maxSizeBytes": 10485760
+      },
+      "ui": { "label": "Arquivo da NF-e (XML/DANFE)" }
+    }
+  ],
+  "lifecycle": {
+    "statusField": "situacao",
+    "states": [
+      { "value": "Importada", "label": "Importada", "initial": true },
+      { "value": "RecebimentoGerado", "label": "Recebimento Gerado", "terminal": true },
+      { "value": "Cancelada", "label": "Cancelada", "terminal": true }
+    ],
+    "transitions": [
+      { "from": "Importada", "to": "RecebimentoGerado" },
+      { "from": "Importada", "to": "Cancelada" }
+    ]
+  },
+  "invariants": [
+    { "name": "DocumentoFiscalNumeroRequired", "type": "expression", "expr": "numero != null && numero != ''" },
+    { "name": "DocumentoFiscalChaveRequired", "type": "expression", "expr": "chave != null && chave != ''" },
+    {
+      "name": "DocumentoFiscalRecebimentoRequiredWhenGerado", "type": "expression",
+      "expr": "situacao != 'RecebimentoGerado' || recebimentoId != null"
+    }
+  ]
+}

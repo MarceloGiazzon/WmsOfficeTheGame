@@ -1,0 +1,22 @@
+{
+  "name": "RecebimentoLote",
+  "ui": { "label": "Recebimento - Lote" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "recebimentoId", "type": "reference", "required": true,
+      "reference": { "target": "Recebimento", "onDelete": "cascade" },
+      "ui": { "label": "Recebimento" }
+    },
+    {
+      "name": "loteId", "type": "reference", "required": true,
+      "reference": { "target": "Lote", "onDelete": "restrict" },
+      "ui": { "label": "Lote" }
+    },
+    { "name": "quantidade", "type": "long", "required": true, "default": 1, "ui": { "label": "Quantidade" } },
+    { "name": "crossDocking", "type": "boolean", "required": true, "default": false, "ui": { "label": "Cross-docking" } }
+  ],
+  "invariants": [
+    { "name": "RecebimentoLoteQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
+  ]
+}

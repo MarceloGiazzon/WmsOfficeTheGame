@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Cross-Docking</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #bar button { background: #295572; color: #fff; border: 0; font-weight: 600; border-radius: 4px; padding: 5px 12px; cursor: pointer; }
+    #status { margin-left: auto; color: #6b7280; }
+    main { padding: 16px; max-width: 1000px; margin: 0 auto; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; box-shadow: 0 1px 3px rgba(41,85,114,.1); border-radius: 8px; padding: 14px; margin-bottom: 18px; }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; }
+    .row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .row label { display: flex; flex-direction: column; font-size: 11px; opacity: .8; gap: 3px; }
+    select, input[type=number], input[type=date] { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; min-width: 160px; }
+    button.action { background: #295572; color: #fff; border: 0; font-weight: 600; border-radius: 4px; padding: 7px 14px; cursor: pointer; }
+    button.danger { background: #b42323; }
+    button.secondary { background: #e4e5e6; color: #1c2333; border: 1px solid #c8d0da; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e5e5e5; }
+    th { background: #295572; color: #ffffff; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #f0f2f5; }
+    .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .badge.Ativo { background: #d9e6f2; color: #295572; }
+    .badge.Concluido { background: #d9f2d9; color: #008000; }
+    .badge.Cancelado { background: #fbe4e4; color: #cc1f1f; }
+    #log { background: #f7f9fb; border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; font-size: 12px;
+      max-height: 220px; overflow: auto; white-space: pre-wrap; }
+    #log .ok { color: #008000; }
+    #log .err { color: #cc1f1f; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="http://localhost:8100" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <button id="reload">Recarregar</button>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section>
+      <h2>Ativar Cross-Docking</h2>
+      <div class="row">
+        <label>Recebimento (pendente)
+          <select id="recebimentoSel"></select>
+        </label>
+        <label>Expedicao (pendente)
+          <select id="expedicaoSel"></select>
+        </label>
+        <label>Produto
+          <select id="produtoSel"></select>
+        </label>
+        <label>Quantidade
+          <input id="quantidade" type="number" value="1" min="1" />
+        </label>
+        <label>Data
+          <input id="dataAtivacao" type="date" />
+        </label>
+      </div>
+      <button class="action" id="ativar">Ativar Cross-Docking</button>
+    </section>
+
+    <section>
+      <h2>Cross-Dockings</h2>
+      <table>
+        <thead>
+          <tr><th>Situacao</th><th>Recebimento</th><th>Expedicao</th><th>Produto</th><th>Qtd</th><th>Acoes</th></tr>
+        </thead>
+        <tbody id="xdTable"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Log</h2>
+      <div id="log"></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () { var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved; });
+    function apiBase() { return $('base').value.replace(/\/$/, ''); }
+    function apiKey() { return $('key').value.trim(); }
+    function log(message, ok) {
+      const div = document.createElement('div');
+      div.className = ok ? 'ok' : 'err';
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      $('log').prepend(div);
+    }
+
+    async function apiGet(path) {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + apiKey() } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+    async function apiSend(method, path, body) {
+      const res = await fetch(apiBase() + path, {
+        method, headers: { 'Authorization': 'Bearer ' + apiKey(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const text = await res.text();
+      let parsed = null;
+      try { parsed = text ? JSON.parse(text) : null; } catch (e) { /* leave null */ }
+      if (!res.ok) {
+        const msg = (parsed && (parsed.error || parsed.message)) || text || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
+      return parsed;
+    }
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+
+    let state = { recebimentos: [], expedicaos: [], produtos: [], crossDockings: [] };
+
+    async function loadAll() {
+      $('status').textContent = 'carregando...';
+      try {
+        const [recebimentos, expedicaos, produtos, crossDockings] = await Promise.all([
+          apiGet('/api/recebimentos'), apiGet('/api/expedicaos'),
+          apiGet('/api/produtos'), apiGet('/api/cross_dockings')
+        ]).then(r => r.map(list));
+        state = { recebimentos, expedicaos, produtos, crossDockings };
+        renderSelectors();
+        renderTable();
+        $('status').textContent = `${crossDockings.length} cross-docking(s)`;
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+        log('Falha ao carregar dados: ' + e.message, false);
+      }
+    }
+
+    function renderSelectors() {
+      const recebSel = $('recebimentoSel');
+      const expSel = $('expedicaoSel');
+      const prodSel = $('produtoSel');
+      recebSel.innerHTML = '';
+      state.recebimentos.filter(r => r.estagio !== 'Armazenado').forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id; opt.textContent = `${r.id.slice(0, 8)}... (${r.estagio})`;
+        recebSel.appendChild(opt);
+      });
+      expSel.innerHTML = '';
+      state.expedicaos.filter(x => x.estagio !== 'SaidaConfirmada').forEach(x => {
+        const opt = document.createElement('option');
+        opt.value = x.id; opt.textContent = `${x.id.slice(0, 8)}... (${x.estagio})`;
+        expSel.appendChild(opt);
+      });
+      prodSel.innerHTML = '';
+      state.produtos.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id; opt.textContent = p.nome;
+        prodSel.appendChild(opt);
+      });
+    }
+
+    function nameFor(list_, id) {
+      const item = list_.find(x => x.id === id);
+      return item ? (item.nome || item.id.slice(0, 8) + '...') : id;
+    }
+
+    function renderTable() {
+      const tbody = $('xdTable');
+      tbody.innerHTML = '';
+      state.crossDockings.forEach(xd => {
+        const tr = document.createElement('tr');
+        const produtoNome = nameFor(state.produtos, xd.produtoId);
+        const podeAgir = xd.situacao === 'Ativo';
+        tr.innerHTML = `
+          <td><span class="badge ${xd.situacao}">${xd.situacao}</span></td>
+          <td>${xd.recebimentoId.slice(0, 8)}...</td>
+          <td>${xd.expedicaoId.slice(0, 8)}...</td>
+          <td>${produtoNome}</td>
+          <td>${xd.quantidade}</td>
+          <td></td>
+        `;
+        const actionsTd = tr.querySelector('td:last-child');
+        if (podeAgir) {
+          const concluirBtn = document.createElement('button');
+          concluirBtn.className = 'action'; concluirBtn.textContent = 'Concluir';
+          concluirBtn.onclick = () => concluir(xd);
+          const cancelarBtn = document.createElement('button');
+          cancelarBtn.className = 'danger'; cancelarBtn.textContent = 'Cancelar';
+          cancelarBtn.onclick = () => cancelar(xd);
+          const testarBtn = document.createElement('button');
+          testarBtn.className = 'secondary'; testarBtn.textContent = 'Testar bloqueio';
+          testarBtn.title = 'Tenta cancelar o Recebimento vinculado diretamente - deve ser bloqueado enquanto o cross-docking estiver Ativo';
+          testarBtn.onclick = () => testarBloqueio(xd);
+          actionsTd.append(concluirBtn, ' ', cancelarBtn, ' ', testarBtn);
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function ativar() {
+      const recebimentoId = $('recebimentoSel').value;
+      const expedicaoId = $('expedicaoSel').value;
+      const produtoId = $('produtoSel').value;
+      const quantidade = Number($('quantidade').value || 1);
+      const dataAtivacao = $('dataAtivacao').value || new Date().toISOString().slice(0, 10);
+      if (!recebimentoId || !expedicaoId || !produtoId) {
+        log('Selecione Recebimento, Expedicao e Produto antes de ativar.', false);
+        return;
+      }
+      try {
+        const xdResult = await apiSend('POST', '/api/flows/AtivarCrossDocking/execute', {
+          recebimentoId, expedicaoId, produtoId, quantidade, dataAtivacao, situacao: 'Ativo'
+        });
+        if (xdResult.status !== 'OK') throw new Error(xdResult.error || 'AtivarCrossDocking falhou');
+        log(`Cross-docking ativado (id=${xdResult.output.id.slice(0, 8)}...).`, true);
+
+        const receb = state.recebimentos.find(r => r.id === recebimentoId);
+        const exp = state.expedicaos.find(x => x.id === expedicaoId);
+        await apiSend('PUT', `/api/recebimentos/${recebimentoId}`, { ...receb, crossDockingAtivo: true });
+        await apiSend('PUT', `/api/expedicaos/${expedicaoId}`, { ...exp, crossDockingAtivo: true });
+        log('Flags crossDockingAtivo marcadas em Recebimento e Expedicao.', true);
+        await loadAll();
+      } catch (e) {
+        log('Erro ao ativar cross-docking: ' + e.message, false);
+      }
+    }
+
+    async function concluir(xd) {
+      try {
+        const result = await apiSend('POST', '/api/flows/ConcluirCrossDocking/execute', { ...xd, situacao: 'Concluido' });
+        if (result.status !== 'OK') throw new Error(result.error || 'ConcluirCrossDocking falhou');
+        await clearFlags(xd);
+        log(`Cross-docking ${xd.id.slice(0, 8)}... concluido.`, true);
+        await loadAll();
+      } catch (e) {
+        log('Erro ao concluir: ' + e.message, false);
+      }
+    }
+
+    async function cancelar(xd) {
+      try {
+        const result = await apiSend('POST', '/api/flows/CancelarCrossDocking/execute', { ...xd, situacao: 'Cancelado' });
+        if (result.status !== 'OK') throw new Error(result.error || 'CancelarCrossDocking falhou');
+        await clearFlags(xd);
+        log(`Cross-docking ${xd.id.slice(0, 8)}... cancelado.`, true);
+        await loadAll();
+      } catch (e) {
+        log('Erro ao cancelar: ' + e.message, false);
+      }
+    }
+
+    async function clearFlags(xd) {
+      const receb = state.recebimentos.find(r => r.id === xd.recebimentoId);
+      const exp = state.expedicaos.find(x => x.id === xd.expedicaoId);
+      if (receb) await apiSend('PUT', `/api/recebimentos/${xd.recebimentoId}`, { ...receb, crossDockingAtivo: false });
+      if (exp) await apiSend('PUT', `/api/expedicaos/${xd.expedicaoId}`, { ...exp, crossDockingAtivo: false });
+    }
+
+    async function testarBloqueio(xd) {
+      const receb = state.recebimentos.find(r => r.id === xd.recebimentoId);
+      if (!receb) { log('Recebimento nao encontrado localmente - recarregue.', false); return; }
+      try {
+        await apiSend('PUT', `/api/recebimentos/${xd.recebimentoId}`, { ...receb, situacao: 'Cancelado' });
+        log('INESPERADO: cancelamento do Recebimento NAO foi bloqueado (bug?).', false);
+      } catch (e) {
+        log('OK - cancelamento do Recebimento corretamente bloqueado pelo cross-docking ativo: ' + e.message, true);
+      }
+    }
+
+    $('reload').addEventListener('click', loadAll);
+    $('ativar').addEventListener('click', ativar);
+    window.addEventListener('DOMContentLoaded', () => {
+      $('dataAtivacao').value = new Date().toISOString().slice(0, 10);
+      loadAll();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,4115 @@
+{
+  "$schema": "../../../../NPDev/NPDev_General/NPDevContract/schemas/model.schema.json",
+  "namespace": "wmsofficethegame.core",
+  "dslVersion": "1.0.0",
+  "version": "0.2.0",
+  "metadata": {
+    "purpose": "WmsOffice recreation. Phase 1: core master data, warehouse topology, product/lot. Phase 2: receiving/shipping/movement lifecycle. Phase 3: allocation/slotting engine as a custom capability. Phase 4: NFe/Romaneio import as custom capabilities. Phase 5: bespoke panels + visual warehouse map + cross-docking interlock UI. Phase 6: reporting queries + inventory file round-trip. Translated from the legacy GeneXus WmsOffice schema.",
+    "phase": "6-reporting-and-inventory-file-roundtrip",
+    "sourceProject": "D:/WorkSpace/WmsOffice/OriginalArtifacts"
+  },
+  "settings": {
+    "locale": "pt-BR",
+    "strings": {
+      "action.select": "Selecionar",
+      "action.add": "Adicionar",
+      "action.cancel": "Cancelar",
+      "state.phase": "Fase"
+    }
+  },
+  "roles": [
+    {
+      "name": "WarehouseManager",
+      "grants": [
+        "EXECUTE_FLOW",
+        "READ_EXECUTIONS",
+        "READ_FLOW_DEFINITIONS"
+      ]
+    }
+  ],
+  "propertyScopes": [
+    {
+      "name": "user",
+      "from": "$user.id"
+    },
+    {
+      "name": "tenant"
+    }
+  ],
+  "properties": [
+    {
+      "name": "locale",
+      "type": "string",
+      "default": "pt-BR",
+      "settableAt": [
+        "tenant",
+        "user"
+      ],
+      "label": {
+        "default": "Locale",
+        "en": "Locale"
+      }
+    },
+    {
+      "name": "pageRows",
+      "type": "int",
+      "default": 25,
+      "settableAt": [
+        "tenant",
+        "user"
+      ],
+      "label": {
+        "default": "Rows per page",
+        "en": "Rows per page"
+      }
+    },
+    {
+      "name": "dateFormat",
+      "type": "string",
+      "default": "dd/MM/yyyy",
+      "settableAt": [
+        "tenant",
+        "user"
+      ],
+      "label": {
+        "default": "Date format",
+        "en": "Date format"
+      }
+    }
+  ],
+  "packs": [
+    {
+      "$ref": "packs/identity/pack.json",
+      "as": "identity"
+    },
+    {
+      "$ref": "packs/workspace/pack.json",
+      "as": "workspace"
+    },
+    {
+      "$ref": "packs/tracing/pack.json",
+      "as": "tracing"
+    }
+  ],
+  "concepts": [
+    {
+      "$ref": "concepts/Entidade.json"
+    },
+    {
+      "$ref": "concepts/Armazem.json"
+    },
+    {
+      "$ref": "concepts/Area.json"
+    },
+    {
+      "$ref": "concepts/Rua.json"
+    },
+    {
+      "$ref": "concepts/LocalArmazenagem.json"
+    },
+    {
+      "$ref": "concepts/PerfilAlocacao.json"
+    },
+    {
+      "$ref": "concepts/RankingRua.json"
+    },
+    {
+      "$ref": "concepts/LocalArmazenagemLote.json"
+    },
+    {
+      "$ref": "concepts/Produto.json"
+    },
+    {
+      "$ref": "concepts/Lote.json"
+    },
+    {
+      "$ref": "concepts/Movimento.json"
+    },
+    {
+      "$ref": "concepts/MovimentoItem.json"
+    },
+    {
+      "$ref": "concepts/MovimentoItemPosicao.json"
+    },
+    {
+      "$ref": "concepts/Recebimento.json"
+    },
+    {
+      "$ref": "concepts/RecebimentoLote.json"
+    },
+    {
+      "$ref": "concepts/Expedicao.json"
+    },
+    {
+      "$ref": "concepts/ExpedicaoItem.json"
+    },
+    {
+      "$ref": "concepts/HistoricoMovimentacao.json"
+    },
+    {
+      "$ref": "concepts/DocumentoFiscal.json"
+    },
+    {
+      "$ref": "concepts/DocumentoFiscalItem.json"
+    },
+    {
+      "$ref": "concepts/Romaneio.json"
+    },
+    {
+      "$ref": "concepts/RomaneioItem.json"
+    },
+    {
+      "$ref": "concepts/CrossDocking.json"
+    },
+    {
+      "$ref": "concepts/InventarioArquivo.json"
+    },
+    {
+      "$ref": "concepts/InventarioArquivoLinha.json"
+    },
+    {
+      "$ref": "concepts/Usuario.json"
+    }
+  ],
+  "aggregates": [
+    {
+      "name": "Expedicao",
+      "root": "Expedicao",
+      "collections": [
+        {
+          "name": "itens",
+          "concept": "ExpedicaoItem",
+          "childField": "expedicaoId",
+          "ownership": "owned",
+          "orderBy": "produtoId"
+        }
+      ]
+    },
+    {
+      "name": "Recebimento",
+      "root": "Recebimento",
+      "collections": [
+        {
+          "name": "lotes",
+          "concept": "RecebimentoLote",
+          "childField": "recebimentoId",
+          "ownership": "owned"
+        }
+      ]
+    },
+    {
+      "name": "Movimento",
+      "root": "Movimento",
+      "onValidate": "ValidateMovimentoProcedure",
+      "onCommit": "RecomputarOcupacaoOnCommitProcedure",
+      "collections": [
+        {
+          "name": "itens",
+          "concept": "MovimentoItem",
+          "childField": "movimentoId",
+          "ownership": "owned",
+          "collections": [
+            {
+              "name": "posicoes",
+              "concept": "MovimentoItemPosicao",
+              "childField": "movimentoItemId",
+              "ownership": "owned",
+              "lookupFields": [
+                {
+                  "name": "maxQuantity",
+                  "query": "OcupacaoDisponivelQuery",
+                  "joinField": "localArmazenagemId",
+                  "valueField": "quantidade"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "balances": [
+        {
+          "name": "OrigemDestinoBalance",
+          "collection": "itens.posicoes",
+          "groupBy": [
+            "produtoId",
+            "loteId"
+          ],
+          "discriminatorField": "papel",
+          "leftValue": "Origem",
+          "rightValue": "Destino",
+          "quantityField": "quantidade",
+          "message": "Faltam {delta} unidade(s) do produto {produtoId} no destino"
+        }
+      ],
+      "invariants": [
+        {
+          "name": "PosicaoDentroDoMaximo",
+          "expression": "itens.all(i => i.posicoes.all(p => p.papel != 'Origem' || p.quantidade <= p.maxQuantity))",
+          "message": "A quantidade de uma posicao nao pode exceder a quantidade disponivel no local"
+        }
+      ],
+      "metadata": {
+        "purpose": "G2 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, Class B): movimentacao-livre.html and centro-trabalho.html both hand-roll this exact Movimento -> MovimentoItem -> MovimentoItemPosicao (Origem/Destino) shape client-side because Panel's nesting is capped at 1 level (centro-trabalho.html's own source comment says so). First depth-2 aggregate in a real corpus model, not just a fixture."
+      }
+    },
+    {
+      "name": "DocumentoFiscalAggregate",
+      "root": "DocumentoFiscal",
+      "collections": [
+        {
+          "name": "itens",
+          "concept": "DocumentoFiscalItem",
+          "childField": "documentoFiscalId",
+          "ownership": "owned"
+        }
+      ],
+      "metadata": {
+        "purpose": "G3 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, Class A): conferencia-fiscal.html's NF-e Import wizard (parse -> review/edit -> N+1-write confirm) expressed as propose (ParseNfeProcedure via invoke()) -> review (editable itens grid) -> commit (atomic N+1 write, G1's transaction boundary)."
+      }
+    },
+    {
+      "name": "InventarioArquivoAggregate",
+      "root": "InventarioArquivo",
+      "onCommit": "ProcessarRecebimentoArquivoOnCommitProcedure",
+      "collections": [
+        {
+          "name": "linhas",
+          "concept": "InventarioArquivoLinha",
+          "childField": "inventarioArquivoId",
+          "ownership": "owned"
+        }
+      ],
+      "metadata": {
+        "purpose": "G4 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, second Class A console): inventario.html's Importar Contagem wizard (paste pipe-delimited counts -> review/edit -> N+1-write confirm) expressed the same way as G3's ParseNfeProcedure. The Gerado->Conferido transition needs no custom logic beyond a plain field write (the original screen itself does it as a bare PUT, not a flow call), so the Workbench's own generic lifecycle-transition button covers it -- no new capability code needed for that half."
+      }
+    },
+    {
+      "name": "RomaneioAggregate",
+      "root": "Romaneio",
+      "collections": [
+        {
+          "name": "itens",
+          "concept": "RomaneioItem",
+          "childField": "romaneioId",
+          "ownership": "owned"
+        }
+      ],
+      "metadata": {
+        "purpose": "Move 10 W1.1 (docs/MOVE10_CONSOLE_PARITY_SPEC.md): conferencia-fiscal.html's SECOND import wizard -- Romaneio -- expressed with exactly the same propose -> review -> commit triad DocumentoFiscalAggregate + ParseNfeProcedure already prove for NF-e (Move 3 G3). Same two concepts the console's History half already reads (Romaneio -> RomaneioItem via romaneioId), reused unchanged; no concept edit was needed. This is the item SCREEN_TAXONOMY.md recorded as 'same pattern as NF-e Import, no platform blocker -- authoring gap only'."
+      }
+    }
+  ],
+  "autoPanels": [
+    {
+      "aggregate": "Expedicao",
+      "selection": {
+        "filters": [
+          "entidadeId",
+          "situacao",
+          "estagio"
+        ]
+      },
+      "transaction": {
+        "metadata": {},
+        "actions": [
+          {
+            "procedure": "CriarMovimentoParaExpedicaoProcedure",
+            "label": {
+              "default": "Criar Movimento",
+              "en": "Criar Movimento"
+            }
+          },
+          {
+            "procedure": "ConfirmarMovimentacaoExpedicaoProcedure",
+            "label": {
+              "default": "Confirmar Movimentacao",
+              "en": "Confirmar Movimentacao"
+            },
+            "visibleWhen": "$root.estagio == 'DemandaGerada'"
+          }
+        ]
+      }
+    },
+    {
+      "aggregate": "Recebimento",
+      "selection": {
+        "filters": [
+          "entidadeId",
+          "situacao",
+          "estagio"
+        ]
+      },
+      "transaction": {
+        "metadata": {},
+        "actions": [
+          {
+            "procedure": "CriarMovimentoParaRecebimentoProcedure",
+            "label": {
+              "default": "Criar Movimento",
+              "en": "Criar Movimento"
+            }
+          },
+          {
+            "procedure": "EnderecarRecebimentoProcedure",
+            "label": {
+              "default": "Enderecar",
+              "en": "Enderecar"
+            },
+            "visibleWhen": "$root.estagio == 'PreRecebimento'"
+          }
+        ]
+      }
+    },
+    {
+      "aggregate": "Movimento",
+      "selection": {
+        "filters": [
+          "tipo",
+          "situacao"
+        ]
+      },
+      "transaction": {
+        "metadata": {},
+        "uiState": {
+          "detalhe": {
+            "label": {
+              "default": "Detalhe",
+              "en": "Detalhe"
+            },
+            "values": [
+              "Completo",
+              "Resumo"
+            ],
+            "default": "Completo"
+          }
+        },
+        "visibleWhen": {
+          "itens.posicoes": "$ui.detalhe == 'Completo'"
+        },
+        "derivedFields": {
+          "itensTotal": {
+            "tier": "client",
+            "expression": "sum(itens[].quantidade)",
+            "label": {
+              "default": "Total Itens",
+              "en": "Total Itens"
+            }
+          },
+          "origemTotal": {
+            "tier": "client",
+            "expression": "sum(itens[].posicoes[].filter(papel=='Origem').quantidade)",
+            "label": {
+              "default": "Total Origem",
+              "en": "Total Origem"
+            }
+          },
+          "destinoTotal": {
+            "tier": "client",
+            "expression": "sum(itens[].posicoes[].filter(papel=='Destino').quantidade)",
+            "label": {
+              "default": "Total Destino",
+              "en": "Total Destino"
+            }
+          }
+        },
+        "actions": [
+          {
+            "procedure": "SugerirDestinoProcedure",
+            "label": {
+              "default": "Sugerir Destino",
+              "en": "Sugerir Destino"
+            },
+            "applyTo": {
+              "collection": "posicoes",
+              "mode": "appendRow",
+              "map": {
+                "localArmazenagemId": "$resultado.localArmazenagemId",
+                "papel": "Destino"
+              }
+            },
+            "visibleWhen": "$root.tipo != 'Expedicao'"
+          },
+          {
+            "procedure": "SugerirOrigemProcedure",
+            "label": {
+              "default": "Sugerir Origem",
+              "en": "Sugerir Origem"
+            },
+            "applyTo": {
+              "collection": "posicoes",
+              "mode": "appendRow",
+              "map": {
+                "localArmazenagemId": "$resultado.localArmazenagemId",
+                "papel": "Origem"
+              }
+            },
+            "visibleWhen": "$root.tipo != 'Recebimento'"
+          },
+          {
+            "label": {
+              "default": "Recalcular Saldos",
+              "en": "Recalcular Saldos"
+            },
+            "checkBalances": [
+              "OrigemDestinoBalance"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "aggregate": "DocumentoFiscalAggregate",
+      "selection": {
+        "filters": [
+          "situacao"
+        ]
+      },
+      "transaction": {
+        "metadata": {},
+        "actions": [
+          {
+            "procedure": "ParseNfeProcedure",
+            "label": {
+              "default": "Importar (Parse NF-e)",
+              "en": "Importar (Parse NF-e)"
+            },
+            "inputFields": [
+              "xml"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "aggregate": "InventarioArquivoAggregate",
+      "selection": {
+        "filters": [
+          "situacao"
+        ]
+      },
+      "transaction": {
+        "metadata": {},
+        "actions": [
+          {
+            "procedure": "ImportarContagemProcedure",
+            "label": {
+              "default": "Importar Contagem (Parse)",
+              "en": "Importar Contagem (Parse)"
+            },
+            "inputFields": [
+              "texto"
+            ]
+          },
+          {
+            "procedure": "AnalisarArquivoRecebimentoDraftProcedure",
+            "label": {
+              "default": "Recebimento por Arquivo (Parse)",
+              "en": "Recebimento por Arquivo (Parse)"
+            },
+            "inputFields": [
+              "csvText"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "aggregate": "RomaneioAggregate",
+      "selection": {
+        "filters": [
+          "situacao"
+        ]
+      },
+      "transaction": {
+        "metadata": {},
+        "actions": [
+          {
+            "procedure": "ParseRomaneioProcedure",
+            "label": {
+              "default": "Importar (Parse Romaneio)",
+              "en": "Importar (Parse Romaneio)"
+            },
+            "inputFields": [
+              "numero",
+              "texto"
+            ]
+          },
+          {
+            "procedure": "GerarExpedicaoProcedure",
+            "label": {
+              "default": "Gerar Expedicao",
+              "en": "Gerar Expedicao"
+            },
+            "visibleWhen": "$root.situacao == 'Importado'"
+          }
+        ]
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "name": "persistence",
+      "type": "PersistenceCapability",
+      "operations": [
+        "save",
+        "findById",
+        "unique"
+      ]
+    }
+  ],
+  "customCapabilities": [
+    {
+      "name": "alocacao",
+      "type": "AlocacaoCapability",
+      "operations": [
+        "sugerirDestino",
+        "sugerirOrigem",
+        "verificarUnicidade",
+        "alocarRecebimento",
+        "encontrarOcupacao",
+        "somarQuantidadePorLocalLote",
+        "ruasElegiveis",
+        "alocarRecebimentoPorRua",
+        "enderecarRecebimento",
+        "encontrarLotePorChave",
+        "candidatosCrossDocking",
+        "verificarGateCrossDocking",
+        "localizarBaiaCrossDocking",
+        "verificarProdutoDuplicado",
+        "verificarProdutoDuplicadoExpedicao"
+      ]
+    },
+    {
+      "name": "fiscalImport",
+      "type": "FiscalImportCapability",
+      "operations": [
+        "importarNfe",
+        "importarRomaneio"
+      ]
+    },
+    {
+      "name": "inventoryFile",
+      "type": "InventoryFileCapability",
+      "operations": [
+        "gerarTemplate",
+        "importarContagem",
+        "analisarArquivoRecebimento"
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "capability": "persistence",
+      "adapter": "repository"
+    },
+    {
+      "capability": "eventBus",
+      "adapter": "inproc"
+    },
+    {
+      "capability": "alocacao",
+      "adapter": "plugin:java-source"
+    },
+    {
+      "capability": "fiscalImport",
+      "adapter": "plugin:java-source"
+    },
+    {
+      "capability": "inventoryFile",
+      "adapter": "plugin:java-source"
+    }
+  ],
+  "events": [
+    {
+      "name": "MovimentoConfirmado",
+      "payload": [
+        "id",
+        "tipo",
+        "situacao"
+      ]
+    },
+    {
+      "name": "RecebimentoArmazenado",
+      "payload": [
+        "id",
+        "movimentoId",
+        "estagio"
+      ]
+    },
+    {
+      "name": "ExpedicaoSaidaConfirmada",
+      "payload": [
+        "id",
+        "movimentoId",
+        "estagio"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "ConfirmarMovimentacao",
+      "concept": "Movimento",
+      "input": {
+        "concept": "Movimento",
+        "mode": "update"
+      },
+      "steps": [
+        {
+          "name": "confirmar-movimento",
+          "type": "updateConcept",
+          "scope": "Movimento",
+          "input": "$input",
+          "output": "$confirmado"
+        },
+        {
+          "name": "emit-movimento-confirmado",
+          "type": "emitEvent",
+          "event": "MovimentoConfirmado",
+          "from": "$confirmado"
+        },
+        {
+          "name": "return-confirmado",
+          "type": "return",
+          "value": "$confirmado"
+        }
+      ]
+    },
+    {
+      "name": "ConfirmarRecebimento",
+      "concept": "Recebimento",
+      "input": {
+        "concept": "Recebimento",
+        "mode": "update"
+      },
+      "steps": [
+        {
+          "name": "validate-recebimento",
+          "type": "invariantCheck",
+          "scope": "Recebimento",
+          "invariants": [
+            "RecebimentoObservacaoRequiredOnDivergence",
+            "RecebimentoMovimentoRequiredWhenArmazenado"
+          ]
+        },
+        {
+          "name": "confirmar-recebimento",
+          "type": "updateConcept",
+          "scope": "Recebimento",
+          "input": "$input",
+          "output": "$armazenado"
+        },
+        {
+          "name": "emit-recebimento-armazenado",
+          "type": "emitEvent",
+          "event": "RecebimentoArmazenado",
+          "from": "$armazenado"
+        },
+        {
+          "name": "return-armazenado",
+          "type": "return",
+          "value": "$armazenado"
+        }
+      ]
+    },
+    {
+      "name": "ConfirmarSaidaExpedicao",
+      "concept": "Expedicao",
+      "input": {
+        "concept": "Expedicao",
+        "mode": "update"
+      },
+      "action": {
+        "confirmationText": "Confirmar a saida desta expedicao? Os itens da demanda serao marcados como expedidos e a operacao nao podera ser desfeita."
+      },
+      "steps": [
+        {
+          "name": "validate-expedicao",
+          "type": "invariantCheck",
+          "scope": "Expedicao",
+          "invariants": [
+            "ExpedicaoMovimentoRequiredWhenConfirmada"
+          ]
+        },
+        {
+          "name": "confirmar-saida",
+          "type": "updateConcept",
+          "scope": "Expedicao",
+          "input": "$input",
+          "output": "$saidaConfirmada"
+        },
+        {
+          "name": "emit-saida-confirmada",
+          "type": "emitEvent",
+          "event": "ExpedicaoSaidaConfirmada",
+          "from": "$saidaConfirmada"
+        },
+        {
+          "name": "return-saida-confirmada",
+          "type": "return",
+          "value": "$saidaConfirmada"
+        }
+      ]
+    },
+    {
+      "name": "CriarLocalArmazenagemVerificado",
+      "concept": "LocalArmazenagem",
+      "steps": [
+        {
+          "name": "verificar-duplicidade",
+          "type": "capabilityCall",
+          "args": [
+            "$input"
+          ],
+          "capability": "alocacao",
+          "operation": "verificarUnicidade",
+          "output": "$verificacao"
+        },
+        {
+          "name": "bloquear-se-duplicado",
+          "type": "branch",
+          "condition": "$verificacao.duplicado == true",
+          "then": [
+            {
+              "name": "return-duplicado",
+              "type": "return",
+              "value": "$verificacao"
+            }
+          ],
+          "else": [
+            {
+              "name": "criar-local",
+              "type": "createConcept",
+              "scope": "LocalArmazenagem",
+              "input": "$input.dados",
+              "output": "$criado"
+            },
+            {
+              "name": "return-criado",
+              "type": "return",
+              "value": "$criado"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SugerirDestino",
+      "concept": "LocalArmazenagem",
+      "steps": [
+        {
+          "name": "call-sugerir-destino",
+          "type": "callProcedure",
+          "procedure": "SugerirDestinoProcedure",
+          "input": "$input",
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "SugerirOrigem",
+      "concept": "Lote",
+      "steps": [
+        {
+          "name": "call-sugerir-origem",
+          "type": "callProcedure",
+          "procedure": "SugerirOrigemProcedure",
+          "input": "$input",
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "AtivarCrossDocking",
+      "concept": "CrossDocking",
+      "input": {
+        "concept": "CrossDocking",
+        "mode": "create"
+      },
+      "steps": [
+        {
+          "name": "criar-crossdocking",
+          "type": "createConcept",
+          "scope": "CrossDocking",
+          "input": "$input",
+          "output": "$crossDocking"
+        },
+        {
+          "name": "call-set-crossdocking-flags",
+          "type": "callProcedure",
+          "procedure": "SetCrossDockingFlagsProcedure",
+          "input": "$crossDocking",
+          "output": "$flagsSet"
+        },
+        {
+          "name": "call-provisionar-baia",
+          "type": "callProcedure",
+          "procedure": "ProvisionarBaiaCrossDockingProcedure",
+          "input": "$crossDocking",
+          "output": "$crossDockingComBaia"
+        },
+        {
+          "name": "return-crossdocking",
+          "type": "return",
+          "value": "$crossDockingComBaia"
+        }
+      ]
+    },
+    {
+      "name": "GerarTemplateInventario",
+      "concept": "InventarioArquivo",
+      "steps": [
+        {
+          "name": "gerar-template",
+          "type": "capabilityCall",
+          "args": [
+            "$input"
+          ],
+          "capability": "inventoryFile",
+          "operation": "gerarTemplate",
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "ImportarContagemInventario",
+      "concept": "InventarioArquivoLinha",
+      "steps": [
+        {
+          "name": "importar-contagem",
+          "type": "capabilityCall",
+          "args": [
+            "$input"
+          ],
+          "capability": "inventoryFile",
+          "operation": "importarContagem",
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "AnalisarArquivoRecebimento",
+      "concept": "InventarioArquivoLinha",
+      "steps": [
+        {
+          "name": "analisar-arquivo",
+          "type": "capabilityCall",
+          "args": [
+            "$input"
+          ],
+          "capability": "inventoryFile",
+          "operation": "analisarArquivoRecebimento",
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "AlocarRecebimento",
+      "concept": "LocalArmazenagemLote",
+      "steps": [
+        {
+          "name": "alocar-recebimento",
+          "type": "capabilityCall",
+          "args": [
+            "$input"
+          ],
+          "capability": "alocacao",
+          "operation": "alocarRecebimento",
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    }
+  ],
+  "orchestrationRules": [
+    {
+      "name": "LogMovimentoConfirmado",
+      "trigger": {
+        "type": "event",
+        "event": "MovimentoConfirmado"
+      },
+      "actions": [
+        {
+          "type": "create",
+          "concept": "HistoricoMovimentacao",
+          "map": {
+            "movimentoId": "id",
+            "evento": "situacao"
+          }
+        }
+      ]
+    },
+    {
+      "name": "LogRecebimentoArmazenado",
+      "trigger": {
+        "type": "event",
+        "event": "RecebimentoArmazenado"
+      },
+      "actions": [
+        {
+          "type": "create",
+          "concept": "HistoricoMovimentacao",
+          "map": {
+            "movimentoId": "movimentoId",
+            "evento": "estagio"
+          }
+        }
+      ]
+    },
+    {
+      "name": "LogExpedicaoSaidaConfirmada",
+      "trigger": {
+        "type": "event",
+        "event": "ExpedicaoSaidaConfirmada"
+      },
+      "actions": [
+        {
+          "type": "create",
+          "concept": "HistoricoMovimentacao",
+          "map": {
+            "movimentoId": "movimentoId",
+            "evento": "estagio"
+          }
+        }
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "name": "ShellCompanyName",
+      "concept": "Entidade",
+      "orderBy": [
+        "nome"
+      ]
+    },
+    {
+      "name": "RecebimentosPendentes",
+      "concept": "Recebimento",
+      "where": "estagio != 'Armazenado'",
+      "orderBy": [
+        "dataRecebimento"
+      ]
+    },
+    {
+      "name": "ExpedicoesPendentes",
+      "concept": "Expedicao",
+      "where": "estagio != 'SaidaConfirmada'",
+      "orderBy": [
+        "dataExpedicao"
+      ]
+    },
+    {
+      "name": "TodasOcupacoes",
+      "concept": "LocalArmazenagemLote",
+      "orderBy": [
+        "quantidade"
+      ]
+    },
+    {
+      "name": "OcupacaoDisponivelQuery",
+      "concept": "LocalArmazenagemLote",
+      "orderBy": [
+        "localArmazenagemId"
+      ]
+    },
+    {
+      "name": "HistoricoMovimentacaoTodos",
+      "concept": "HistoricoMovimentacao"
+    },
+    {
+      "name": "LotesEmEstoque",
+      "concept": "Lote",
+      "where": "situacao == 'Recebido'",
+      "orderBy": [
+        "dataValidade"
+      ]
+    },
+    {
+      "name": "ProdutosAtivos",
+      "concept": "Produto",
+      "where": "ativo == true",
+      "orderBy": [
+        "nome"
+      ]
+    },
+    {
+      "name": "DivergenciasInventario",
+      "concept": "InventarioArquivoLinha",
+      "where": "divergente == true"
+    },
+    {
+      "name": "TotalOccupiedLocations",
+      "concept": "LocalArmazenagem",
+      "where": "situacao != 'Disponivel'",
+      "aggregates": [
+        {
+          "name": "total",
+          "fn": "count"
+        }
+      ],
+      "metadata": {
+        "purpose": "Move 10 B2 (LC-B2): the kpi gadget on the Analytics dashboard -- total occupied storage locations."
+      }
+    },
+    {
+      "name": "LocationsByRuaAndSituacao",
+      "concept": "LocalArmazenagem",
+      "groupBy": [
+        "ruaId",
+        "situacao"
+      ],
+      "aggregates": [
+        {
+          "name": "total",
+          "fn": "count"
+        }
+      ],
+      "orderBy": [
+        "ruaId"
+      ],
+      "limit": 500,
+      "metadata": {
+        "purpose": "Move 10 B2 (LC-B2): the table gadget on the Analytics dashboard, replacing analytics.html's client-side 'Ocupacao por Rua' widget. Groups by the raw ruaId (not the friendly Armazem/Area/Rua path the original hand-written widget joined and displayed) -- a real, named cosmetic parity gap: B1's aggregate query is single-concept, no join support."
+      }
+    },
+    {
+      "name": "MovementsByTipoAndSituacao",
+      "concept": "Movimento",
+      "groupBy": [
+        "tipo",
+        "situacao"
+      ],
+      "aggregates": [
+        {
+          "name": "total",
+          "fn": "count"
+        }
+      ],
+      "orderBy": [
+        "tipo"
+      ],
+      "limit": 500,
+      "metadata": {
+        "purpose": "Move 10 B2 (LC-B2): the bar gadget on the Analytics dashboard, replacing analytics.html's client-side 'Movimentos por Tipo e Situacao' pivot table (x=tipo, series=situacao, y=total)."
+      }
+    }
+  ],
+  "procedures": [
+    {
+      "name": "RegistrarLocalArmazenagemLoteProcedure",
+      "description": "Write-kind procedure: saves a LocalArmazenagemLote (bin occupancy) through the Concept Gateway and returns the governed record.",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true
+        }
+      ],
+      "steps": [
+        {
+          "name": "registrar-ocupacao",
+          "type": "saveConcept",
+          "concept": "LocalArmazenagemLote",
+          "id": "$id",
+          "data": {
+            "input": "$input"
+          },
+          "target": "salva",
+          "trace": true,
+          "audit": true
+        },
+        {
+          "name": "return-salva",
+          "type": "return",
+          "value": "$salva",
+          "trace": true
+        }
+      ]
+    },
+    {
+      "name": "SyncOcupacaoProcedure",
+      "description": "Move 5 (final item / REG-78): the server-side twin of movimentacao-livre.html/centro-trabalho.html's own client-side syncOcupacao(localArmazenagemId, loteId, quantidadeDelta) function -- find the LocalArmazenagemLote row for that (localArmazenagem, lote) pair; if found, INCREMENT its quantidade by delta (computeValue, the arithmetic primitive procedures had none of until this session); if not found, CREATE one with quantidade=delta (patchConcept's createIfMissing, REG-77). Deliberate divergence from the client's own Math.max(0, ...) clamp: this procedure does NOT silently clamp a would-be-negative result to zero -- LocalArmazenagemLoteQuantidadeNonNegative (the concept's own invariant) rejects an over-decrement with a real validation error instead, which is more honest for a server-side authoritative write than masking what could be a real shipping/allocation bug. The find-by-fields lookup composes entirely from EXISTING steps (listConcepts + mapList to reshape ConceptRecords into plain maps, matching ParseNfeProcedure's own precedent) plus one small Java scan (encontrarOcupacao on the existing alocacao capability) -- procedures' own 'if' step has no comparison-expression grammar (conditionRef is a bare resolve+truthy check, not '==' -- confirmed by reading DefaultProcedureExecutor.ifThenElse directly, not assumed), so the equality test itself has to happen in Java, the same place FiscalImportCapability's dedup/auto-match logic already does its own comparisons.",
+      "parameters": [
+        {
+          "name": "localArmazenagemId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "loteId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "delta",
+          "type": "long",
+          "required": true
+        }
+      ],
+      "steps": [
+        {
+          "name": "list-ocupacoes-raw",
+          "type": "listConcepts",
+          "concept": "LocalArmazenagemLote",
+          "target": "ocupacoesRaw"
+        },
+        {
+          "name": "map-ocupacoes",
+          "type": "mapList",
+          "items": "$ocupacoesRaw",
+          "as": "ocupacao",
+          "select": {
+            "id": "$ocupacao.id",
+            "localArmazenagemId": "$ocupacao.localArmazenagemId",
+            "loteId": "$ocupacao.loteId",
+            "quantidade": "$ocupacao.quantidade"
+          },
+          "target": "ocupacoes"
+        },
+        {
+          "name": "find-match",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "encontrarOcupacao",
+          "args": {
+            "localArmazenagemId": "$localArmazenagemId",
+            "loteId": "$loteId",
+            "ocupacoes": "$ocupacoes"
+          },
+          "target": "match"
+        },
+        {
+          "name": "branch-on-match",
+          "type": "if",
+          "condition": "$match.found",
+          "then": [
+            {
+              "name": "compute-new-quantidade",
+              "type": "computeValue",
+              "operation": "add",
+              "left": "$match.quantidade",
+              "right": "$delta",
+              "target": "novaQuantidade"
+            },
+            {
+              "name": "apply-increment",
+              "type": "patchConcept",
+              "concept": "LocalArmazenagemLote",
+              "id": "$match.id",
+              "set": {
+                "quantidade": "$novaQuantidade"
+              },
+              "target": "synced"
+            }
+          ],
+          "else": [
+            {
+              "name": "create-ocupacao",
+              "type": "patchConcept",
+              "concept": "LocalArmazenagemLote",
+              "id": "$missingOcupacaoId",
+              "set": {
+                "localArmazenagemId": "$localArmazenagemId",
+                "loteId": "$loteId",
+                "quantidade": "$delta"
+              },
+              "target": "synced",
+              "createIfMissing": true
+            }
+          ]
+        },
+        {
+          "name": "return-synced",
+          "type": "return",
+          "value": "$synced"
+        }
+      ]
+    },
+    {
+      "name": "RecomputarOcupacaoOnCommitProcedure",
+      "description": "Move 8 Part B (docs/MOVE8_CLOSE_TABLE_SPEC.md, item G1): Movimento.onCommit -- for every (localArmazenagemId, loteId) pair touched by this commit's positions, recomputes LocalArmazenagemLote.quantidade as the ABSOLUTE sum of MovimentoItemPosicao.quantidade across the WHOLE persisted table for that pair (not just this commit's own rows -- other movements already committed to the same bin/lot must still be counted), then sets it (never +=). Absolute, not delta, because onCommit receives only the post-write tree with no channel back to whatever quantities existed before this commit -- a delta cannot be retried/re-committed safely, an absolute recompute can (idempotent by construction: recommitting the SAME tree twice yields the SAME total). A position carries no loteId of its own (only its parent MovimentoItem does), so both MovimentoItem and MovimentoItemPosicao are listed+reshaped (mirroring SyncOcupacaoProcedure's own listConcepts+mapList precedent -- listConcepts's raw ConceptRecord items need this reshape before a Java capability method can read them as plain maps) and joined in the somarQuantidadePorLocalLote capability method itself, not in the DSL (mapList has no join/lookup-by-key primitive). Deliberately leaves SyncOcupacaoProcedure and its manual delta button untouched -- one is automatic/absolute (this), the other manual/delta, and they do not conflict since both ultimately write the same absolute value convention to LocalArmazenagemLote.",
+      "steps": [
+        {
+          "name": "list-itens-raw",
+          "type": "listConcepts",
+          "concept": "MovimentoItem",
+          "target": "itensRaw"
+        },
+        {
+          "name": "map-itens",
+          "type": "mapList",
+          "items": "$itensRaw",
+          "as": "itemRaw",
+          "select": {
+            "id": "$itemRaw.id",
+            "loteId": "$itemRaw.loteId"
+          },
+          "target": "todosItens"
+        },
+        {
+          "name": "list-posicoes-raw",
+          "type": "listConcepts",
+          "concept": "MovimentoItemPosicao",
+          "target": "posicoesRaw"
+        },
+        {
+          "name": "map-posicoes",
+          "type": "mapList",
+          "items": "$posicoesRaw",
+          "as": "posicaoRaw",
+          "select": {
+            "movimentoItemId": "$posicaoRaw.movimentoItemId",
+            "localArmazenagemId": "$posicaoRaw.localArmazenagemId",
+            "quantidade": "$posicaoRaw.quantidade"
+          },
+          "target": "todasPosicoes"
+        },
+        {
+          "name": "list-ocupacoes-raw",
+          "type": "listConcepts",
+          "concept": "LocalArmazenagemLote",
+          "target": "ocupacoesRaw"
+        },
+        {
+          "name": "map-ocupacoes",
+          "type": "mapList",
+          "items": "$ocupacoesRaw",
+          "as": "ocupacaoRaw",
+          "select": {
+            "id": "$ocupacaoRaw.id",
+            "localArmazenagemId": "$ocupacaoRaw.localArmazenagemId",
+            "loteId": "$ocupacaoRaw.loteId",
+            "quantidade": "$ocupacaoRaw.quantidade"
+          },
+          "target": "todasOcupacoes"
+        },
+        {
+          "name": "for-each-item",
+          "type": "forEach",
+          "items": "$input.itens",
+          "as": "item",
+          "steps": [
+            {
+              "name": "for-each-posicao",
+              "type": "forEach",
+              "items": "$item.posicoes",
+              "as": "posicao",
+              "steps": [
+                {
+                  "name": "sum-quantidade",
+                  "type": "capabilityCall",
+                  "capability": "alocacao",
+                  "operation": "somarQuantidadePorLocalLote",
+                  "args": {
+                    "itens": "$todosItens",
+                    "localArmazenagemId": "$posicao.localArmazenagemId",
+                    "loteId": "$item.loteId",
+                    "ocupacoes": "$todasOcupacoes",
+                    "posicoes": "$todasPosicoes"
+                  },
+                  "target": "total"
+                },
+                {
+                  "name": "patch-ocupacao",
+                  "type": "patchConcept",
+                  "concept": "LocalArmazenagemLote",
+                  "id": "$total.id",
+                  "set": {
+                    "localArmazenagemId": "$posicao.localArmazenagemId",
+                    "loteId": "$item.loteId",
+                    "quantidade": "$total.total"
+                  },
+                  "target": "patched",
+                  "createIfMissing": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "return-ok",
+          "type": "return",
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "SugerirDestinoProcedure",
+      "description": "G2 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, Class B): procedure-over-draft twin of the flow SugerirDestino (same capabilityCall, same capability/operation) -- AggregateRuntime.invoke() only runs procedures, not flows, so the workbench needs this to offer the same suggestion the hand-written movimentacao-livre.html/centro-trabalho.html screens call via /api/flows/SugerirDestino/execute. The original flow is unchanged and still used by those screens. WMS-9 C7: also lists+maps active CrossDocking rows and passes them alongside input, same reasoning as the flow twin's own description.",
+      "steps": [
+        {
+          "name": "list-crossdockings-raw",
+          "type": "listConcepts",
+          "concept": "CrossDocking",
+          "target": "crossDockingsRawConcept"
+        },
+        {
+          "name": "map-crossdockings",
+          "type": "mapList",
+          "items": "$crossDockingsRawConcept",
+          "as": "cd",
+          "select": {
+            "recebimentoId": "$cd.recebimentoId",
+            "expedicaoId": "$cd.expedicaoId",
+            "baiaLocalArmazenagemId": "$cd.baiaLocalArmazenagemId",
+            "situacao": "$cd.situacao"
+          },
+          "target": "crossDockings"
+        },
+        {
+          "name": "sugerir-destino",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "sugerirDestino",
+          "args": {
+            "crossDockings": "$crossDockings",
+            "input": "$input"
+          },
+          "target": "resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "SugerirOrigemProcedure",
+      "description": "G2 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, Class B): procedure-over-draft twin of the flow SugerirOrigem, same reasoning as SugerirDestinoProcedure. WMS-9 C7: also lists+maps active CrossDocking rows and passes them alongside input, same reasoning as the flow twin's own description.",
+      "steps": [
+        {
+          "name": "list-crossdockings-raw",
+          "type": "listConcepts",
+          "concept": "CrossDocking",
+          "target": "crossDockingsRawConcept"
+        },
+        {
+          "name": "map-crossdockings",
+          "type": "mapList",
+          "items": "$crossDockingsRawConcept",
+          "as": "cd",
+          "select": {
+            "recebimentoId": "$cd.recebimentoId",
+            "expedicaoId": "$cd.expedicaoId",
+            "baiaLocalArmazenagemId": "$cd.baiaLocalArmazenagemId",
+            "situacao": "$cd.situacao"
+          },
+          "target": "crossDockings"
+        },
+        {
+          "name": "sugerir-origem",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "sugerirOrigem",
+          "args": {
+            "crossDockings": "$crossDockings",
+            "input": "$input"
+          },
+          "target": "resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "GerarTemplateContagemProcedure",
+      "description": "Move 5 (docs/MOVE5_CLOSE_ALL_OPEN_PLAN.md, Wave 4 / Gap 7): the propose-and-stream half of inventario.html's Gerar Template wizard, expressed as a procedure over LocalArmazenagemLote instead of the pre-existing GerarTemplateInventario flow. listConcepts+mapList (Wave 3A) reshape the current occupancy rows into the {localArmazenagemId,loteId,quantidade} pairs inventoryFile.gerarTemplate expects (the same capability the flow uses), then this returns just its texto field -- the declaring panelAction's resultAs: download streams that as a real CSV file instead of a JSON result. Move 10 W1.2 (docs/MOVE10_CONSOLE_PARITY_SPEC.md) closed the three remaining behavioural gaps against the original screen, all found by re-reading generateTemplate() line by line rather than assuming Wave 4 had finished the job: (a) the CSV's produtoId column was hard-coded to \"\" because mapList's select is a literal-vs-$ref transform with no cross-list lookup -- a second listConcepts+mapList now ships the Lote id->produtoId pairs alongside, and the capability's own 3-arg overload does the join (the same 'let the capability do what mapList structurally cannot' split ParseNfeProcedure already uses for produtosConhecidos); (b) zero-quantity occupancy rows were emitted, which the original filtered out client-side (`Number(o.quantidade) > 0`) -- now filtered in the capability, harmlessly idempotent for the flow path, which pre-filters; (c) the original ALSO created the Gerado InventarioArquivo header row that wizard 2 (Importar Contagem) then selects -- without it the two wizards were disconnected, so patchConcept + createIfMissing (Move 4/5) now creates it, taking dataGeracao from the capability because no procedure expression yields 'today'.",
+      "steps": [
+        {
+          "name": "list-ocupacoes",
+          "type": "listConcepts",
+          "concept": "LocalArmazenagemLote",
+          "target": "ocupacoesRaw"
+        },
+        {
+          "name": "map-ocupacoes",
+          "type": "mapList",
+          "items": "$ocupacoesRaw",
+          "as": "o",
+          "select": {
+            "localArmazenagemId": "$o.localArmazenagemId",
+            "loteId": "$o.loteId",
+            "quantidade": "$o.quantidade"
+          },
+          "target": "ocupacoes"
+        },
+        {
+          "name": "list-lotes",
+          "type": "listConcepts",
+          "concept": "Lote",
+          "target": "lotesRaw"
+        },
+        {
+          "name": "map-lotes",
+          "type": "mapList",
+          "items": "$lotesRaw",
+          "as": "l",
+          "select": {
+            "id": "$l.id",
+            "produtoId": "$l.produtoId"
+          },
+          "target": "lotes"
+        },
+        {
+          "name": "call-gerar-template",
+          "type": "callCapability",
+          "capability": "inventoryFile",
+          "operation": "gerarTemplate",
+          "args": {
+            "input": "$input",
+            "lotes": "$lotes",
+            "ocupacoes": "$ocupacoes"
+          },
+          "target": "templateResult"
+        },
+        {
+          "name": "criar-inventario-arquivo",
+          "type": "patchConcept",
+          "concept": "InventarioArquivo",
+          "createIfMissing": true,
+          "set": {
+            "entidadeId": "$input.entidadeId",
+            "dataGeracao": "$templateResult.dataGeracao",
+            "situacao": "Gerado"
+          },
+          "target": "inventarioCriado"
+        },
+        {
+          "name": "extract-texto",
+          "type": "mapValue",
+          "value": "$templateResult.texto",
+          "target": "csvTexto"
+        },
+        {
+          "name": "return-csv",
+          "type": "return",
+          "value": "$csvTexto"
+        }
+      ]
+    },
+    {
+      "name": "ValidateMovimentoProcedure",
+      "description": "Move 5 (docs/MOVE5_CLOSE_ALL_OPEN_PLAN.md, Wave 3B / Gap 8): Movimento's onValidate guard -- rejects a commit outright (no writes at all, not even the root) if entidadeId does not reference a real Entidade. readConcept's own CONCEPT_NOT_FOUND on a dangling/invalid reference is the failure signal AggregateRuntime.commitInternal checks before ever calling gateway.save on the root.",
+      "steps": [
+        {
+          "name": "check-entidade",
+          "type": "readConcept",
+          "concept": "Entidade",
+          "id": "$entidadeId",
+          "target": "entidadeChecked"
+        },
+        {
+          "name": "return-entidade-checked",
+          "type": "return",
+          "value": "$entidadeChecked"
+        }
+      ]
+    },
+    {
+      "name": "ParseNfeProcedure",
+      "description": "G3 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, Class A): the propose step of conferencia-fiscal.html's NF-e Import wizard, expressed as a procedure over the DocumentoFiscalAggregate draft instead of ad hoc client JS calling the ImportarNfe flow. Calls the same fiscalImport.importarNfe capability the flow uses, then flattens the parse result's fields onto the draft (mapValue supports dotted-path refs, e.g. $parseResult.numero, so no new step type was needed) so invoke()'s returned state is already shaped like a real DocumentoFiscal + itens[] draft -- the user reviews/completes it (entidadeId, situacao, and any unmatched item's produtoId are left for manual review-step editing, same as the original screen's own unresolved-item flow) and commits atomically via G1's transaction boundary. Move 5 (docs/MOVE5_CLOSE_ALL_OPEN_PLAN.md, Wave 3A / Gap 6): produtosConhecidos/chavesJaImportadas (the original screen's client-computed auto-match/dedup helpers), once intentionally omitted for lack of a list-transform step, are now built here via mapList -- listConcepts loads the raw Produto/DocumentoFiscal rows, mapList reshapes each into the {codigo,produtoId}/{chave} pairs the capability expects (its 3-arg overload, matched positionally by callCapability's 3-entry args) -- so every imported item is now really auto-matched against known products and duplicate NF-e keys are really rejected, closing the gap named (not worked around) in the prior version of this comment.",
+      "steps": [
+        {
+          "name": "list-produtos",
+          "type": "listConcepts",
+          "concept": "Produto",
+          "target": "produtosRaw"
+        },
+        {
+          "name": "map-produtos-conhecidos",
+          "type": "mapList",
+          "items": "$produtosRaw",
+          "as": "p",
+          "select": {
+            "codigo": "$p.codigo",
+            "produtoId": "$p.id"
+          },
+          "target": "produtosConhecidos"
+        },
+        {
+          "name": "list-documentos-fiscais",
+          "type": "listConcepts",
+          "concept": "DocumentoFiscal",
+          "target": "documentosRaw"
+        },
+        {
+          "name": "map-chaves-importadas",
+          "type": "mapList",
+          "items": "$documentosRaw",
+          "as": "d",
+          "select": {
+            "chave": "$d.chave"
+          },
+          "target": "chavesJaImportadas"
+        },
+        {
+          "name": "call-fiscal-import",
+          "type": "capabilityCall",
+          "capability": "fiscalImport",
+          "operation": "importarNfe",
+          "args": {
+            "chavesJaImportadas": "$chavesJaImportadas",
+            "input": "$input",
+            "produtosConhecidos": "$produtosConhecidos"
+          },
+          "target": "parseResult"
+        },
+        {
+          "name": "if-parse-succeeded",
+          "type": "if",
+          "condition": "$parseResult.sucesso",
+          "then": [
+            {
+              "name": "map-numero",
+              "type": "mapValue",
+              "value": "$parseResult.numero",
+              "target": "numero"
+            },
+            {
+              "name": "map-chave",
+              "type": "mapValue",
+              "value": "$parseResult.chave",
+              "target": "chave"
+            },
+            {
+              "name": "map-dataEmissao",
+              "type": "mapValue",
+              "value": "$parseResult.dataEmissao",
+              "target": "dataEmissao"
+            },
+            {
+              "name": "map-emitenteCnpj",
+              "type": "mapValue",
+              "value": "$parseResult.emitenteCnpj",
+              "target": "emitenteCnpj"
+            },
+            {
+              "name": "map-itens",
+              "type": "mapValue",
+              "value": "$parseResult.itens",
+              "target": "itens"
+            }
+          ],
+          "else": [
+            {
+              "name": "map-parseError",
+              "type": "mapValue",
+              "value": "$parseResult.motivo",
+              "target": "parseError"
+            }
+          ]
+        },
+        {
+          "name": "return-parseResult",
+          "type": "return",
+          "value": "$parseResult"
+        }
+      ]
+    },
+    {
+      "name": "ParseRomaneioProcedure",
+      "description": "Move 10 W1.1 (docs/MOVE10_CONSOLE_PARITY_SPEC.md): the propose step of conferencia-fiscal.html's SECOND import wizard (Romaneio), authored as a direct mirror of ParseNfeProcedure -- same listConcepts+mapList reference-data prelude, same fiscalImport capability, same trailing return of the raw capability result so the client can see the capability's own motivo on failure. REG-225 (2026-09-20): the procedure used to compute numero/dataEmissao/itens into named step variables via mapValue, on the stated premise that this 'flattens the parse result onto the draft' -- it never did: the trailing return step returned $parseResult directly, so those mapValue steps were pure dead code (nothing downstream ever read their targets), removed here. The REAL flatten now happens in two other places instead, since a procedure step has no primitive for building an object literal out of several named variables: (1) fiscalImport.importarRomaneio's own result map now echoes numero back directly (the same way importarNfe's result already echoes numero/chave/dataEmissao/emitenteCnpj) -- numero only ever exists as this action's own inputField value, never written into the client draft, so nothing else can hand it back; (2) the workbench client (workbench-page.html.mustache's store.patch) now MERGES a propose action's result onto the existing draft instead of replacing it wholesale, so entidadeId/situacao/id survive an Import click even though this procedure's result never mentions them. produtosConhecidos is keyed on BOTH Produto.codigo and Produto.nome (was nome-only): the original console's own produtosConhecidos() helper matches by nome (several seeded Produto rows have a null codigo, so nome-only was a deliberate, still-valid fallback), but the shared paste textarea gives no signal about which field to type, and a real codigo silently failed to match under the old nome-only key -- FiscalImportCapability.encontrarProduto now tries codigo first, then nome.",
+      "steps": [
+        {
+          "name": "list-produtos",
+          "type": "listConcepts",
+          "concept": "Produto",
+          "target": "produtosRaw"
+        },
+        {
+          "name": "map-produtos-conhecidos",
+          "type": "mapList",
+          "items": "$produtosRaw",
+          "as": "p",
+          "select": {
+            "codigo": "$p.codigo",
+            "nome": "$p.nome",
+            "produtoId": "$p.id"
+          },
+          "target": "produtosConhecidos"
+        },
+        {
+          "name": "list-romaneios",
+          "type": "listConcepts",
+          "concept": "Romaneio",
+          "target": "romaneiosRaw"
+        },
+        {
+          "name": "map-numeros-importados",
+          "type": "mapList",
+          "items": "$romaneiosRaw",
+          "as": "r",
+          "select": {
+            "numero": "$r.numero"
+          },
+          "target": "numerosJaImportados"
+        },
+        {
+          "name": "call-fiscal-import",
+          "type": "capabilityCall",
+          "capability": "fiscalImport",
+          "operation": "importarRomaneio",
+          "args": {
+            "input": "$input",
+            "numerosJaImportados": "$numerosJaImportados",
+            "produtosConhecidos": "$produtosConhecidos"
+          },
+          "target": "parseResult"
+        },
+        {
+          "name": "return-parseResult",
+          "type": "return",
+          "value": "$parseResult"
+        }
+      ]
+    },
+    {
+      "name": "SetCrossDockingFlagsProcedure",
+      "description": "Move 5 (docs/MOVE5_CLOSE_ALL_OPEN_PLAN.md, Wave 1): closes REG-77-A -- Ativar's own crossDockingAtivo=true flag-set, previously blocked because AtivarCrossDocking is a FLOW (needs createConcept's auto-id-generation for the CrossDocking create itself) and patchConcept was a PROCEDURE-only step the flow engine had no way to reach. The new callProcedure flow step closes that gap: AtivarCrossDocking still creates CrossDocking via createConcept unchanged, then calls this procedure (passing the freshly-created record) to set crossDockingAtivo=true on the linked Recebimento/Expedicao -- the mirror of Concluir/CancelarCrossDockingProcedure's own clear-flag steps.",
+      "steps": [
+        {
+          "name": "set-recebimento-flag",
+          "type": "patchConcept",
+          "concept": "Recebimento",
+          "id": "$input.recebimentoId",
+          "set": {
+            "crossDockingAtivo": true
+          },
+          "target": "recebimentoSynced"
+        },
+        {
+          "name": "set-expedicao-flag",
+          "type": "patchConcept",
+          "concept": "Expedicao",
+          "id": "$input.expedicaoId",
+          "set": {
+            "crossDockingAtivo": true
+          },
+          "target": "expedicaoSynced"
+        },
+        {
+          "name": "return-flags",
+          "type": "return",
+          "value": "$expedicaoSynced"
+        }
+      ]
+    },
+    {
+      "name": "ConcluirCrossDockingProcedure",
+      "description": "G4 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, C10 investigation) + Move 4 (docs/MOVE4_CROSS_RECORD_WRITE_PLAN.md): procedure twin of the flow ConcluirCrossDocking. Closes BOTH halves of C10: the situacao transition is now a single patchConcept step with a literal set value (REG-75's set-is-literal-by-default design retires the crossDockingSync capability -- it existed only to inject that one constant), AND the original screen's extra Recebimento/Expedicao crossDockingAtivo=false PUTs (patchConcept reads each sibling, flips one field, preserves the rest).",
+      "steps": [
+        {
+          "name": "mark-concluido",
+          "type": "patchConcept",
+          "concept": "CrossDocking",
+          "id": "$input.id",
+          "set": {
+            "situacao": "Concluido"
+          },
+          "target": "concluido"
+        },
+        {
+          "name": "clear-recebimento-flag",
+          "type": "patchConcept",
+          "concept": "Recebimento",
+          "id": "$input.recebimentoId",
+          "set": {
+            "crossDockingAtivo": false
+          },
+          "target": "recebimentoSynced"
+        },
+        {
+          "name": "clear-expedicao-flag",
+          "type": "patchConcept",
+          "concept": "Expedicao",
+          "id": "$input.expedicaoId",
+          "set": {
+            "crossDockingAtivo": false
+          },
+          "target": "expedicaoSynced"
+        },
+        {
+          "name": "return-concluido",
+          "type": "return",
+          "value": "$concluido"
+        }
+      ]
+    },
+    {
+      "name": "CancelarCrossDockingProcedure",
+      "description": "G4 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, C10 investigation) + Move 4 (docs/MOVE4_CROSS_RECORD_WRITE_PLAN.md): procedure twin of CancelarCrossDocking, same reasoning as ConcluirCrossDockingProcedure -- closes both halves of C10 for the Cancelar button too, and the same single-patchConcept simplification retires the crossDockingSync capability call here too.",
+      "steps": [
+        {
+          "name": "mark-cancelado",
+          "type": "patchConcept",
+          "concept": "CrossDocking",
+          "id": "$input.id",
+          "set": {
+            "situacao": "Cancelado"
+          },
+          "target": "cancelado"
+        },
+        {
+          "name": "clear-recebimento-flag",
+          "type": "patchConcept",
+          "concept": "Recebimento",
+          "id": "$input.recebimentoId",
+          "set": {
+            "crossDockingAtivo": false
+          },
+          "target": "recebimentoSynced"
+        },
+        {
+          "name": "clear-expedicao-flag",
+          "type": "patchConcept",
+          "concept": "Expedicao",
+          "id": "$input.expedicaoId",
+          "set": {
+            "crossDockingAtivo": false
+          },
+          "target": "expedicaoSynced"
+        },
+        {
+          "name": "return-cancelado",
+          "type": "return",
+          "value": "$cancelado"
+        }
+      ]
+    },
+    {
+      "name": "ImportarContagemProcedure",
+      "description": "G4 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, second Class A console): the propose step of inventario.html's Importar Contagem wizard, same shape as G3's ParseNfeProcedure -- calls the same inventoryFile.importarContagem capability the original flow uses, then maps the parsed lines directly onto the draft's own 'linhas' collection (no reshaping needed here: the capability's per-line keys -- localArmazenagemId/produtoId/loteId/quantidadeEsperada/quantidadeContada/divergente -- already match InventarioArquivoLinha's real fields, plus one harmless extra 'contado' key that commit() ignores). The Gerado->Conferido transition is NOT done here -- it needs no procedure logic (the original screen does it as a bare field PUT, not a flow call), so the Workbench's own generic lifecycle-transition button already covers it once the user reviews and saves.",
+      "steps": [
+        {
+          "name": "call-import",
+          "type": "capabilityCall",
+          "capability": "inventoryFile",
+          "operation": "importarContagem",
+          "args": {
+            "input": "$input"
+          },
+          "target": "parseResult"
+        },
+        {
+          "name": "if-parse-succeeded",
+          "type": "if",
+          "condition": "$parseResult.sucesso",
+          "then": [
+            {
+              "name": "map-linhas",
+              "type": "mapValue",
+              "value": "$parseResult.linhas",
+              "target": "linhas"
+            }
+          ],
+          "else": [
+            {
+              "name": "map-parseError",
+              "type": "mapValue",
+              "value": "$parseResult.motivo",
+              "target": "parseError"
+            }
+          ]
+        },
+        {
+          "name": "return-parseResult",
+          "type": "return",
+          "value": "$parseResult"
+        }
+      ]
+    },
+    {
+      "name": "AnalisarArquivoRecebimentoDraftProcedure",
+      "description": "Move 13 P1.1 (MOVE13_CLOSE_EVERYTHING_SPEC.md, item 14 follow-through): the propose step of inventario.html's third wizard, Recebimento por Arquivo, same triad shape as G3/G4's ParseNfeProcedure/ImportarContagemProcedure. Reshapes Armazem/Area/Rua/LocalArmazenagem/Produto (listConcepts+mapList, the established precedent for feeding a Java capability plain lists it can join -- mapList itself has no cross-list lookup), calls alocacao.ruasElegiveis to port the original's own ruasDaEntidade()/posDisponiveisPorRua client-side join, then calls inventoryFile.analisarArquivoRecebimento's 3-arg overload (produtos/ruas as typed lists instead of nested inside the request body the way the original flow AnalisarArquivoRecebimento still expects). Sets origem='RecebimentoArquivo' on the draft header alongside 'linhas' so ProcessarRecebimentoArquivoOnCommitProcedure (InventarioArquivoAggregate.onCommit) can tell this commit apart from an Importar Contagem/Gerar Template commit, since onCommit is aggregate-level, not per-action. entidadeId is read from the EXISTING draft ($input.entidadeId, not a declared inputField) -- matching ImportarContagemProcedure's own precedent of only declaring ad hoc non-concept fields (here just 'csvText') as inputFields, never fields the concept itself already carries.",
+      "steps": [
+        {
+          "name": "list-armazens",
+          "type": "listConcepts",
+          "concept": "Armazem",
+          "target": "armazensRaw"
+        },
+        {
+          "name": "map-armazens",
+          "type": "mapList",
+          "items": "$armazensRaw",
+          "as": "a",
+          "select": {
+            "id": "$a.id",
+            "entidadeId": "$a.entidadeId"
+          },
+          "target": "armazens"
+        },
+        {
+          "name": "list-areas",
+          "type": "listConcepts",
+          "concept": "Area",
+          "target": "areasRaw"
+        },
+        {
+          "name": "map-areas",
+          "type": "mapList",
+          "items": "$areasRaw",
+          "as": "a",
+          "select": {
+            "id": "$a.id",
+            "armazemId": "$a.armazemId"
+          },
+          "target": "areas"
+        },
+        {
+          "name": "list-ruas",
+          "type": "listConcepts",
+          "concept": "Rua",
+          "target": "ruasRaw"
+        },
+        {
+          "name": "map-ruas",
+          "type": "mapList",
+          "items": "$ruasRaw",
+          "as": "r",
+          "select": {
+            "id": "$r.id",
+            "codigo": "$r.codigo",
+            "areaId": "$r.areaId"
+          },
+          "target": "ruas"
+        },
+        {
+          "name": "list-locais",
+          "type": "listConcepts",
+          "concept": "LocalArmazenagem",
+          "target": "locaisRaw"
+        },
+        {
+          "name": "map-locais",
+          "type": "mapList",
+          "items": "$locaisRaw",
+          "as": "l",
+          "select": {
+            "id": "$l.id",
+            "ruaId": "$l.ruaId",
+            "situacao": "$l.situacao"
+          },
+          "target": "locais"
+        },
+        {
+          "name": "list-produtos",
+          "type": "listConcepts",
+          "concept": "Produto",
+          "target": "produtosRaw"
+        },
+        {
+          "name": "map-produtos",
+          "type": "mapList",
+          "items": "$produtosRaw",
+          "as": "p",
+          "select": {
+            "id": "$p.id",
+            "codigo": "$p.codigo",
+            "qtdCaixasPorPallet": "$p.qtdCaixasPorPallet"
+          },
+          "target": "produtosInput"
+        },
+        {
+          "name": "call-ruas-elegiveis",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "ruasElegiveis",
+          "args": {
+            "areas": "$areas",
+            "armazens": "$armazens",
+            "entidadeId": "$input.entidadeId",
+            "locais": "$locais",
+            "ruas": "$ruas"
+          },
+          "target": "ruasElegiveisResult"
+        },
+        {
+          "name": "call-analisar",
+          "type": "capabilityCall",
+          "capability": "inventoryFile",
+          "operation": "analisarArquivoRecebimento",
+          "args": {
+            "input": "$input",
+            "produtos": "$produtosInput",
+            "ruas": "$ruasElegiveisResult.ruas"
+          },
+          "target": "parseResult"
+        },
+        {
+          "name": "if-parse-succeeded",
+          "type": "if",
+          "condition": "$parseResult.sucesso",
+          "then": [
+            {
+              "name": "map-linhas",
+              "type": "mapValue",
+              "value": "$parseResult.linhas",
+              "target": "linhas"
+            },
+            {
+              "name": "map-origem",
+              "type": "mapValue",
+              "value": "RecebimentoArquivo",
+              "target": "origem"
+            }
+          ],
+          "else": [
+            {
+              "name": "map-parseError",
+              "type": "mapValue",
+              "value": "$parseResult.motivo",
+              "target": "parseError"
+            }
+          ]
+        },
+        {
+          "name": "return-parseResult",
+          "type": "return",
+          "value": "$parseResult"
+        }
+      ]
+    },
+    {
+      "name": "ProcessarRecebimentoArquivoOnCommitProcedure",
+      "description": "Move 13 P1.1 (MOVE13_CLOSE_EVERYTHING_SPEC.md, item 14 follow-through): InventarioArquivoAggregate.onCommit -- for a 'Recebimento por Arquivo' commit only (branches on origem=='RecebimentoArquivo', a literal comparison REG-96's if-condition grammar now supports; a null/missing origem -- every pre-existing Importar Contagem / Gerar Template commit -- takes the else branch and is a pure no-op, byte-for-byte unaffected). Per accepted (ok==true) linha: find-or-create its Lote by natural key (entidadeId, produtoId, dataValidade) via alocacao.encontrarLotePorChave -- a Java linear scan, not a declared runQuery-with-parameters, because runQuery has NO parameter-binding mechanism in this engine at all (confirmed by reading DefaultProcedureExecutor.runQuery directly: it compiles 'where' once at model-load with an empty declared-parameters list, so a per-forEach-iteration natural-key lookup cannot be expressed as a declared query today -- the SAME shape encontrarOcupacao already solves for LocalArmazenagemLote's own natural key, Move 5/REG-78), then calls alocacao.alocarRecebimentoPorRua (locais/lotes/ocupacoes/produtos loaded ONCE before the loop via listConcepts+mapList, mirroring RecomputarOcupacaoOnCommitProcedure's own precedent -- a real, accepted, pre-existing limitation: a single commit's own newly-created rows are not re-listed mid-loop, same limitation RecomputarOcupacaoOnCommitProcedure already carries for the same reason), then upserts LocalArmazenagemLote (found via the ALREADY-EXISTING encontrarOcupacao) and sets each used LocalArmazenagem.situacao='Ocupado'.",
+      "steps": [
+        {
+          "name": "list-lotes",
+          "type": "listConcepts",
+          "concept": "Lote",
+          "target": "lotesRaw"
+        },
+        {
+          "name": "map-lotes",
+          "type": "mapList",
+          "items": "$lotesRaw",
+          "as": "l",
+          "select": {
+            "id": "$l.id",
+            "entidadeId": "$l.entidadeId",
+            "produtoId": "$l.produtoId",
+            "dataValidade": "$l.dataValidade",
+            "quantidade": "$l.quantidade"
+          },
+          "target": "lotes"
+        },
+        {
+          "name": "list-locais",
+          "type": "listConcepts",
+          "concept": "LocalArmazenagem",
+          "target": "locaisRaw"
+        },
+        {
+          "name": "map-locais",
+          "type": "mapList",
+          "items": "$locaisRaw",
+          "as": "loc",
+          "select": {
+            "id": "$loc.id",
+            "ruaId": "$loc.ruaId",
+            "situacao": "$loc.situacao",
+            "posicao": "$loc.posicao",
+            "andar": "$loc.andar"
+          },
+          "target": "locais"
+        },
+        {
+          "name": "list-ocupacoes",
+          "type": "listConcepts",
+          "concept": "LocalArmazenagemLote",
+          "target": "ocupacoesRaw"
+        },
+        {
+          "name": "map-ocupacoes",
+          "type": "mapList",
+          "items": "$ocupacoesRaw",
+          "as": "o",
+          "select": {
+            "id": "$o.id",
+            "localArmazenagemId": "$o.localArmazenagemId",
+            "loteId": "$o.loteId",
+            "quantidade": "$o.quantidade"
+          },
+          "target": "ocupacoes"
+        },
+        {
+          "name": "list-produtos",
+          "type": "listConcepts",
+          "concept": "Produto",
+          "target": "produtosRaw"
+        },
+        {
+          "name": "map-produtos",
+          "type": "mapList",
+          "items": "$produtosRaw",
+          "as": "p",
+          "select": {
+            "id": "$p.id",
+            "qtdCaixasPorPallet": "$p.qtdCaixasPorPallet"
+          },
+          "target": "produtos"
+        },
+        {
+          "name": "branch-on-origem",
+          "type": "if",
+          "condition": "$input.origem == 'RecebimentoArquivo'",
+          "then": [
+            {
+              "name": "for-each-linha",
+              "type": "forEach",
+              "items": "$input.linhas",
+              "as": "linha",
+              "steps": [
+                {
+                  "name": "if-linha-ok",
+                  "type": "if",
+                  "condition": "$linha.ok",
+                  "then": [
+                    {
+                      "name": "find-lote",
+                      "type": "capabilityCall",
+                      "capability": "alocacao",
+                      "operation": "encontrarLotePorChave",
+                      "args": {
+                        "dataValidade": "$linha.dataValidade",
+                        "entidadeId": "$input.entidadeId",
+                        "lotes": "$lotes",
+                        "produtoId": "$linha.produtoId"
+                      },
+                      "target": "loteMatch"
+                    },
+                    {
+                      "name": "branch-on-lote-match",
+                      "type": "if",
+                      "condition": "$loteMatch.found",
+                      "then": [
+                        {
+                          "name": "compute-nova-qtd-lote",
+                          "type": "computeValue",
+                          "operation": "add",
+                          "left": "$loteMatch.quantidade",
+                          "right": "$linha.quantidade",
+                          "target": "novaQtdLote"
+                        },
+                        {
+                          "name": "incrementar-lote",
+                          "type": "patchConcept",
+                          "concept": "Lote",
+                          "id": "$loteMatch.id",
+                          "set": {
+                            "quantidade": "$novaQtdLote"
+                          },
+                          "target": "lote"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "name": "criar-lote",
+                          "type": "patchConcept",
+                          "concept": "Lote",
+                          "id": "$novoLoteId",
+                          "createIfMissing": true,
+                          "set": {
+                            "entidadeId": "$input.entidadeId",
+                            "produtoId": "$linha.produtoId",
+                            "dataValidade": "$linha.dataValidade",
+                            "ocorrencia": "Normal",
+                            "situacao": "Recebido",
+                            "quantidade": "$linha.quantidade"
+                          },
+                          "target": "lote"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "alocar-por-rua",
+                      "type": "capabilityCall",
+                      "capability": "alocacao",
+                      "operation": "alocarRecebimentoPorRua",
+                      "args": {
+                        "dataValidade": "$linha.dataValidade",
+                        "locais": "$locais",
+                        "loteId": "$lote.id",
+                        "lotes": "$lotes",
+                        "ocupacoes": "$ocupacoes",
+                        "produtoId": "$linha.produtoId",
+                        "produtos": "$produtos",
+                        "quantidadeNecessaria": "$linha.quantidade",
+                        "ruaId": "$linha.ruaId"
+                      },
+                      "target": "alocResult"
+                    },
+                    {
+                      "name": "for-each-alocacao",
+                      "type": "forEach",
+                      "items": "$alocResult.alocacoes",
+                      "as": "a",
+                      "steps": [
+                        {
+                          "name": "branch-on-ocupacao-match",
+                          "type": "if",
+                          "condition": "$a.existingOcupacaoId",
+                          "then": [
+                            {
+                              "name": "compute-nova-qtd-ocup",
+                              "type": "computeValue",
+                              "operation": "add",
+                              "left": "$a.ocupacaoQuantidadeAtual",
+                              "right": "$a.quantidadeAlocada",
+                              "target": "novaQtdOcup"
+                            },
+                            {
+                              "name": "incrementar-ocupacao",
+                              "type": "patchConcept",
+                              "concept": "LocalArmazenagemLote",
+                              "id": "$a.existingOcupacaoId",
+                              "set": {
+                                "quantidade": "$novaQtdOcup"
+                              },
+                              "target": "ocupPatched"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "name": "criar-ocupacao",
+                              "type": "patchConcept",
+                              "concept": "LocalArmazenagemLote",
+                              "id": "$novaOcupacaoId",
+                              "createIfMissing": true,
+                              "set": {
+                                "localArmazenagemId": "$a.localArmazenagemId",
+                                "loteId": "$lote.id",
+                                "quantidade": "$a.quantidadeAlocada"
+                              },
+                              "target": "ocupPatched"
+                            }
+                          ]
+                        },
+                        {
+                          "name": "marcar-local-ocupado",
+                          "type": "patchConcept",
+                          "concept": "LocalArmazenagem",
+                          "id": "$a.localArmazenagemId",
+                          "set": {
+                            "situacao": "Ocupado"
+                          },
+                          "target": "localPatched"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "return-ok",
+          "type": "return",
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "EnderecarRecebimentoProcedure",
+      "description": "R16 (WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.3, ledger WMS-9's OPEN_NAMED_GAP: 'the Enderecado lifecycle transition is a bare estagio field flip with no side effect -- it does not call any allocation procedure or write any LocalArmazenagemLote row'). Gives the PreRecebimento->Enderecado transition the side effect the checklist's own premise expects ('computes destination positions before goods arrive'): loads every RecebimentoLote/Lote/LocalArmazenagem/LocalArmazenagemLote/Produto row once (listConcepts+mapList, same unfiltered-then-Java-side-filter shape ProcessarRecebimentoArquivoOnCommitProcedure already established, since listConcepts has no where clause), hands them to the new AllocationCapability.enderecarRecebimento (which does the recebimentoId filter and the locais/ocupacoes/lotes join no mapList primitive can express), then upserts LocalArmazenagemLote per returned alocacao and marks each used LocalArmazenagem Ocupado -- the SAME for-each-alocacao upsert shape as the onCommit procedure above, before finally patching Recebimento.estagio to Enderecado. Replaces the generic transition for Recebimento specifically, same precedent as ConfirmarMovimentacaoExpedicaoProcedure (WMS-9 C7) for Expedicao's DemandaGerada->MovimentacaoConcluida.",
+      "steps": [
+        {
+          "name": "list-recebimento-lotes",
+          "type": "listConcepts",
+          "concept": "RecebimentoLote",
+          "target": "recebimentoLotesRaw"
+        },
+        {
+          "name": "map-recebimento-lotes",
+          "type": "mapList",
+          "items": "$recebimentoLotesRaw",
+          "as": "rl",
+          "select": {
+            "id": "$rl.id",
+            "recebimentoId": "$rl.recebimentoId",
+            "loteId": "$rl.loteId",
+            "quantidade": "$rl.quantidade"
+          },
+          "target": "recebimentoLotes"
+        },
+        {
+          "name": "list-lotes",
+          "type": "listConcepts",
+          "concept": "Lote",
+          "target": "lotesRaw"
+        },
+        {
+          "name": "map-lotes",
+          "type": "mapList",
+          "items": "$lotesRaw",
+          "as": "l",
+          "select": {
+            "id": "$l.id",
+            "produtoId": "$l.produtoId",
+            "dataValidade": "$l.dataValidade"
+          },
+          "target": "lotes"
+        },
+        {
+          "name": "list-locais",
+          "type": "listConcepts",
+          "concept": "LocalArmazenagem",
+          "target": "locaisRaw"
+        },
+        {
+          "name": "map-locais",
+          "type": "mapList",
+          "items": "$locaisRaw",
+          "as": "loc",
+          "select": {
+            "id": "$loc.id",
+            "ruaId": "$loc.ruaId",
+            "situacao": "$loc.situacao",
+            "posicao": "$loc.posicao",
+            "andar": "$loc.andar"
+          },
+          "target": "locais"
+        },
+        {
+          "name": "list-ocupacoes",
+          "type": "listConcepts",
+          "concept": "LocalArmazenagemLote",
+          "target": "ocupacoesRaw"
+        },
+        {
+          "name": "map-ocupacoes",
+          "type": "mapList",
+          "items": "$ocupacoesRaw",
+          "as": "o",
+          "select": {
+            "id": "$o.id",
+            "localArmazenagemId": "$o.localArmazenagemId",
+            "loteId": "$o.loteId",
+            "quantidade": "$o.quantidade"
+          },
+          "target": "ocupacoes"
+        },
+        {
+          "name": "list-produtos",
+          "type": "listConcepts",
+          "concept": "Produto",
+          "target": "produtosRaw"
+        },
+        {
+          "name": "map-produtos",
+          "type": "mapList",
+          "items": "$produtosRaw",
+          "as": "p",
+          "select": {
+            "id": "$p.id",
+            "qtdCaixasPorPallet": "$p.qtdCaixasPorPallet"
+          },
+          "target": "produtos"
+        },
+        {
+          "name": "enderecar",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "enderecarRecebimento",
+          "args": {
+            "locais": "$locais",
+            "lotes": "$lotes",
+            "ocupacoes": "$ocupacoes",
+            "produtos": "$produtos",
+            "recebimentoId": "$input.id",
+            "recebimentoLotes": "$recebimentoLotes"
+          },
+          "target": "enderecoResult"
+        },
+        {
+          "name": "for-each-alocacao",
+          "type": "forEach",
+          "items": "$enderecoResult.alocacoes",
+          "as": "a",
+          "steps": [
+            {
+              "name": "branch-on-ocupacao-match",
+              "type": "if",
+              "condition": "$a.existingOcupacaoId",
+              "then": [
+                {
+                  "name": "compute-nova-qtd-ocup",
+                  "type": "computeValue",
+                  "operation": "add",
+                  "left": "$a.ocupacaoQuantidadeAtual",
+                  "right": "$a.quantidadeAlocada",
+                  "target": "novaQtdOcup"
+                },
+                {
+                  "name": "incrementar-ocupacao",
+                  "type": "patchConcept",
+                  "concept": "LocalArmazenagemLote",
+                  "id": "$a.existingOcupacaoId",
+                  "set": {
+                    "quantidade": "$novaQtdOcup"
+                  },
+                  "target": "ocupPatched"
+                }
+              ],
+              "else": [
+                {
+                  "name": "criar-ocupacao",
+                  "type": "patchConcept",
+                  "concept": "LocalArmazenagemLote",
+                  "id": "$novaOcupacaoId",
+                  "createIfMissing": true,
+                  "set": {
+                    "localArmazenagemId": "$a.localArmazenagemId",
+                    "loteId": "$a.loteId",
+                    "quantidade": "$a.quantidadeAlocada"
+                  },
+                  "target": "ocupPatched"
+                }
+              ]
+            },
+            {
+              "name": "marcar-local-ocupado",
+              "type": "patchConcept",
+              "concept": "LocalArmazenagem",
+              "id": "$a.localArmazenagemId",
+              "set": {
+                "situacao": "Ocupado"
+              },
+              "target": "localPatched"
+            }
+          ]
+        },
+        {
+          "name": "marcar-enderecado",
+          "type": "patchConcept",
+          "concept": "Recebimento",
+          "id": "$input.id",
+          "set": {
+            "estagio": "Enderecado"
+          },
+          "target": "recebimentoEnderecado"
+        },
+        {
+          "name": "return-recebimento",
+          "type": "return",
+          "value": "$recebimentoEnderecado"
+        }
+      ]
+    },
+    {
+      "name": "AdicionarItemRecebimentoProcedure",
+      "description": "WMS-16 (WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.3, R6-R12 item-level wizard, 'Adicionar Itens'): a scope=\"row\" procedure-bound Panel action on ConferenciaRecebimentoPanel's recebimentosPendentes dataSource (PanelRuntime#resolveRowScopedInput merges $input.id automatically from the clicked row -- the recebimentoId -- with the mini-form's loteId/quantidade/crossDocking layered on top). Defaults quantidade to 1 when left blank (the wizard's 'default-1-position' convenience -- RecebimentoLote.quantidade's own concept-level default:1 documents the same intent but only the generic conceptMutation/create path honors a concept default automatically; this procedure sets every RecebimentoLote field explicitly via patchConcept, so the default has to be re-applied here). Rejects a duplicate produto via AllocationCapability.verificarProdutoDuplicado (THROWS to block, same precedent as verificarGateCrossDocking) before creating the row -- RecebimentoLote only carries loteId, not produtoId, so the duplicate check has to join through Lote, which mapList/procedure steps cannot do (same reasoning candidatosCrossDocking's own doc comment already established). The SAME action also serves the wizard's 'row clone' convenience: business-ui-app.mustache's per-row 'Clonar' button (LotesClonarButton, WMS-16) pre-fills this mini-form's own inputs from an existing lotes row before the user clicks Adicionar Item, reusing this one validated path instead of a second rowOps primitive.",
+      "steps": [
+        {
+          "name": "default-quantidade",
+          "type": "if",
+          "condition": "$input.quantidade",
+          "then": [
+            {
+              "name": "usar-quantidade-informada",
+              "type": "assign",
+              "target": "quantidadeFinal",
+              "value": "$input.quantidade"
+            }
+          ],
+          "else": [
+            {
+              "name": "usar-quantidade-padrao",
+              "type": "assign",
+              "target": "quantidadeFinal",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "name": "list-recebimento-lotes",
+          "type": "listConcepts",
+          "concept": "RecebimentoLote",
+          "target": "recebimentoLotesRaw"
+        },
+        {
+          "name": "map-recebimento-lotes",
+          "type": "mapList",
+          "items": "$recebimentoLotesRaw",
+          "as": "rl",
+          "select": {
+            "recebimentoId": "$rl.recebimentoId",
+            "loteId": "$rl.loteId"
+          },
+          "target": "recebimentoLotes"
+        },
+        {
+          "name": "list-lotes",
+          "type": "listConcepts",
+          "concept": "Lote",
+          "target": "lotesRaw"
+        },
+        {
+          "name": "map-lotes",
+          "type": "mapList",
+          "items": "$lotesRaw",
+          "as": "l",
+          "select": {
+            "id": "$l.id",
+            "produtoId": "$l.produtoId"
+          },
+          "target": "lotes"
+        },
+        {
+          "name": "verificar-duplicidade",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "verificarProdutoDuplicado",
+          "args": {
+            "loteId": "$input.loteId",
+            "lotes": "$lotes",
+            "recebimentoId": "$input.id",
+            "recebimentoLotes": "$recebimentoLotes"
+          },
+          "target": "verificacao"
+        },
+        {
+          "name": "criar-item",
+          "type": "patchConcept",
+          "concept": "RecebimentoLote",
+          "id": "$novoItemId",
+          "createIfMissing": true,
+          "set": {
+            "recebimentoId": "$input.id",
+            "loteId": "$input.loteId",
+            "quantidade": "$quantidadeFinal",
+            "crossDocking": "$input.crossDocking"
+          },
+          "target": "itemCriado"
+        },
+        {
+          "name": "return-item",
+          "type": "return",
+          "value": "$itemCriado"
+        }
+      ]
+    },
+    {
+      "name": "AdicionarItemExpedicaoProcedure",
+      "description": "WMS-16 Expedicao residual (WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.3, R6-R12 item-level wizard, Expedicao side): AdicionarItemRecebimentoProcedure's twin for ExpedicaoDemandaPanel's own 'itens' dataSource -- a scope=\"row\" procedure-bound Panel action (PanelRuntime#resolveRowScopedInput merges $input.id automatically from the clicked row, the expedicaoId, with the mini-form's produtoId/quantidade/autoFinalizacao layered on top). Defaults quantidade to 1 when left blank, same 'default-1-position' convenience as the Recebimento side (ExpedicaoItem.quantidade's own concept-level default:1 documents the same intent but only the generic conceptMutation/create path honors a concept default automatically; this procedure sets every field explicitly via patchConcept, so the default has to be re-applied here). Rejects a duplicate produto via AllocationCapability.verificarProdutoDuplicadoExpedicao (THROWS to block, same precedent as verificarGateCrossDocking/verificarProdutoDuplicado) -- simpler than the Recebimento side's own check since ExpedicaoItem carries produtoId directly, no Lote join needed. The SAME action also serves the wizard's 'row clone' convenience via business-ui-app.mustache's generic per-row 'Clonar' button (no new generator work needed, the same mechanism built for RecebimentoLote's 'lotes' dataSource matches by inputFields overlap alone).",
+      "steps": [
+        {
+          "name": "default-quantidade",
+          "type": "if",
+          "condition": "$input.quantidade",
+          "then": [
+            {
+              "name": "usar-quantidade-informada",
+              "type": "assign",
+              "target": "quantidadeFinal",
+              "value": "$input.quantidade"
+            }
+          ],
+          "else": [
+            {
+              "name": "usar-quantidade-padrao",
+              "type": "assign",
+              "target": "quantidadeFinal",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "name": "list-expedicao-itens",
+          "type": "listConcepts",
+          "concept": "ExpedicaoItem",
+          "target": "expedicaoItensRaw"
+        },
+        {
+          "name": "map-expedicao-itens",
+          "type": "mapList",
+          "items": "$expedicaoItensRaw",
+          "as": "ei",
+          "select": {
+            "expedicaoId": "$ei.expedicaoId",
+            "produtoId": "$ei.produtoId"
+          },
+          "target": "itens"
+        },
+        {
+          "name": "verificar-duplicidade",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "verificarProdutoDuplicadoExpedicao",
+          "args": {
+            "expedicaoId": "$input.id",
+            "itens": "$itens",
+            "produtoId": "$input.produtoId"
+          },
+          "target": "verificacao"
+        },
+        {
+          "name": "criar-item",
+          "type": "patchConcept",
+          "concept": "ExpedicaoItem",
+          "id": "$novoItemId",
+          "createIfMissing": true,
+          "set": {
+            "expedicaoId": "$input.id",
+            "produtoId": "$input.produtoId",
+            "quantidade": "$quantidadeFinal",
+            "autoFinalizacao": "$input.autoFinalizacao"
+          },
+          "target": "itemCriado"
+        },
+        {
+          "name": "return-item",
+          "type": "return",
+          "value": "$itemCriado"
+        }
+      ]
+    },
+    {
+      "name": "CriarMovimentoParaRecebimentoProcedure",
+      "description": "Move 13 P1.2 (MOVE13_CLOSE_EVERYTHING_SPEC.md, item 14 follow-through): the Workbench-side twin of centro-trabalho.html's 'Criar Movimento' header button (creates a Movimento, then links it back onto the selected Recebimento) -- needed as a procedure because autoPanel transaction.actions can only invoke a procedure, never a flow directly by name (WorkbenchActionAst/model.schema.json's workbenchAction both require 'procedure'; confirmed by reading PanelValidation.validateWorkbenchActions directly, not assumed). dataMovimento reuses the Recebimento's OWN already-set dataRecebimento (both concepts require a date and neither has a default; no procedure expression yields 'today', the same limitation GerarTemplateContagemProcedure's own comment names -- reusing an already-supplied sibling date avoids needing a new capability just to read the clock). situacao is left unset so Movimento's own concept default ('Pendente') applies, matching the original screen's own POST /api/movimentos, which also never sets it explicitly.",
+      "steps": [
+        {
+          "name": "criar-movimento",
+          "type": "patchConcept",
+          "concept": "Movimento",
+          "id": "$novoMovimentoId",
+          "createIfMissing": true,
+          "set": {
+            "entidadeId": "$input.entidadeId",
+            "tipo": "Recebimento",
+            "dataMovimento": "$input.dataRecebimento"
+          },
+          "target": "movimentoCriado"
+        },
+        {
+          "name": "vincular-recebimento",
+          "type": "patchConcept",
+          "concept": "Recebimento",
+          "id": "$input.id",
+          "set": {
+            "movimentoId": "$movimentoCriado.id"
+          },
+          "target": "linked"
+        },
+        {
+          "name": "return-linked",
+          "type": "return",
+          "value": "$linked"
+        }
+      ]
+    },
+    {
+      "name": "CriarMovimentoParaExpedicaoProcedure",
+      "description": "Move 13 P1.2 (MOVE13_CLOSE_EVERYTHING_SPEC.md, item 14 follow-through): the Expedicao twin of CriarMovimentoParaRecebimentoProcedure above -- see that procedure's own description for the full rationale (why this must be a procedure, not a flow reference, and why dataMovimento reuses the sibling record's own date field instead of needing a 'today' capability).",
+      "steps": [
+        {
+          "name": "criar-movimento",
+          "type": "patchConcept",
+          "concept": "Movimento",
+          "id": "$novoMovimentoId",
+          "createIfMissing": true,
+          "set": {
+            "entidadeId": "$input.entidadeId",
+            "tipo": "Expedicao",
+            "dataMovimento": "$input.dataExpedicao"
+          },
+          "target": "movimentoCriado"
+        },
+        {
+          "name": "vincular-expedicao",
+          "type": "patchConcept",
+          "concept": "Expedicao",
+          "id": "$input.id",
+          "set": {
+            "movimentoId": "$movimentoCriado.id"
+          },
+          "target": "linked"
+        },
+        {
+          "name": "return-linked",
+          "type": "return",
+          "value": "$linked"
+        }
+      ]
+    },
+    {
+      "name": "GerarExpedicaoProcedure",
+      "description": "WMS-9 C5 (WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.5, CrossDocking): Romaneio's own invariant RomaneioExpedicaoRequiredWhenGerada (Romaneio.json) requires expedicaoId to be set before situacao can move to ExpedicaoGerada, but nothing in the model ever populated it -- every onCommit/procedure target 'Recebimento' was grepped and none create or patch an Expedicao either, so there was no generation surface at all on the Romaneio side, unlike Recebimento's CriarMovimentoParaRecebimentoProcedure pattern above. Mirrors that procedure's create-then-backfill shape exactly: patchConcept with createIfMissing spawns the new Expedicao, then a second patchConcept on the source record (Romaneio) sets the new id plus the lifecycle transition in one step, same as CriarMovimentoParaRecebimentoProcedure links Movimento back onto Recebimento above. dataExpedicao reuses Romaneio's own already-set dataEmissao, same 'no today() capability exists yet' reasoning that procedure's own description names for dataMovimento.",
+      "steps": [
+        {
+          "name": "criar-expedicao",
+          "type": "patchConcept",
+          "concept": "Expedicao",
+          "id": "$novaExpedicaoId",
+          "createIfMissing": true,
+          "set": {
+            "entidadeId": "$input.entidadeId",
+            "dataExpedicao": "$input.dataEmissao"
+          },
+          "target": "expedicaoCriada"
+        },
+        {
+          "name": "vincular-romaneio",
+          "type": "patchConcept",
+          "concept": "Romaneio",
+          "id": "$input.id",
+          "set": {
+            "expedicaoId": "$expedicaoCriada.id",
+            "situacao": "ExpedicaoGerada"
+          },
+          "target": "linked"
+        },
+        {
+          "name": "return-linked",
+          "type": "return",
+          "value": "$linked"
+        }
+      ]
+    },
+    {
+      "name": "ResetarAmbienteTransacionalProcedure",
+      "description": "WMS-9 Z1-Z6 (WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.9, Reset): excluir-estabelecimento.html already exists but is the wrong shape -- it destroys master data AND storage structure (Entidade->Armazem->Area->Rua->LocalArmazenagem->RankingRua) while deliberately preserving everything transactional, the exact inverse of what a soft reset wants. This procedure does the opposite: wipes every transactional record (Movimento, Recebimento, Expedicao and their owned children, the Romaneio import manifests and CrossDocking links tying them together, and DocumentoFiscal import drafts) while leaving Entidade/Armazem/Area/Rua/LocalArmazenagem/Produto/PerfilAlocacao/RankingRua untouched. Deliberately NOT wired into any autoPanel action -- see reset-ambiente.html, its only entry point, which gates the call behind a type-to-confirm control since the DSL has no built-in confirmation primitive and a plain declarative button would repeat excluir-estabelecimento.html's own 'zero confirmation' defect one level up, this time baked into the generated UI itself. Order matters, checked against every concept file in this app rather than assumed: Romaneio.expedicaoId and CrossDocking.recebimentoId/expedicaoId are onDelete:restrict references TO Expedicao/Recebimento, so both Romaneio and CrossDocking (both transactional, in scope here) are deleted before Expedicao/Recebimento -- an earlier draft tried nulling Romaneio.expedicaoId instead of deleting the record, but a JSON null in a patchConcept.set value crashes the model parser (REG-224, ProcedureStepAst wraps every Map<String,Object> step field via Map.copyOf, which forbids null values); deleting the record outright is correct here anyway since Romaneio is transactional data, same as DocumentoFiscal. DocumentoFiscal.recebimentoId is the same restrict shape against Recebimento, so DocumentoFiscal is deleted before Recebimento too. Expedicao.movimentoId/Recebimento.movimentoId are themselves onDelete:restrict against Movimento, so both are deleted before Movimento. MovimentoItem/MovimentoItemPosicao/HistoricoMovimentacao/ExpedicaoItem/RecebimentoLote/DocumentoFiscalItem/RomaneioItem all declare onDelete:cascade from their respective parents, so deleting the parent root alone is sufficient -- no explicit step deletes them.",
+      "steps": [
+        {
+          "name": "list-romaneios",
+          "type": "listConcepts",
+          "concept": "Romaneio",
+          "target": "romaneiosRaw"
+        },
+        {
+          "name": "apagar-romaneios",
+          "type": "forEach",
+          "items": "$romaneiosRaw",
+          "as": "romaneio",
+          "steps": [
+            {
+              "name": "apagar-romaneio",
+              "type": "deleteConcept",
+              "concept": "Romaneio",
+              "id": "$romaneio.id"
+            }
+          ]
+        },
+        {
+          "name": "list-crossdockings",
+          "type": "listConcepts",
+          "concept": "CrossDocking",
+          "target": "crossDockingsRaw"
+        },
+        {
+          "name": "apagar-crossdockings",
+          "type": "forEach",
+          "items": "$crossDockingsRaw",
+          "as": "crossDocking",
+          "steps": [
+            {
+              "name": "apagar-crossdocking",
+              "type": "deleteConcept",
+              "concept": "CrossDocking",
+              "id": "$crossDocking.id"
+            }
+          ]
+        },
+        {
+          "name": "list-documentos-fiscais",
+          "type": "listConcepts",
+          "concept": "DocumentoFiscal",
+          "target": "documentosFiscaisRaw"
+        },
+        {
+          "name": "apagar-documentos-fiscais",
+          "type": "forEach",
+          "items": "$documentosFiscaisRaw",
+          "as": "documentoFiscal",
+          "steps": [
+            {
+              "name": "apagar-documento-fiscal",
+              "type": "deleteConcept",
+              "concept": "DocumentoFiscal",
+              "id": "$documentoFiscal.id"
+            }
+          ]
+        },
+        {
+          "name": "list-expedicoes",
+          "type": "listConcepts",
+          "concept": "Expedicao",
+          "target": "expedicoesRaw"
+        },
+        {
+          "name": "apagar-expedicoes",
+          "type": "forEach",
+          "items": "$expedicoesRaw",
+          "as": "expedicao",
+          "steps": [
+            {
+              "name": "apagar-expedicao",
+              "type": "deleteConcept",
+              "concept": "Expedicao",
+              "id": "$expedicao.id"
+            }
+          ]
+        },
+        {
+          "name": "list-recebimentos",
+          "type": "listConcepts",
+          "concept": "Recebimento",
+          "target": "recebimentosRaw"
+        },
+        {
+          "name": "apagar-recebimentos",
+          "type": "forEach",
+          "items": "$recebimentosRaw",
+          "as": "recebimento",
+          "steps": [
+            {
+              "name": "apagar-recebimento",
+              "type": "deleteConcept",
+              "concept": "Recebimento",
+              "id": "$recebimento.id"
+            }
+          ]
+        },
+        {
+          "name": "list-movimentos",
+          "type": "listConcepts",
+          "concept": "Movimento",
+          "target": "movimentosRaw"
+        },
+        {
+          "name": "apagar-movimentos",
+          "type": "forEach",
+          "items": "$movimentosRaw",
+          "as": "movimento",
+          "steps": [
+            {
+              "name": "apagar-movimento",
+              "type": "deleteConcept",
+              "concept": "Movimento",
+              "id": "$movimento.id"
+            }
+          ]
+        },
+        {
+          "name": "list-ocupacoes",
+          "type": "listConcepts",
+          "concept": "LocalArmazenagemLote",
+          "target": "ocupacoesRaw"
+        },
+        {
+          "name": "zerar-ocupacoes",
+          "type": "forEach",
+          "items": "$ocupacoesRaw",
+          "as": "ocupacao",
+          "steps": [
+            {
+              "name": "zerar-ocupacao",
+              "type": "patchConcept",
+              "concept": "LocalArmazenagemLote",
+              "id": "$ocupacao.id",
+              "set": {
+                "quantidade": 0
+              }
+            }
+          ]
+        },
+        {
+          "name": "return-ok",
+          "type": "return",
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "BuscarCandidatosCrossDockingProcedure",
+      "description": "WMS-9 C6 (WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.5, CrossDocking): 'a CD is offered only when an outbound product matches an inbound one' -- until this procedure nothing in the model ever computed that match; CrossDockingConsolePanel's existing 'Ativar Cross-Docking' action (flow: AtivarCrossDocking) already creates the CrossDocking link once a user manually TYPES in recebimentoId/expedicaoId/produtoId/quantidade, so the activation mechanism was never the gap -- only the discovery/offer was. Lists every raw concept the match needs (Recebimento, RecebimentoLote, Lote for the produtoId a RecebimentoLote only reaches indirectly, Expedicao, ExpedicaoItem), reshapes each via mapList into plain field maps first (mirrors RecomputarOcupacaoOnCommitProcedure's own listConcepts+mapList precedent above -- a raw ConceptRecord list cannot bind to a List<Map<String,Object>> Java parameter, only a mapList's plain-map output can), then hands all five to the new AllocationCapability.candidatosCrossDocking method, which does the actual cross-list join in Java since mapList itself has no join primitive (same reasoning ruasElegiveis/alocarRecebimento already established). Returns {candidatos: [{recebimentoId, expedicaoId, produtoId, quantidade, dataAtivacao}, ...]} -- each row is a ready-to-submit draft for the EXISTING 'Ativar Cross-Docking' action's inputFields, not a new activation path. Invokable via POST /api/runtime/aggregate/Expedicao/invoke/BuscarCandidatosCrossDockingProcedure (any real aggregate name satisfies the shared /invoke/{procedure} endpoint's context requirement, same as ResetarAmbienteTransacionalProcedure above). A declarative panel-native rendering of this result (so a user browses candidates instead of calling the endpoint directly) is NOT built here -- panels' dataSources bind to a concept or a declared query, and this result is neither; recorded as the residual UI gap rather than force-fitting an unproven pattern under time pressure.",
+      "steps": [
+        {
+          "name": "list-recebimentos-raw",
+          "type": "listConcepts",
+          "concept": "Recebimento",
+          "target": "recebimentosRawConcept"
+        },
+        {
+          "name": "map-recebimentos",
+          "type": "mapList",
+          "items": "$recebimentosRawConcept",
+          "as": "recebimentoRaw",
+          "select": {
+            "id": "$recebimentoRaw.id",
+            "situacao": "$recebimentoRaw.situacao",
+            "crossDockingAtivo": "$recebimentoRaw.crossDockingAtivo"
+          },
+          "target": "recebimentosRaw"
+        },
+        {
+          "name": "list-recebimento-lotes-raw",
+          "type": "listConcepts",
+          "concept": "RecebimentoLote",
+          "target": "recebimentoLotesRawConcept"
+        },
+        {
+          "name": "map-recebimento-lotes",
+          "type": "mapList",
+          "items": "$recebimentoLotesRawConcept",
+          "as": "linhaRaw",
+          "select": {
+            "recebimentoId": "$linhaRaw.recebimentoId",
+            "loteId": "$linhaRaw.loteId",
+            "quantidade": "$linhaRaw.quantidade"
+          },
+          "target": "recebimentoLotesRaw"
+        },
+        {
+          "name": "list-lotes-raw",
+          "type": "listConcepts",
+          "concept": "Lote",
+          "target": "lotesRawConcept"
+        },
+        {
+          "name": "map-lotes",
+          "type": "mapList",
+          "items": "$lotesRawConcept",
+          "as": "loteRaw",
+          "select": {
+            "id": "$loteRaw.id",
+            "produtoId": "$loteRaw.produtoId"
+          },
+          "target": "lotesRaw"
+        },
+        {
+          "name": "list-expedicoes-raw",
+          "type": "listConcepts",
+          "concept": "Expedicao",
+          "target": "expedicoesRawConcept"
+        },
+        {
+          "name": "map-expedicoes",
+          "type": "mapList",
+          "items": "$expedicoesRawConcept",
+          "as": "expedicaoRaw",
+          "select": {
+            "id": "$expedicaoRaw.id",
+            "situacao": "$expedicaoRaw.situacao",
+            "estagio": "$expedicaoRaw.estagio",
+            "crossDockingAtivo": "$expedicaoRaw.crossDockingAtivo"
+          },
+          "target": "expedicoesRaw"
+        },
+        {
+          "name": "list-expedicao-itens-raw",
+          "type": "listConcepts",
+          "concept": "ExpedicaoItem",
+          "target": "expedicaoItensRawConcept"
+        },
+        {
+          "name": "map-expedicao-itens",
+          "type": "mapList",
+          "items": "$expedicaoItensRawConcept",
+          "as": "itemRaw",
+          "select": {
+            "expedicaoId": "$itemRaw.expedicaoId",
+            "produtoId": "$itemRaw.produtoId",
+            "quantidade": "$itemRaw.quantidade"
+          },
+          "target": "expedicaoItensRaw"
+        },
+        {
+          "name": "buscar-candidatos",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "candidatosCrossDocking",
+          "args": {
+            "expedicaoItens": "$expedicaoItensRaw",
+            "expedicoes": "$expedicoesRaw",
+            "lotes": "$lotesRaw",
+            "recebimentoLotes": "$recebimentoLotesRaw",
+            "recebimentos": "$recebimentosRaw"
+          },
+          "target": "resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "ConfirmarMovimentacaoExpedicaoProcedure",
+      "description": "WMS-9 C7 (WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.5, 'Activating a CD routes goods bay-to-bay, bypassing storage'; per the original GeneXus manual, D:\\WorkSpace\\WmsOffice\\Doctos\\CrossDoking.html): 'nao e possivel confirmar a movimentacao [da expedicao] quando houver um CrossDocking ativo cujo recebimento nao tenha a conferencia registrada'. Before this procedure, DemandaGerada->MovimentacaoConcluida had no custom logic (same shape the Movimento Gerado->Conferido transition's own comment names: a bare field write the generic Workbench lifecycle-transition button already covers) -- so nothing ever enforced this cross-record gate. Replaces the generic transition for Expedicao specifically: lists every CrossDocking + Recebimento row, reshapes both via mapList into plain field maps (a raw ConceptRecord list cannot bind to a List<Map<String,Object>> Java parameter, same reasoning BuscarCandidatosCrossDockingProcedure's own mapList steps above already established), then calls AllocationCapability.verificarGateCrossDocking, which THROWS (not a soft sucesso:false) when an active CrossDocking on this Expedicao has a linked Recebimento not yet at estagio Conferido/Armazenado -- the throw itself is what blocks the transition, propagated as a genuine capability/procedure failure with the business-language message intact (confirmed by reading ManifestDrivenJavaSourcePluginHandler's exception-unwrapping directly). Only reaching the patchConcept below means the gate passed (or no active CrossDocking applies to this Expedicao at all).",
+      "steps": [
+        {
+          "name": "list-crossdockings-raw",
+          "type": "listConcepts",
+          "concept": "CrossDocking",
+          "target": "crossDockingsRawConcept"
+        },
+        {
+          "name": "map-crossdockings",
+          "type": "mapList",
+          "items": "$crossDockingsRawConcept",
+          "as": "crossDockingRaw",
+          "select": {
+            "expedicaoId": "$crossDockingRaw.expedicaoId",
+            "recebimentoId": "$crossDockingRaw.recebimentoId",
+            "situacao": "$crossDockingRaw.situacao"
+          },
+          "target": "crossDockingsRaw"
+        },
+        {
+          "name": "list-recebimentos-raw",
+          "type": "listConcepts",
+          "concept": "Recebimento",
+          "target": "recebimentosRawConcept"
+        },
+        {
+          "name": "map-recebimentos",
+          "type": "mapList",
+          "items": "$recebimentosRawConcept",
+          "as": "recebimentoRaw",
+          "select": {
+            "id": "$recebimentoRaw.id",
+            "estagio": "$recebimentoRaw.estagio"
+          },
+          "target": "recebimentosRaw"
+        },
+        {
+          "name": "verificar-gate",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "verificarGateCrossDocking",
+          "args": {
+            "crossDockings": "$crossDockingsRaw",
+            "expedicaoId": "$input.id",
+            "recebimentos": "$recebimentosRaw"
+          },
+          "target": "gate"
+        },
+        {
+          "name": "confirmar-movimentacao",
+          "type": "patchConcept",
+          "concept": "Expedicao",
+          "id": "$input.id",
+          "set": {
+            "estagio": "MovimentacaoConcluida"
+          },
+          "target": "expedicaoConfirmada"
+        },
+        {
+          "name": "return-expedicao",
+          "type": "return",
+          "value": "$expedicaoConfirmada"
+        }
+      ]
+    },
+    {
+      "name": "ProvisionarBaiaCrossDockingProcedure",
+      "description": "WMS-9 C7 (WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.5, 'Activating a CD routes goods bay-to-bay, bypassing storage'): called by the AtivarCrossDocking flow right after CrossDocking is created. Finds (or auto-provisions) a dedicated CrossDocking-function Area/Rua for the linked Recebimento's own Armazem, then creates a FRESH LocalArmazenagem position under it for THIS specific activation (never reused across activations -- $novaBaiaId is an unbound placeholder every run, so patchConcept's createIfMissing always creates rather than finds, mirroring the original manual's per-instance 'CrossDocking Rec No.:N' labeling), and records it on the CrossDocking record via baiaLocalArmazenagemId. Area/Rua themselves DO reuse an existing row when one is found (AllocationCapability.localizarBaiaCrossDocking looks them up first; patchConcept's own createIfMissing convention -- a null id means create, a real id means reuse -- handles both branches with the SAME two steps, no explicit if/else needed). qtdPosicoes/qtdAndares on a freshly-created Rua are set generously (9999/1) since bay positions are logical markers, not physically walked aisles.",
+      "steps": [
+        {
+          "name": "read-recebimento",
+          "type": "readConcept",
+          "concept": "Recebimento",
+          "id": "$input.recebimentoId",
+          "target": "recebimento"
+        },
+        {
+          "name": "list-armazens-raw",
+          "type": "listConcepts",
+          "concept": "Armazem",
+          "target": "armazensRawConcept"
+        },
+        {
+          "name": "map-armazens",
+          "type": "mapList",
+          "items": "$armazensRawConcept",
+          "as": "armazemRaw",
+          "select": {
+            "id": "$armazemRaw.id",
+            "entidadeId": "$armazemRaw.entidadeId"
+          },
+          "target": "armazensRaw"
+        },
+        {
+          "name": "list-areas-raw",
+          "type": "listConcepts",
+          "concept": "Area",
+          "target": "areasRawConcept"
+        },
+        {
+          "name": "map-areas",
+          "type": "mapList",
+          "items": "$areasRawConcept",
+          "as": "areaRaw",
+          "select": {
+            "id": "$areaRaw.id",
+            "armazemId": "$areaRaw.armazemId",
+            "funcao": "$areaRaw.funcao"
+          },
+          "target": "areasRaw"
+        },
+        {
+          "name": "list-ruas-raw",
+          "type": "listConcepts",
+          "concept": "Rua",
+          "target": "ruasRawConcept"
+        },
+        {
+          "name": "map-ruas",
+          "type": "mapList",
+          "items": "$ruasRawConcept",
+          "as": "ruaRaw",
+          "select": {
+            "id": "$ruaRaw.id",
+            "areaId": "$ruaRaw.areaId"
+          },
+          "target": "ruasRaw"
+        },
+        {
+          "name": "localizar-baia",
+          "type": "capabilityCall",
+          "capability": "alocacao",
+          "operation": "localizarBaiaCrossDocking",
+          "args": {
+            "areas": "$areasRaw",
+            "armazens": "$armazensRaw",
+            "entidadeId": "$recebimento.entidadeId",
+            "ruas": "$ruasRaw"
+          },
+          "target": "baiaLookup"
+        },
+        {
+          "name": "garantir-area-crossdocking",
+          "type": "patchConcept",
+          "concept": "Area",
+          "id": "$baiaLookup.areaCrossDockingId",
+          "createIfMissing": true,
+          "set": {
+            "armazemId": "$baiaLookup.armazemId",
+            "nome": "Cross-Docking",
+            "funcao": "CrossDocking",
+            "ativo": true
+          },
+          "target": "areaCD"
+        },
+        {
+          "name": "garantir-rua-crossdocking",
+          "type": "patchConcept",
+          "concept": "Rua",
+          "id": "$baiaLookup.ruaCrossDockingId",
+          "createIfMissing": true,
+          "set": {
+            "areaId": "$areaCD.id",
+            "codigo": "CD",
+            "qtdPosicoes": 9999,
+            "qtdAndares": 1,
+            "bloqueiaRecebimento": false,
+            "bloqueiaExpedicao": false,
+            "bloqueiaMovimento": false,
+            "ativo": true
+          },
+          "target": "ruaCD"
+        },
+        {
+          "name": "criar-baia-posicao",
+          "type": "patchConcept",
+          "concept": "LocalArmazenagem",
+          "id": "$novaBaiaId",
+          "createIfMissing": true,
+          "set": {
+            "ruaId": "$ruaCD.id",
+            "posicao": 1,
+            "andar": 1,
+            "situacao": "Ocupado"
+          },
+          "target": "baiaPosicao"
+        },
+        {
+          "name": "vincular-baia-crossdocking",
+          "type": "patchConcept",
+          "concept": "CrossDocking",
+          "id": "$input.id",
+          "set": {
+            "baiaLocalArmazenagemId": "$baiaPosicao.id"
+          },
+          "target": "crossDockingComBaia"
+        },
+        {
+          "name": "return-crossdocking",
+          "type": "return",
+          "value": "$crossDockingComBaia"
+        }
+      ]
+    },
+    {
+      "name": "EnriquecerLinhasInventarioProcedure",
+      "description": "Move 7 W2 (docs/MOVE7_IMPLEMENTATION_SPEC.md): a real onRowLoad consumer for InventarioHistoricoPanel's linhas dataSource (InventarioArquivoLinha) -- proves PanelRuntime.applyRowLoad's batch guarantee (Move 6 Move C, docs/MOVE6_TYPED_SURFACE_PLAN.md \u00a74) fires against a real generated+booted app, not just a unit-test fixture. Rebuilds every row via mapList, preserving id/order/count exactly as the guarantee requires (mapList's select is a literal-vs-$ref transform only -- no arithmetic/lookup is expressible per-item, see DefaultProcedureExecutor.resolveSetValue), and stamps a revisadoAutomaticamente marker so the client can tell a row genuinely passed through the server-side post-load enrichment pass rather than a bypassed read path. Each row PanelRuntime hands in is the toRecordMap envelope {id, tenantId, concept, data: {...fields}} -- id lives at the top level, every other field one level down under data (PanelRuntime.resolveRecordFieldValue's own comment) -- hence $linha.data.<field> below, not $linha.<field>.",
+      "steps": [
+        {
+          "name": "map-linhas",
+          "type": "mapList",
+          "items": "$input.rows",
+          "as": "linha",
+          "select": {
+            "id": "$linha.id",
+            "inventarioArquivoId": "$linha.data.inventarioArquivoId",
+            "localArmazenagemId": "$linha.data.localArmazenagemId",
+            "produtoId": "$linha.data.produtoId",
+            "loteId": "$linha.data.loteId",
+            "quantidadeEsperada": "$linha.data.quantidadeEsperada",
+            "quantidadeContada": "$linha.data.quantidadeContada",
+            "divergente": "$linha.data.divergente",
+            "revisadoAutomaticamente": true
+          },
+          "target": "rows"
+        },
+        {
+          "name": "return-rows",
+          "type": "return",
+          "value": "$rows"
+        }
+      ]
+    },
+    {
+      "name": "RegistrarEntidadeTrustedProcedure",
+      "description": "Trusted-source Java twin, modeled on RegistrarLocalArmazenagemLoteProcedure's save+return shape. The steps below are a schema-required placeholder only -- metadata.trustedSourceEntrypoint routes generation to the real compiled Java class instead.",
+      "steps": [
+        {
+          "name": "trusted-source-placeholder",
+          "type": "return",
+          "value": "$input"
+        }
+      ],
+      "permissionRequirements": [
+        "ADMIN"
+      ],
+      "metadata": {
+        "untrustedExtensionEntrypoint": "trusted-source/procedure/RegistrarEntidadeTrustedProcedure.java"
+      }
+    },
+    {
+      "name": "RegistrarProdutoTrustedProcedure",
+      "description": "Trusted-source Java twin, modeled on the same save+return shape used by RegistrarLocalArmazenagemLoteProcedure. The steps below are a schema-required placeholder only -- metadata.trustedSourceEntrypoint routes generation to the real compiled Java class instead.",
+      "steps": [
+        {
+          "name": "trusted-source-placeholder",
+          "type": "return",
+          "value": "$input"
+        }
+      ],
+      "permissionRequirements": [
+        "ADMIN"
+      ],
+      "metadata": {
+        "untrustedExtensionEntrypoint": "trusted-source/procedure/RegistrarProdutoTrustedProcedure.java"
+      }
+    }
+  ],
+  "panels": [
+    {
+      "name": "ConferenciaRecebimentoPanel",
+      "route": "/recebimentos/conferencia",
+      "title": "Conferencia de Recebimento",
+      "dataSources": [
+        {
+          "name": "recebimentosPendentes",
+          "query": "RecebimentosPendentes"
+        },
+        {
+          "name": "lotes",
+          "concept": "RecebimentoLote",
+          "parentDataSource": "recebimentosPendentes",
+          "parentField": "id",
+          "childField": "recebimentoId",
+          "rowOps": [
+            "delete"
+          ],
+          "totalField": "quantidade"
+        }
+      ],
+      "layout": {
+        "type": "table",
+        "fields": [
+          "dataRecebimento",
+          "estagio",
+          "situacao",
+          "nfePendente",
+          "divergenciaItensXNotas"
+        ]
+      },
+      "fieldBindings": [
+        {
+          "field": "dataRecebimento",
+          "source": "recebimentosPendentes.dataRecebimento"
+        },
+        {
+          "field": "estagio",
+          "source": "recebimentosPendentes.estagio"
+        },
+        {
+          "field": "situacao",
+          "source": "recebimentosPendentes.situacao"
+        },
+        {
+          "field": "nfePendente",
+          "source": "recebimentosPendentes.nfePendente"
+        },
+        {
+          "field": "divergenciaItensXNotas",
+          "source": "recebimentosPendentes.divergenciaItensXNotas"
+        },
+        {
+          "field": "loteId",
+          "source": "lotes.loteId"
+        },
+        {
+          "field": "quantidade",
+          "source": "lotes.quantidade"
+        },
+        {
+          "field": "crossDocking",
+          "source": "lotes.crossDocking"
+        }
+      ],
+      "actions": [
+        {
+          "name": "ConfirmarRecebimento",
+          "binding": "flow",
+          "flow": "ConfirmarRecebimento",
+          "label": {
+            "default": "Confirmar Recebimento",
+            "en": "Confirmar Recebimento"
+          }
+        },
+        {
+          "name": "AdicionarItemRecebimento",
+          "binding": "procedure",
+          "procedure": "AdicionarItemRecebimentoProcedure",
+          "scope": "row",
+          "dataSource": "recebimentosPendentes",
+          "inputFields": [
+            "loteId",
+            "quantidade",
+            "crossDocking"
+          ],
+          "label": {
+            "default": "Adicionar Item",
+            "en": "Adicionar Item"
+          },
+          "metadata": {
+            "purpose": "WMS-16: 'Adicionar Itens' -- PanelRuntime#resolveRowScopedInput merges $input.id from the clicked recebimento row automatically (the recebimentoId), with loteId/quantidade/crossDocking collected from this action's own inline mini-form. Rejects a duplicate produto and defaults quantidade to 1 when left blank, both inside AdicionarItemRecebimentoProcedure."
+          }
+        }
+      ]
+    },
+    {
+      "name": "ExpedicaoDemandaPanel",
+      "route": "/expedicoes/demanda",
+      "title": "Demanda de Expedicao",
+      "dataSources": [
+        {
+          "name": "expedicoesPendentes",
+          "query": "ExpedicoesPendentes"
+        },
+        {
+          "name": "itens",
+          "concept": "ExpedicaoItem",
+          "parentDataSource": "expedicoesPendentes",
+          "parentField": "id",
+          "childField": "expedicaoId",
+          "rowOps": [
+            "delete"
+          ],
+          "totalField": "quantidade"
+        }
+      ],
+      "layout": {
+        "type": "table",
+        "fields": [
+          "dataExpedicao",
+          "tipo",
+          "estagio",
+          "situacao"
+        ]
+      },
+      "fieldBindings": [
+        {
+          "field": "dataExpedicao",
+          "source": "expedicoesPendentes.dataExpedicao"
+        },
+        {
+          "field": "tipo",
+          "source": "expedicoesPendentes.tipo"
+        },
+        {
+          "field": "estagio",
+          "source": "expedicoesPendentes.estagio"
+        },
+        {
+          "field": "situacao",
+          "source": "expedicoesPendentes.situacao"
+        },
+        {
+          "field": "produtoId",
+          "source": "itens.produtoId"
+        },
+        {
+          "field": "quantidade",
+          "source": "itens.quantidade"
+        },
+        {
+          "field": "autoFinalizacao",
+          "source": "itens.autoFinalizacao"
+        }
+      ],
+      "actions": [
+        {
+          "name": "ConfirmarSaidaExpedicao",
+          "binding": "flow",
+          "flow": "ConfirmarSaidaExpedicao",
+          "label": {
+            "default": "Confirmar Saida",
+            "en": "Confirmar Saida"
+          }
+        },
+        {
+          "name": "AdicionarItemExpedicao",
+          "binding": "procedure",
+          "procedure": "AdicionarItemExpedicaoProcedure",
+          "scope": "row",
+          "dataSource": "expedicoesPendentes",
+          "inputFields": [
+            "produtoId",
+            "quantidade",
+            "autoFinalizacao"
+          ],
+          "label": {
+            "default": "Adicionar Item",
+            "en": "Adicionar Item"
+          },
+          "metadata": {
+            "purpose": "WMS-16 (Expedicao side): 'Adicionar Itens' -- PanelRuntime#resolveRowScopedInput merges $input.id from the clicked expedicao row automatically (the expedicaoId), with produtoId/quantidade/autoFinalizacao collected from this action's own inline mini-form. Rejects a duplicate produto and defaults quantidade to 1 when left blank, both inside AdicionarItemExpedicaoProcedure."
+          }
+        }
+      ]
+    },
+    {
+      "name": "OcupacaoLocalPanel",
+      "route": "/locais/ocupacao",
+      "title": "Ocupacao dos Locais",
+      "dataSources": [
+        {
+          "name": "ocupacoes",
+          "query": "TodasOcupacoes"
+        }
+      ],
+      "layout": {
+        "type": "table",
+        "fields": [
+          "localArmazenagemId",
+          "loteId",
+          "quantidade"
+        ]
+      },
+      "fieldBindings": [
+        {
+          "field": "localArmazenagemId",
+          "source": "ocupacoes.localArmazenagemId"
+        },
+        {
+          "field": "loteId",
+          "source": "ocupacoes.loteId"
+        },
+        {
+          "field": "quantidade",
+          "source": "ocupacoes.quantidade"
+        }
+      ],
+      "actions": [
+        {
+          "name": "RegistrarOcupacao",
+          "binding": "procedure",
+          "procedure": "RegistrarLocalArmazenagemLoteProcedure",
+          "label": {
+            "default": "Registrar Ocupacao",
+            "en": "Registrar Ocupacao"
+          }
+        },
+        {
+          "name": "SincronizarOcupacao",
+          "binding": "procedure",
+          "procedure": "SyncOcupacaoProcedure",
+          "label": {
+            "default": "Sincronizar Ocupacao (find-or-increment)",
+            "en": "Sincronizar Ocupacao (find-or-increment)"
+          },
+          "inputFields": [
+            "localArmazenagemId",
+            "loteId",
+            "delta"
+          ],
+          "metadata": {
+            "purpose": "Move 5 (final item / REG-78): live proof that SyncOcupacaoProcedure's find-or-increment semantics actually work through the real PanelRuntime/DefaultProcedureExecutor path, not just metadata -- the server-side twin of syncOcupacao() in movimentacao-livre.html/centro-trabalho.html."
+          }
+        }
+      ]
+    },
+    {
+      "name": "MovimentoDetailPanel",
+      "route": "/movimentos/detalhe",
+      "title": "Detalhe do Movimento",
+      "dataSources": [
+        {
+          "name": "movimentos",
+          "concept": "Movimento"
+        },
+        {
+          "name": "itens",
+          "concept": "MovimentoItem",
+          "parentDataSource": "movimentos",
+          "parentField": "id",
+          "childField": "movimentoId"
+        }
+      ],
+      "layout": {
+        "type": "table",
+        "fields": [
+          "tipo",
+          "situacao",
+          "dataMovimento"
+        ]
+      },
+      "fieldBindings": [
+        {
+          "field": "tipo",
+          "source": "movimentos.tipo"
+        },
+        {
+          "field": "situacao",
+          "source": "movimentos.situacao"
+        },
+        {
+          "field": "dataMovimento",
+          "source": "movimentos.dataMovimento"
+        },
+        {
+          "field": "produtoId",
+          "source": "itens.produtoId"
+        },
+        {
+          "field": "quantidade",
+          "source": "itens.quantidade",
+          "editable": true
+        }
+      ],
+      "actions": [
+        {
+          "name": "AtualizarItem",
+          "binding": "conceptMutation",
+          "concept": "MovimentoItem",
+          "operation": "update",
+          "label": {
+            "default": "Salvar Item",
+            "en": "Salvar Item"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CrossDockingConsolePanel",
+      "route": "/crossdocking",
+      "title": "Cross-docking",
+      "dataSources": [
+        {
+          "name": "crossDockings",
+          "concept": "CrossDocking"
+        },
+        {
+          "name": "recebimentos",
+          "query": "RecebimentosPendentes"
+        },
+        {
+          "name": "expedicoes",
+          "query": "ExpedicoesPendentes"
+        },
+        {
+          "name": "produtos",
+          "query": "ProdutosAtivos"
+        },
+        {
+          "name": "candidatos",
+          "procedure": "BuscarCandidatosCrossDockingProcedure"
+        }
+      ],
+      "layout": {
+        "type": "table",
+        "fields": [
+          "situacao",
+          "recebimentoId",
+          "expedicaoId",
+          "produtoId",
+          "quantidade",
+          "dataAtivacao"
+        ]
+      },
+      "fieldBindings": [
+        {
+          "field": "situacao",
+          "source": "crossDockings.situacao"
+        },
+        {
+          "field": "recebimentoId",
+          "source": "crossDockings.recebimentoId"
+        },
+        {
+          "field": "expedicaoId",
+          "source": "crossDockings.expedicaoId"
+        },
+        {
+          "field": "produtoId",
+          "source": "crossDockings.produtoId"
+        },
+        {
+          "field": "quantidade",
+          "source": "crossDockings.quantidade"
+        },
+        {
+          "field": "dataAtivacao",
+          "source": "crossDockings.dataAtivacao"
+        }
+      ],
+      "actions": [
+        {
+          "name": "ativar",
+          "label": {
+            "default": "Ativar Cross-Docking",
+            "en": "Ativar Cross-Docking"
+          },
+          "binding": "flow",
+          "flow": "AtivarCrossDocking",
+          "inputFields": [
+            "recebimentoId",
+            "expedicaoId",
+            "produtoId",
+            "quantidade",
+            "dataAtivacao"
+          ]
+        },
+        {
+          "name": "concluir",
+          "label": {
+            "default": "Concluir",
+            "en": "Concluir"
+          },
+          "binding": "procedure",
+          "procedure": "ConcluirCrossDockingProcedure",
+          "scope": "row",
+          "dataSource": "crossDockings",
+          "visibleWhen": "situacao == 'Ativo'",
+          "metadata": {
+            "purpose": "G4 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, C10 investigation): switched from binding:flow (ConcluirCrossDocking) to binding:procedure (ConcluirCrossDockingProcedure) so the transition actually sets situacao to 'Concluido' -- see the procedure's own description for the full reasoning and the residual this does NOT fix."
+          }
+        },
+        {
+          "name": "cancelar",
+          "label": {
+            "default": "Cancelar",
+            "en": "Cancelar"
+          },
+          "binding": "procedure",
+          "procedure": "CancelarCrossDockingProcedure",
+          "scope": "row",
+          "dataSource": "crossDockings",
+          "visibleWhen": "situacao == 'Ativo'",
+          "metadata": {
+            "purpose": "G4 (docs/MOVE3_AGGREGATE_WORKBENCH_PLAN.md, C10 investigation): same reasoning as concluir, procedure twin CancelarCrossDockingProcedure."
+          }
+        },
+        {
+          "name": "marcarConcluidoDireto",
+          "label": {
+            "default": "Marcar Concluido (control - conceptMutation, not flow)",
+            "en": "Marcar Concluido (control - conceptMutation, not flow)"
+          },
+          "binding": "conceptMutation",
+          "concept": "CrossDocking",
+          "operation": "update"
+        }
+      ]
+    },
+    {
+      "name": "ConferenciaFiscalNfePanel",
+      "route": "/conferencia-fiscal/nfe",
+      "title": "Conferencia Fiscal - NF-e",
+      "dataSources": [
+        {
+          "name": "documentos",
+          "concept": "DocumentoFiscal"
+        },
+        {
+          "name": "itens",
+          "concept": "DocumentoFiscalItem",
+          "parentDataSource": "documentos",
+          "parentField": "id",
+          "childField": "documentoFiscalId"
+        }
+      ],
+      "layout": {
+        "type": "table",
+        "fields": [
+          "numero",
+          "dataEmissao",
+          "emitenteCnpj",
+          "situacao"
+        ]
+      },
+      "fieldBindings": [
+        {
+          "field": "numero",
+          "source": "documentos.numero"
+        },
+        {
+          "field": "dataEmissao",
+          "source": "documentos.dataEmissao"
+        },
+        {
+          "field": "emitenteCnpj",
+          "source": "documentos.emitenteCnpj"
+        },
+        {
+          "field": "situacao",
+          "source": "documentos.situacao"
+        },
+        {
+          "field": "produtoId",
+          "source": "itens.produtoId"
+        },
+        {
+          "field": "quantidade",
+          "source": "itens.quantidade",
+          "editable": true
+        },
+        {
+          "field": "valorUnitarioCentavos",
+          "source": "itens.valorUnitarioCentavos",
+          "editable": true
+        }
+      ],
+      "actions": [
+        {
+          "name": "atualizarItem",
+          "label": {
+            "default": "Salvar Item",
+            "en": "Salvar Item"
+          },
+          "binding": "conceptMutation",
+          "concept": "DocumentoFiscalItem",
+          "operation": "update"
+        },
+        {
+          "name": "cancelar",
+          "label": {
+            "default": "Cancelar",
+            "en": "Cancelar"
+          },
+          "binding": "conceptMutation",
+          "concept": "DocumentoFiscal",
+          "operation": "update",
+          "scope": "row",
+          "dataSource": "documentos",
+          "visibleWhen": "situacao == 'Importada'"
+        }
+      ]
+    },
+    {
+      "name": "ConferenciaFiscalRomaneioPanel",
+      "route": "/conferencia-fiscal/romaneio",
+      "title": "Conferencia Fiscal - Romaneio",
+      "dataSources": [
+        {
+          "name": "romaneios",
+          "concept": "Romaneio"
+        },
+        {
+          "name": "itens",
+          "concept": "RomaneioItem",
+          "parentDataSource": "romaneios",
+          "parentField": "id",
+          "childField": "romaneioId"
+        }
+      ],
+      "layout": {
+        "type": "table",
+        "fields": [
+          "numero",
+          "dataEmissao",
+          "situacao"
+        ]
+      },
+      "fieldBindings": [
+        {
+          "field": "numero",
+          "source": "romaneios.numero"
+        },
+        {
+          "field": "dataEmissao",
+          "source": "romaneios.dataEmissao"
+        },
+        {
+          "field": "situacao",
+          "source": "romaneios.situacao"
+        },
+        {
+          "field": "produtoId",
+          "source": "itens.produtoId"
+        },
+        {
+          "field": "quantidade",
+          "source": "itens.quantidade",
+          "editable": true
+        }
+      ],
+      "actions": [
+        {
+          "name": "atualizarItem",
+          "label": {
+            "default": "Salvar Item",
+            "en": "Salvar Item"
+          },
+          "binding": "conceptMutation",
+          "concept": "RomaneioItem",
+          "operation": "update"
+        },
+        {
+          "name": "cancelar",
+          "label": {
+            "default": "Cancelar",
+            "en": "Cancelar"
+          },
+          "binding": "conceptMutation",
+          "concept": "Romaneio",
+          "operation": "update",
+          "scope": "row",
+          "dataSource": "romaneios",
+          "visibleWhen": "situacao == 'Importado'"
+        }
+      ]
+    },
+    {
+      "name": "MovimentoLivrePanel",
+      "route": "/movimentacao-livre",
+      "title": "Movimentacao Livre",
+      "dataSources": [
+        {
+          "name": "movimentos",
+          "concept": "Movimento"
+        },
+        {
+          "name": "itens",
+          "concept": "MovimentoItem",
+          "parentDataSource": "movimentos",
+          "parentField": "id",
+          "childField": "movimentoId",
+          "rowOps": [
+            "add"
+          ],
+          "addFormFields": [
+            "produtoId",
+            "loteId",
+            "quantidade"
+          ]
+        }
+      ],
+      "layout": {
+        "type": "table",
+        "fields": [
+          "tipo",
+          "dataMovimento",
+          "situacao"
+        ]
+      },
+      "fieldBindings": [
+        {
+          "field": "tipo",
+          "source": "movimentos.tipo"
+        },
+        {
+          "field": "dataMovimento",
+          "source": "movimentos.dataMovimento"
+        },
+        {
+          "field": "situacao",
+          "source": "movimentos.situacao"
+        },
+        {
+          "field": "produtoId",
+          "source": "itens.produtoId"
+        },
+        {
+          "field": "loteId",
+          "source": "itens.loteId"
+        },
+        {
+          "field": "quantidade",
+          "source": "itens.quantidade"
+        }
+      ],
+      "actions": [
+        {
+          "name": "confirmarMovimentacao",
+          "label": {
+            "default": "Confirmar Movimentacao",
+            "en": "Confirmar Movimentacao"
+          },
+          "binding": "flow",
+          "flow": "ConfirmarMovimentacao",
+          "scope": "row",
+          "dataSource": "movimentos",
+          "visibleWhen": "tipo == 'MovtoLivre' && situacao == 'Pendente'",
+          "metadata": {
+            "purpose": "Coverage note (docs/MOVE2_G4_CHECKLISTS.md): the original's Origem/Destino position-level allocation (MovimentoItemPosicao, a 2nd nesting level) and its Sugerir suggestion flows are NOT declared here -- both are out of Panel's reach today (1-level nesting cap; no computed-array action input). This action lets the flow's own balance invariant be the source of truth instead of the original's client-side pre-check."
+          }
+        }
+      ]
+    },
+    {
+      "name": "InventarioHistoricoPanel",
+      "route": "/inventario/historico",
+      "title": "Inventario - Historico",
+      "dataSources": [
+        {
+          "name": "inventarios",
+          "concept": "InventarioArquivo"
+        },
+        {
+          "name": "linhas",
+          "concept": "InventarioArquivoLinha",
+          "parentDataSource": "inventarios",
+          "parentField": "id",
+          "childField": "inventarioArquivoId",
+          "onRowLoad": "EnriquecerLinhasInventarioProcedure"
+        }
+      ],
+      "layout": {
+        "type": "table",
+        "fields": [
+          "dataGeracao",
+          "situacao"
+        ]
+      },
+      "fieldBindings": [
+        {
+          "field": "dataGeracao",
+          "source": "inventarios.dataGeracao"
+        },
+        {
+          "field": "situacao",
+          "source": "inventarios.situacao"
+        },
+        {
+          "field": "localArmazenagemId",
+          "source": "linhas.localArmazenagemId"
+        },
+        {
+          "field": "produtoId",
+          "source": "linhas.produtoId"
+        },
+        {
+          "field": "quantidadeEsperada",
+          "source": "linhas.quantidadeEsperada"
+        },
+        {
+          "field": "quantidadeContada",
+          "source": "linhas.quantidadeContada"
+        },
+        {
+          "field": "divergente",
+          "source": "linhas.divergente"
+        }
+      ],
+      "actions": [
+        {
+          "name": "confirmar",
+          "label": {
+            "default": "Confirmar",
+            "en": "Confirmar"
+          },
+          "binding": "conceptMutation",
+          "concept": "InventarioArquivo",
+          "operation": "update",
+          "scope": "row",
+          "dataSource": "inventarios",
+          "visibleWhen": "situacao == 'Conferido'",
+          "metadata": {
+            "purpose": "Coverage note (docs/MOVE2_G4_CHECKLISTS.md): Importar Contagem / Recebimento-por-Arquivo (file upload + multi-step parse-then-confirm) are still NOT declared here -- out of Panel's reach today, same class as conferencia-fiscal's Import wizard. Gerar Template (Move 5, docs/MOVE5_CLOSE_ALL_OPEN_PLAN.md Wave 4 / Gap 7) now IS declared, immediately below -- it needed only resultAs: download (a pure generate-and-stream action, no upload/parse involved)."
+          }
+        },
+        {
+          "name": "gerarTemplate",
+          "label": {
+            "default": "Gerar Template de Contagem",
+            "en": "Gerar Template de Contagem"
+          },
+          "binding": "procedure",
+          "procedure": "GerarTemplateContagemProcedure",
+          "resultAs": "download",
+          "filename": "template-contagem.csv",
+          "contentType": "text/csv",
+          "inputFields": [
+            "entidadeId"
+          ],
+          "metadata": {
+            "purpose": "Move 5 (docs/MOVE5_CLOSE_ALL_OPEN_PLAN.md, Wave 4 / Gap 7): the original inventario.html's Gerar Template wizard -- produce a file, stream it, persist nothing -- had no declared surface (the checklist's own note: never <a download>). GerarTemplateContagemProcedure builds the ocupacoes list via listConcepts+mapList (Wave 3A) over LocalArmazenagemLote, calls the same inventoryFile.gerarTemplate capability the original flow used, and returns just its texto field -- resultAs: download makes PanelRuntime.executeAction stream that as a real file (Content-Disposition: attachment) instead of a JSON blob."
+          }
+        }
+      ]
+    },
+    {
+      "name": "EntidadesTrustedPanel",
+      "route": "/entidades-trusted",
+      "title": "Entidades (Trusted Source)",
+      "visibility": "role:ADMIN",
+      "metadata": {
+        "untrustedExtensionEntrypoint": "trusted-source/panel/entidades-trusted.html"
+      }
+    },
+    {
+      "name": "ProdutosTrustedPanel",
+      "route": "/produtos-trusted",
+      "title": "Produtos (Trusted Source)",
+      "visibility": "role:ADMIN",
+      "metadata": {
+        "untrustedExtensionEntrypoint": "trusted-source/panel/produtos-trusted.html"
+      }
+    }
+  ],
+  "guidePages": [
+    {
+      "name": "Default",
+      "default": true,
+      "regions": {
+        "top": true,
+        "left": {
+          "enabled": true,
+          "collapsible": true
+        },
+        "right": {
+          "enabled": true,
+          "collapsible": true,
+          "defaultCollapsed": true,
+          "width": 280
+        }
+      },
+      "theme": {
+        "mode": "light",
+        "accent": "#295572",
+        "logoText": "WmsOffice: The Game",
+        "density": "comfortable"
+      },
+      "gadgets": [
+        {
+          "name": "recent",
+          "type": "recent-items",
+          "title": "Recentes"
+        },
+        {
+          "name": "context",
+          "type": "context-info",
+          "title": "Contexto"
+        }
+      ]
+    },
+    {
+      "name": "AnalyticsDashboard",
+      "regions": {
+        "top": true,
+        "left": {
+          "enabled": true,
+          "collapsible": true
+        },
+        "right": {
+          "enabled": true,
+          "collapsible": false,
+          "width": 460
+        }
+      },
+      "theme": {
+        "mode": "light",
+        "accent": "#295572",
+        "logoText": "WmsOffice: The Game",
+        "density": "comfortable"
+      },
+      "gadgets": [
+        {
+          "name": "kpiOcupados",
+          "type": "kpi",
+          "title": "Locais Ocupados",
+          "query": "TotalOccupiedLocations",
+          "y": "total"
+        },
+        {
+          "name": "movimentosBar",
+          "type": "bar",
+          "title": "Movimentos por Tipo e Situacao",
+          "query": "MovementsByTipoAndSituacao",
+          "x": "tipo",
+          "y": "total",
+          "series": "situacao"
+        },
+        {
+          "name": "ocupacaoTable",
+          "type": "table",
+          "title": "Ocupacao por Rua e Situacao",
+          "query": "LocationsByRuaAndSituacao"
+        }
+      ]
+    },
+    {
+      "name": "Visitor",
+      "regions": {
+        "top": false,
+        "left": {
+          "enabled": false
+        },
+        "right": {
+          "enabled": false
+        }
+      }
+    }
+  ]
+}

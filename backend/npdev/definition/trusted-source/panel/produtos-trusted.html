@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; color: #1b2430; }
+  h1 { font-size: 1.3rem; margin-bottom: 0.2rem; }
+  p.hint { color: #56606d; font-size: 0.85rem; margin-top: 0; }
+  table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+  th, td { border: 1px solid #d8dee6; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.9rem; }
+  th { background: #eef2f6; }
+  button { margin-top: 1rem; padding: 0.5rem 1rem; font-size: 0.95rem; cursor: pointer; }
+  #status { margin-top: 0.75rem; font-size: 0.85rem; color: #56606d; }
+</style>
+</head>
+<body>
+  <h1>Produtos (Trusted-Source Panel)</h1>
+  <p class="hint">Type-2 panel, in the same hand-built operator-console spirit as the retired
+  centro-trabalho/movimentacao-livre static pages (Type-3), but compiled and hash-locked instead of served
+  as-is. Data is read via <code>/generated/trusted-source/state/Produto</code> and written by calling the
+  compiled RegistrarProdutoTrustedProcedure.</p>
+  <button id="createBtn">Registrar Novo Produto</button>
+  <div id="status"></div>
+  <table>
+    <thead><tr><th>Nome</th><th>Caixas/Pallet</th><th>Ativo</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <script>
+    async function loadProdutos() {
+      var res = await fetch('/generated/trusted-source/state/Produto', { headers: window.NPDev.authHeaders() });
+      var body = await res.json();
+      var rows = document.getElementById('rows');
+      rows.innerHTML = '';
+      (body.records || []).forEach(function (rec) {
+        var tr = document.createElement('tr');
+        var nomeTd = document.createElement('td');
+        var caixasTd = document.createElement('td');
+        var ativoTd = document.createElement('td');
+        nomeTd.textContent = rec.nome || '';
+        caixasTd.textContent = rec.qtdCaixasPorPallet != null ? String(rec.qtdCaixasPorPallet) : '';
+        ativoTd.textContent = rec.ativo ? 'sim' : 'nao';
+        tr.appendChild(nomeTd);
+        tr.appendChild(caixasTd);
+        tr.appendChild(ativoTd);
+        rows.appendChild(tr);
+      });
+    }
+    document.getElementById('createBtn').addEventListener('click', async function () {
+      var statusEl = document.getElementById('status');
+      statusEl.textContent = 'Registrando...';
+      try {
+        await window.NPDev.callProcedure('RegistrarProdutoTrustedProcedure', {});
+        statusEl.textContent = 'Registrado.';
+        await loadProdutos();
+      } catch (e) {
+        statusEl.textContent = 'Erro: ' + e.message;
+      }
+    });
+    loadProdutos();
+  </script>
+</body>
+</html>

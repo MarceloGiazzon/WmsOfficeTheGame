@@ -1,0 +1,25 @@
+{
+  "name": "Armazem",
+  "ui": { "label": "Armazem" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "entidadeId", "type": "reference", "required": true,
+      "reference": { "target": "Entidade", "onDelete": "restrict" },
+      "ui": { "label": "Entidade" }
+    },
+    { "name": "nome", "type": "string", "required": true, "minLength": 1, "maxLength": 150, "ui": { "label": "Nome" } },
+    { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } },
+    {
+      "name": "longitude", "type": "string",
+      "ui": { "label": "Longitude" }
+    },
+    {
+      "name": "latitude", "type": "string",
+      "ui": { "label": "Localizacao", "widget": "custom", "customWidgetRef": "widgets/armazem-location-map.js" }
+    }
+  ],
+  "invariants": [
+    { "name": "ArmazemNomeRequired", "type": "expression", "expr": "nome != null && nome != ''" }
+  ]
+}

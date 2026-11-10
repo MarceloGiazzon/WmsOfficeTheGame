@@ -1,0 +1,23 @@
+{
+  "name": "Entidade",
+  "ui": { "label": "Entidade" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    { "name": "nome", "type": "string", "required": true, "minLength": 1, "maxLength": 200, "ui": { "label": "Nome" } },
+    {
+      "name": "tipo", "type": "enum", "required": true,
+      "values": ["Estabelecimento", "Cliente", "Transportadora", "Motorista", "Funcionario"],
+      "ui": { "label": "Tipo" }
+    },
+    { "name": "cnpjCpf", "type": "string", "maxLength": 20, "ui": { "label": "CNPJ/CPF" } },
+    {
+      "name": "entidadeSuperiorId", "type": "reference", "required": false,
+      "reference": { "target": "Entidade", "onDelete": "nullify" },
+      "ui": { "label": "Subordinada a" }
+    },
+    { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
+  ],
+  "invariants": [
+    { "name": "EntidadeNomeRequired", "type": "expression", "expr": "nome != null && nome != ''" }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "npdev-panel-provenance.v1",
+  "panel": "ResetarAmbiente",
+  "screen": "web/reset-ambiente.html",
+  "screenClass": "detail-form",
+  "producer": "human",
+  "generatedFrom": {
+    "modelHash": "sha256:pending-next-canonical-regeneration",
+    "generatedAt": "2026-09-19T00:00:00Z",
+    "generator": "WMS-9 Z1-Z6 + human review",
+    "bundleScope": {}
+  },
+  "reads": [],
+  "writes": [],
+  "invokes": [
+    "aggregateInvoke:Movimento"
+  ],
+  "calls": [
+    "/api/runtime/aggregate/Movimento/invoke/ResetarAmbienteTransacionalProcedure"
+  ],
+  "slotOf": null,
+  "confirmed": true,
+  "unresolved": [],
+  "reviewedBy": "claude-sonnet-5",
+  "notes": "The inverse counterpart to excluir-estabelecimento.html (WMS-9 Z1-Z6): wipes every transactional concept (Movimento, Recebimento, Expedicao and their owned children, CrossDocking links, DocumentoFiscal drafts) and zeroes LocalArmazenagemLote occupancy, leaving master data/structure untouched. Unlike excluir-estabelecimento.html's client-side per-id DELETE loop, this page makes exactly ONE call -- a server-side procedure invocation that runs the whole cascade atomically -- gated by a type-to-confirm control (the DSL has no built-in confirmation primitive). The procedure is deliberately not wired into any autoPanel action, so this page is its only entry point; 'Movimento' in the invoke URL is just a valid aggregate name the shared /invoke/{procedure} endpoint requires to resolve context, not a hint that the procedure operates on one Movimento record."
+}

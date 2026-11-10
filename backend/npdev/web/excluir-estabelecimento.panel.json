@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "npdev-panel-provenance.v1",
+  "panel": "ExcluirEstabelecimento",
+  "screen": "web/excluir-estabelecimento.html",
+  "screenClass": "detail-form",
+  "producer": "human",
+  "generatedFrom": {
+    "modelHash": "sha256:cbedab5f298ab34a3dc4c118355ae535e343218b274efe3d4bd8b300ef4c3781",
+    "generatedAt": "2026-07-29T00:00:00Z",
+    "generator": "bootstrap-panel-provenance.py + human review",
+    "bundleScope": {}
+  },
+  "reads": [
+    "Entidade.nome",
+    "Entidade.tipo",
+    "Armazem.entidadeId",
+    "Area.armazemId",
+    "Rua.areaId",
+    "LocalArmazenagem.ruaId",
+    "RankingRua.ruaId"
+  ],
+  "writes": [],
+  "invokes": [
+    "deleteDirect:RankingRua",
+    "deleteDirect:LocalArmazenagem",
+    "deleteDirect:Rua",
+    "deleteDirect:Area",
+    "deleteDirect:Armazem",
+    "deleteDirect:Entidade"
+  ],
+  "calls": [
+    "/api/areas",
+    "/api/areas/{id}",
+    "/api/armazems",
+    "/api/armazems/{id}",
+    "/api/entidades",
+    "/api/entidades/{id}",
+    "/api/local_armazenagems",
+    "/api/local_armazenagems/{id}",
+    "/api/ranking_ruas",
+    "/api/ranking_ruas/{id}",
+    "/api/ruas",
+    "/api/ruas/{id}"
+  ],
+  "slotOf": null,
+  "confirmed": true,
+  "unresolved": [],
+  "reviewedBy": "claude-sonnet-5",
+  "notes": "Deepest-first cascade DELETE of an Entidade's whole structure. A DELETE has no field-level body, so the direct-CRUD deletes are represented as 'invokes' (deleteDirect:<Concept>, all confirmed present in the live invocations catalog) rather than 'writes', which is for field-level mutations. Dropped 'identity::Role.name'/'workspace::Menu.label' shell.js false positives from the draft; added the read fields the draft's IDENT-token matching missed (Entidade.nome/tipo, Armazem.entidadeId, LocalArmazenagem.ruaId, RankingRua.ruaId) by reading the actual filter predicates in excluirEstabelecimento()."
+}

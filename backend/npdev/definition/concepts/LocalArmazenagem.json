@@ -1,0 +1,24 @@
+{
+  "name": "LocalArmazenagem",
+  "ui": { "label": "Local de Armazenagem" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "ruaId", "type": "reference", "required": true,
+      "reference": { "target": "Rua", "onDelete": "cascade" },
+      "ui": { "label": "Rua" }
+    },
+    { "name": "posicao", "type": "integer", "required": true, "ui": { "label": "Posicao" } },
+    { "name": "andar", "type": "integer", "required": true, "ui": { "label": "Andar" } },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["Disponivel", "Ocupado", "Reservado", "Bloqueado"],
+      "default": "Disponivel",
+      "ui": { "label": "Situacao" }
+    }
+  ],
+  "invariants": [
+    { "name": "LocalPosicaoPositive", "type": "expression", "expr": "posicao > 0" },
+    { "name": "LocalAndarPositive", "type": "expression", "expr": "andar > 0" }
+  ]
+}

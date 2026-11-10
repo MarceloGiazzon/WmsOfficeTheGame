@@ -1,0 +1,22 @@
+{
+  "name": "Area",
+  "ui": { "label": "Area", "formPresentation": "modal" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "armazemId", "type": "reference", "required": true,
+      "reference": { "target": "Armazem", "onDelete": "cascade" },
+      "ui": { "label": "Armazem" }
+    },
+    { "name": "nome", "type": "string", "required": true, "minLength": 1, "maxLength": 150, "ui": { "label": "Nome" } },
+    {
+      "name": "funcao", "type": "enum", "required": true,
+      "values": ["Armazenagem", "Recebimento", "Expedicao", "PrePicking", "Avarias", "CrossDocking"],
+      "ui": { "label": "Funcao" }
+    },
+    { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
+  ],
+  "invariants": [
+    { "name": "AreaNomeRequired", "type": "expression", "expr": "nome != null && nome != ''" }
+  ]
+}

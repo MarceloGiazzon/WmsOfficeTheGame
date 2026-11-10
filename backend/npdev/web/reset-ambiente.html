@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Resetar Ambiente</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #status { margin-left: auto; color: #6b7280; }
+    main { padding: 14px; max-width: 900px; margin: 0 auto; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; box-shadow: 0 1px 3px rgba(41,85,114,.1); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; }
+    .note { font-size: 11px; opacity: .55; margin-top: -4px; margin-bottom: 10px; }
+    .warn { font-size: 12px; color: #b35900; margin-bottom: 10px; }
+    .row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 8px; flex-wrap: wrap; }
+    .row label { display: flex; flex-direction: column; font-size: 11px; opacity: .8; gap: 3px; }
+    .row input[type=text] { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; min-width: 220px; }
+    button.action { background: #b42323; color: #fff; border: 0; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
+    button.action:disabled { opacity: .5; cursor: not-allowed; }
+    #log { background: #f7f9fb; border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; font-size: 12px;
+      max-height: 260px; overflow: auto; white-space: pre-wrap; }
+    #log .ok { color: #008000; }
+    #log .err { color: #cc1f1f; }
+    #log .step { color: #295572; }
+    .hint { font-size: 11px; opacity: .6; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section>
+      <h2>Resetar Ambiente</h2>
+      <div class="note">
+        Apaga TODOS os registros transacionais (Movimento, Recebimento, Expedicao e seus itens/lotes,
+        vinculos de Cross Docking e rascunhos de Documento Fiscal) e zera a ocupacao de todos os
+        locais de armazenagem, em uma unica transacao no servidor. Entidade, Armazem, Area, Rua,
+        Local de Armazenagem, Produto, Perfil de Alocacao e Ranking de Rua NAO sao tocados -- e o
+        inverso de "Excluir Estabelecimento", que remove a estrutura e preserva o cadastro. Use para
+        limpar um ambiente de demonstracao/desenvolvimento antes de uma nova rodada de testes.
+      </div>
+      <div class="warn">
+        Esta acao nao pode ser desfeita. Digite RESETAR no campo abaixo para habilitar o botao.
+      </div>
+      <div class="row">
+        <label>Confirmacao
+          <input type="text" id="confirmText" autocomplete="off" placeholder="Digite RESETAR" />
+        </label>
+        <button class="action" id="resetBtn" disabled>Resetar Ambiente</button>
+      </div>
+      <div id="log"></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () {
+      // Same-origin default -- a hardcoded "localhost" here fails cross-origin (CORS) whenever the
+      // page is actually reached via 127.0.0.1 (the harness/verification convention) or any other
+      // hostname, since fetch() below would then be treated as a cross-origin request.
+      document.getElementById("base").value = window.location.origin;
+      var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved;
+    });
+    const apiBase = () => $('base').value.replace(/\/$/, '');
+    const apiKey = () => $('key').value.trim();
+    const CONFIRM_WORD = 'RESETAR';
+
+    function log(message, cls) {
+      const div = document.createElement('div');
+      div.className = cls || '';
+      div.textContent = message;
+      $('log').appendChild(div);
+      $('log').scrollTop = $('log').scrollHeight;
+    }
+
+    // WMS-9 Z1-Z6: a single server-side procedure invocation (ResetarAmbienteTransacionalProcedure,
+    // atomic -- unlike excluir-estabelecimento.html's own client-side per-id delete loop, which has
+    // no rollback on partial failure) instead of raw per-concept REST calls from here. The procedure
+    // is deliberately NOT wired into any generated workbench action -- this page, gated by the
+    // type-to-confirm control below, is its only entry point (the DSL has no built-in confirmation
+    // primitive yet, and a plain declarative button would repeat excluir-estabelecimento.html's own
+    // "zero confirmation" defect one level up, this time in the generated UI itself).
+    async function resetarAmbiente() {
+      if ($('confirmText').value.trim() !== CONFIRM_WORD) { return; }
+      $('resetBtn').disabled = true;
+      $('log').innerHTML = '';
+      $('status').textContent = 'executando...';
+      try {
+        log('Executando ResetarAmbienteTransacionalProcedure...', 'step');
+        const res = await fetch(apiBase() + '/api/runtime/aggregate/Movimento/invoke/ResetarAmbienteTransacionalProcedure', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + apiKey(),
+            'X-Api-Key': apiKey(),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          let parsed = null;
+          try { parsed = text ? JSON.parse(text) : null; } catch (e) { /* leave null */ }
+          throw new Error((parsed && (parsed.error || parsed.message)) || text || ('HTTP ' + res.status));
+        }
+        log('Ambiente resetado com sucesso.', 'ok');
+        $('status').textContent = 'ok';
+      } catch (e) {
+        log('Falha: ' + e.message, 'err');
+        $('status').textContent = 'erro';
+      } finally {
+        $('confirmText').value = '';
+        $('resetBtn').disabled = true;
+      }
+    }
+
+    $('confirmText').addEventListener('input', function () {
+      $('resetBtn').disabled = $('confirmText').value.trim() !== CONFIRM_WORD;
+    });
+    $('resetBtn').addEventListener('click', resetarAmbiente);
+  </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "Movimento",
+  "ui": { "label": "Movimento" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "entidadeId", "type": "reference", "required": true,
+      "reference": { "target": "Entidade", "onDelete": "restrict" },
+      "ui": { "label": "Entidade" }
+    },
+    {
+      "name": "tipo", "type": "enum", "required": true,
+      "values": ["Recebimento", "Expedicao", "MovtoLivre"],
+      "ui": { "label": "Tipo" }
+    },
+    { "name": "dataMovimento", "type": "date", "required": true, "ui": { "label": "Data do movimento" } },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["Pendente", "Suspenso", "Concluido", "Cancelado"],
+      "default": "Pendente",
+      "ui": { "label": "Situacao" }
+    }
+  ],
+  "lifecycle": {
+    "statusField": "situacao",
+    "states": [
+      { "value": "Pendente", "label": "Pendente", "initial": true },
+      { "value": "Suspenso", "label": "Suspenso" },
+      { "value": "Concluido", "label": "Concluido", "terminal": true },
+      { "value": "Cancelado", "label": "Cancelado", "terminal": true }
+    ],
+    "transitions": [
+      { "from": "Pendente", "to": "Concluido" },
+      { "from": "Pendente", "to": "Suspenso" },
+      { "from": "Suspenso", "to": "Pendente" },
+      { "from": "Pendente", "to": "Cancelado" },
+      { "from": "Suspenso", "to": "Cancelado" }
+    ]
+  }
+}

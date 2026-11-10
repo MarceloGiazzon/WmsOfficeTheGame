@@ -1,0 +1,44 @@
+{
+  "name": "Romaneio",
+  "ui": { "label": "Romaneio" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "entidadeId", "type": "reference", "required": true,
+      "reference": { "target": "Entidade", "onDelete": "restrict" },
+      "ui": { "label": "Entidade (cliente)" }
+    },
+    { "name": "numero", "type": "string", "required": true, "minLength": 1, "maxLength": 20, "ui": { "label": "Numero" } },
+    { "name": "dataEmissao", "type": "date", "required": true, "ui": { "label": "Data de emissao" } },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["Importado", "ExpedicaoGerada", "Cancelado"],
+      "default": "Importado",
+      "ui": { "label": "Situacao" }
+    },
+    {
+      "name": "expedicaoId", "type": "reference", "required": false,
+      "reference": { "target": "Expedicao", "onDelete": "restrict" },
+      "ui": { "label": "Expedicao gerada" }
+    }
+  ],
+  "lifecycle": {
+    "statusField": "situacao",
+    "states": [
+      { "value": "Importado", "label": "Importado", "initial": true },
+      { "value": "ExpedicaoGerada", "label": "Expedicao Gerada", "terminal": true },
+      { "value": "Cancelado", "label": "Cancelado", "terminal": true }
+    ],
+    "transitions": [
+      { "from": "Importado", "to": "ExpedicaoGerada" },
+      { "from": "Importado", "to": "Cancelado" }
+    ]
+  },
+  "invariants": [
+    { "name": "RomaneioNumeroRequired", "type": "expression", "expr": "numero != null && numero != ''" },
+    {
+      "name": "RomaneioExpedicaoRequiredWhenGerada", "type": "expression",
+      "expr": "situacao != 'ExpedicaoGerada' || expedicaoId != null"
+    }
+  ]
+}

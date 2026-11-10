@@ -1,0 +1,36 @@
+{
+  "name": "MovimentoItemPosicao",
+  "ui": { "label": "Movimento - Item - Posicao" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "movimentoItemId", "type": "reference", "required": true,
+      "reference": { "target": "MovimentoItem", "onDelete": "cascade" },
+      "ui": { "label": "Movimento - Item" }
+    },
+    {
+      "name": "localArmazenagemId", "type": "reference", "required": true,
+      "reference": { "target": "LocalArmazenagem", "onDelete": "restrict" },
+      "ui": { "label": "Local de Armazenagem" }
+    },
+    {
+      "name": "produtoId", "type": "reference", "required": true,
+      "reference": { "target": "Produto", "onDelete": "restrict" },
+      "ui": { "label": "Produto" }
+    },
+    {
+      "name": "loteId", "type": "reference", "required": false,
+      "reference": { "target": "Lote", "onDelete": "restrict" },
+      "ui": { "label": "Lote" }
+    },
+    {
+      "name": "papel", "type": "enum", "required": true,
+      "values": ["Origem", "Destino"],
+      "ui": { "label": "Papel" }
+    },
+    { "name": "quantidade", "type": "long", "required": true, "ui": { "label": "Quantidade" } }
+  ],
+  "invariants": [
+    { "name": "MovimentoItemPosicaoQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
+  ]
+}

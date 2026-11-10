@@ -1,0 +1,23 @@
+{
+  "name": "DocumentoFiscalItem",
+  "ui": { "label": "Documento Fiscal - Item" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "documentoFiscalId", "type": "reference", "required": true,
+      "reference": { "target": "DocumentoFiscal", "onDelete": "cascade" },
+      "ui": { "label": "Documento Fiscal" }
+    },
+    {
+      "name": "produtoId", "type": "reference", "required": true,
+      "reference": { "target": "Produto", "onDelete": "restrict" },
+      "ui": { "label": "Produto" },
+      "picker": { "filter": "$row.ativo == true" }
+    },
+    { "name": "quantidade", "type": "long", "required": true, "ui": { "label": "Quantidade" } },
+    { "name": "valorUnitarioCentavos", "type": "long", "required": true, "ui": { "label": "Valor unitario (centavos)" } }
+  ],
+  "invariants": [
+    { "name": "DocumentoFiscalItemQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
+  ]
+}

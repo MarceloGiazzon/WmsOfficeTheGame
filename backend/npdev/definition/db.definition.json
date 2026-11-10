@@ -1,0 +1,17 @@
+{
+  "database": {
+    "engine": "H2Local",
+    "databaseName": "npdev_wmsofficethegame",
+    "username": "sa",
+    "password": "",
+    "createInternalTables": true,
+    "createBusinessTables": true,
+    "externallyProvisioned": false
+  },
+  "schemaLifecycle": {
+    "strategy": "KeepExistingIfCompatible",
+    "allowDestructiveRecreate": false,
+    "destructiveRecreateConfirmation": "",
+    "scope": "NpdevOwnedTablesOnly"
+  }
+}

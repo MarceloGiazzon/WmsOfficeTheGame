@@ -1,0 +1,20 @@
+{
+  "name": "PerfilAlocacao",
+  "ui": { "label": "Perfil de Alocacao" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    { "name": "nome", "type": "string", "required": true, "minLength": 1, "maxLength": 150, "ui": { "label": "Nome" } },
+    {
+      "name": "ocupacaoIdealPercent", "type": "integer", "required": true,
+      "ui": { "label": "Ocupacao ideal (%)" }
+    },
+    { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
+  ],
+  "invariants": [
+    { "name": "PerfilAlocacaoNomeRequired", "type": "expression", "expr": "nome != null && nome != ''" },
+    {
+      "name": "PerfilAlocacaoOcupacaoIdealRange", "type": "expression",
+      "expr": "ocupacaoIdealPercent >= 0 && ocupacaoIdealPercent <= 100"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "../../../../NPDev/NPDev_General/NPDevContract/schemas/config.schema.json",
+  "configVersion": "1.0",
+  "scenario": {
+    "name": "wmsofficethegame",
+    "description": "WmsOffice: The Game — backend do jogo de simulação logística. Fork do app WmsOffice (snapshot 2026-11-10) + concepts Sim*.",
+    "outputRoot": "D:/WorkSpace/NPDev/Build/generated-finalapps/wmsofficethegame"
+  },
+  "generator": {
+    "failIfModelMissing": true,
+    "failIfConfigMissing": true,
+    "cleanOutputBeforeGenerate": true,
+    "emitPluginAssets": true,
+    "emitRuntimeAssets": true,
+    "emitUiAssets": true
+  },
+  "bootstrap": {
+    "root": "D:/WorkSpace/NPDev/NPDev_General/NPDevRuntimeHost",
+    "mergeStrategy": "clean-copy"
+  },
+  "artifact": {
+    "root": "D:/WorkSpace/NPDev/Build/generated-finalapps/wmsofficethegame/ArtifactNP",
+    "generatedFolderName": "npdev-generated",
+    "libsFolderName": "libs",
+    "metaFolderName": "npdev-meta"
+  },
+  "finalExec": {
+    "root": "D:/WorkSpace/NPDev/Build/generated-finalapps/wmsofficethegame/App",
+    "deleteBeforeMount": true
+  },
+  "runtime": {
+    "springProfile": "dev,trial,wmsoffice",
+    "serverPort": 8200,
+    "javaArgs": [],
+    "gradleTask": "bootRun"
+  },
+  "defaults": {
+    "auth.mode": "jwt",
+    "auth.loginPath": "/login.html"
+  },
+  "trialDefaults": {
+    "apiKey": "dev-key",
+    "recommendedProfiles": "dev,step0,trial",
+    "runtimeUrl": "http://localhost:8200/",
+    "databaseMode": "step0-h2",
+    "pluginDiscoveryMode": "filesystem-folder",
+    "pluginPackageDirectory": "./npdev-generated/src/main/resources/npdev/plugin-packages",
+    "notes": [
+      "Phase 1 uses InMemory/step0 for fast iteration on the data model; move to H2Server once later phases add workflows that must survive restarts.",
+      "Concepts are split one-per-file under definition/concepts/ and referenced from model.json via NPDev-local $ref includes."
+    ]
+  }
+}

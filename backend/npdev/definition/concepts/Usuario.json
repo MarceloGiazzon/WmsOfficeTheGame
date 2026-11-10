@@ -1,0 +1,26 @@
+{
+  "name": "Usuario",
+  "ui": { "label": "Usuario" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "userId", "type": "reference", "required": true, "unique": true,
+      "reference": { "target": "identity::User", "onDelete": "cascade" },
+      "ui": { "label": "Identity User" }
+    },
+    { "name": "senhaHash", "type": "string", "required": true, "maxLength": 200, "ui": { "label": "Senha (hash)" } },
+    {
+      "name": "entidadeId", "type": "reference", "required": false,
+      "reference": { "target": "Entidade", "onDelete": "nullify" },
+      "ui": { "label": "Entidade (pessoa)" }
+    },
+    {
+      "name": "estabelecimentoPadraoId", "type": "reference", "required": false,
+      "reference": { "target": "Entidade", "onDelete": "nullify" },
+      "ui": { "label": "Estabelecimento padrao" }
+    }
+  ],
+  "invariants": [
+    { "name": "UsuarioSenhaHashRequired", "type": "expression", "expr": "senhaHash != null && senhaHash != ''" }
+  ]
+}

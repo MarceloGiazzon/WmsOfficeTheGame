@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Analytics</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #bar button { background: #295572; color: #fff; border: 0; font-weight: 600; border-radius: 4px; padding: 5px 12px; cursor: pointer; }
+    #status { margin-left: auto; color: #6b7280; }
+    main { padding: 14px; max-width: 1200px; margin: 0 auto; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; box-shadow: 0 1px 3px rgba(41,85,114,.1); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; }
+    .note { font-size: 11px; opacity: .55; margin-top: -4px; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+    th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid #e5e5e5; }
+    th { background: #295572; color: #ffffff; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #f0f2f5; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .bar-track { background: #dfe4e9; border-radius: 3px; height: 14px; overflow: hidden; width: 100%; min-width: 80px; }
+    .bar-fill { background: #4d8fe8; height: 100%; }
+    .bar-fill.high { background: #e05d5d; }
+    .bar-fill.mid { background: #f0a868; }
+    .hint { font-size: 11px; opacity: .6; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="http://localhost:8100" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <button id="reload">Recarregar</button>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section id="estoqueSection">
+      <h2>Estoque por Produto</h2>
+      <div class="note">Soma de LocalArmazenagemLote.quantidade por Produto (via Lote.produtoId), todos os locais</div>
+      <div id="estoqueBody"></div>
+    </section>
+    <section id="ocupacaoSection">
+      <h2>Ocupacao por Rua</h2>
+      <div class="note">Contagem de LocalArmazenagem.situacao agrupada por Rua; % ocupacao = (total - Disponivel) / total</div>
+      <div id="ocupacaoBody"></div>
+    </section>
+    <section id="movimentosSection">
+      <h2>Movimentos por Tipo e Situacao</h2>
+      <div class="note">Contagem de Movimento agrupada por tipo x situacao</div>
+      <div id="movimentosBody"></div>
+    </section>
+  </main>
+
+  <script>
+    // Tier 3 analytics (Phase 9 of the gap-closure roadmap): NPDev has no aggregate/group-by
+    // query primitive at all (confirmed: Query.where itself is dead code for Panel dataSources,
+    // see npdev_platform_gaps finding #10 -- a real GROUP BY/aggregate feature doesn't exist
+    // anywhere in the platform to even be dead). Rather than add one to the engine, every rollup
+    // here is computed client-side in JS from the same generic CRUD REST endpoints every other
+    // hand-authored page in this app already uses.
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () { var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved; });
+    const apiBase = () => $('base').value.replace(/\/$/, '');
+    const apiKey = () => $('key').value.trim();
+
+    async function apiGet(path) {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + apiKey() } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+    function byId(rows) { const map = {}; rows.forEach(function (r) { map[r.id] = r; }); return map; }
+    function empty(message) { const div = document.createElement('div'); div.className = 'hint'; div.textContent = message; return div; }
+
+    function table(headers, rows, numericCols) {
+      numericCols = numericCols || new Set();
+      const t = document.createElement('table');
+      const thead = document.createElement('thead');
+      const htr = document.createElement('tr');
+      headers.forEach(function (h, idx) {
+        const th = document.createElement('th');
+        th.textContent = h;
+        if (numericCols.has(idx)) th.className = 'num';
+        htr.appendChild(th);
+      });
+      thead.appendChild(htr);
+      t.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      rows.forEach(function (cells) {
+        const tr = document.createElement('tr');
+        cells.forEach(function (c, idx) {
+          const td = document.createElement('td');
+          if (numericCols.has(idx)) td.className = 'num';
+          if (c instanceof Node) { td.appendChild(c); } else { td.textContent = c; }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      t.appendChild(tbody);
+      return t;
+    }
+
+    function occupancyBar(pct) {
+      const track = document.createElement('div');
+      track.className = 'bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'bar-fill' + (pct >= 80 ? ' high' : pct >= 50 ? ' mid' : '');
+      fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+      track.appendChild(fill);
+      return track;
+    }
+
+    // ---- Estoque por Produto: sum(LocalArmazenagemLote.quantidade) grouped by Lote.produtoId ----
+    async function loadEstoquePorProduto() {
+      const [produtos, lotes, ocupacoes] = await Promise.all([
+        apiGet('/api/produtos'), apiGet('/api/lotes'), apiGet('/api/local_armazenagem_lotes')
+      ]).then(function (r) { return r.map(list); });
+      const produtoById = byId(produtos);
+      const loteById = byId(lotes);
+
+      const totalByProduto = {};
+      ocupacoes.forEach(function (o) {
+        const lote = loteById[o.loteId];
+        if (!lote) return;
+        const pid = lote.produtoId;
+        totalByProduto[pid] = (totalByProduto[pid] || 0) + Number(o.quantidade || 0);
+      });
+
+      const rows = Object.keys(totalByProduto)
+        .map(function (pid) { return { produtoId: pid, total: totalByProduto[pid] }; })
+        .filter(function (r) { return r.total > 0; })
+        .sort(function (a, b) { return b.total - a.total; });
+
+      const body = $('estoqueBody');
+      body.innerHTML = '';
+      if (!rows.length) { body.appendChild(empty('Nenhum estoque registrado ainda.')); return; }
+      const maxTotal = Math.max.apply(null, rows.map(function (r) { return r.total; }));
+      body.appendChild(table(
+        ['Produto', 'Quantidade Total', ''],
+        rows.map(function (r) {
+          const p = produtoById[r.produtoId];
+          const barWrap = document.createElement('div');
+          barWrap.className = 'bar-track';
+          const fill = document.createElement('div');
+          fill.className = 'bar-fill';
+          fill.style.width = (maxTotal ? (r.total / maxTotal * 100) : 0) + '%';
+          barWrap.appendChild(fill);
+          return [p ? p.nome : r.produtoId, r.total, barWrap];
+        }),
+        new Set([1])
+      ));
+    }
+
+    // ---- Ocupacao por Rua: count(LocalArmazenagem.situacao) grouped by ruaId ----
+    async function loadOcupacaoPorRua() {
+      const [ruas, areas, armazens, locais] = await Promise.all([
+        apiGet('/api/ruas'), apiGet('/api/areas'), apiGet('/api/armazems'), apiGet('/api/local_armazenagems')
+      ]).then(function (r) { return r.map(list); });
+      const areaById = byId(areas);
+      const armazemById = byId(armazens);
+
+      const countsByRua = {};
+      locais.forEach(function (l) {
+        if (!countsByRua[l.ruaId]) {
+          countsByRua[l.ruaId] = { total: 0, Disponivel: 0, Ocupado: 0, Reservado: 0, Bloqueado: 0 };
+        }
+        const bucket = countsByRua[l.ruaId];
+        bucket.total += 1;
+        bucket[l.situacao] = (bucket[l.situacao] || 0) + 1;
+      });
+
+      const body = $('ocupacaoBody');
+      body.innerHTML = '';
+      if (!ruas.length) { body.appendChild(empty('Nenhuma rua cadastrada.')); return; }
+      body.appendChild(table(
+        ['Rua', 'Total', 'Disponivel', 'Ocupado', 'Reservado', 'Bloqueado', '% Ocupacao'],
+        ruas.map(function (rua) {
+          const c = countsByRua[rua.id] || { total: 0, Disponivel: 0, Ocupado: 0, Reservado: 0, Bloqueado: 0 };
+          const area = areaById[rua.areaId];
+          const armazem = area ? armazemById[area.armazemId] : null;
+          const path = (armazem ? armazem.nome : '?') + ' / ' + (area ? area.nome : '?') + ' / ' + rua.codigo;
+          const pct = c.total ? Math.round((c.total - c.Disponivel) / c.total * 100) : 0;
+
+          const pctCell = document.createElement('div');
+          pctCell.style.display = 'flex'; pctCell.style.alignItems = 'center'; pctCell.style.gap = '6px';
+          pctCell.appendChild(occupancyBar(pct));
+          const label = document.createElement('span'); label.textContent = pct + '%'; label.style.minWidth = '34px';
+          pctCell.appendChild(label);
+
+          return [path, c.total, c.Disponivel, c.Ocupado, c.Reservado, c.Bloqueado, pctCell];
+        }),
+        new Set([1, 2, 3, 4, 5])
+      ));
+    }
+
+    // ---- Movimentos por Tipo e Situacao: count(Movimento) grouped by tipo x situacao (pivot) ----
+    async function loadMovimentosPorTipoSituacao() {
+      const movimentos = list(await apiGet('/api/movimentos'));
+      const TIPOS = ['Recebimento', 'Expedicao', 'MovtoLivre'];
+      const SITUACOES = ['Pendente', 'Suspenso', 'Concluido', 'Cancelado'];
+
+      const counts = {};
+      TIPOS.forEach(function (t) { counts[t] = {}; SITUACOES.forEach(function (s) { counts[t][s] = 0; }); });
+      movimentos.forEach(function (m) {
+        if (counts[m.tipo] && counts[m.tipo][m.situacao] !== undefined) counts[m.tipo][m.situacao] += 1;
+      });
+
+      const body = $('movimentosBody');
+      body.innerHTML = '';
+      if (!movimentos.length) { body.appendChild(empty('Nenhum movimento registrado.')); return; }
+      body.appendChild(table(
+        ['Tipo'].concat(SITUACOES).concat(['Total']),
+        TIPOS.map(function (t) {
+          const rowTotal = SITUACOES.reduce(function (sum, s) { return sum + counts[t][s]; }, 0);
+          return [t].concat(SITUACOES.map(function (s) { return counts[t][s]; })).concat([rowTotal]);
+        }),
+        new Set([1, 2, 3, 4, 5])
+      ));
+    }
+
+    async function loadAll() {
+      $('status').textContent = 'carregando...';
+      try {
+        await Promise.all([loadEstoquePorProduto(), loadOcupacaoPorRua(), loadMovimentosPorTipoSituacao()]);
+        $('status').textContent = 'ok';
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+      }
+    }
+
+    $('reload').addEventListener('click', loadAll);
+    window.addEventListener('DOMContentLoaded', loadAll);
+  </script>
+</body>
+</html>

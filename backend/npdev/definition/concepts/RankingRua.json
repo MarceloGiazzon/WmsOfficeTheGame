@@ -1,0 +1,24 @@
+{
+  "name": "RankingRua",
+  "ui": { "label": "Ranking de Rua" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "perfilAlocacaoId", "type": "reference", "required": true,
+      "reference": { "target": "PerfilAlocacao", "onDelete": "cascade" },
+      "ui": { "label": "Perfil de Alocacao" }
+    },
+    {
+      "name": "ruaId", "type": "reference", "required": true,
+      "reference": { "target": "Rua", "onDelete": "restrict" },
+      "ui": { "label": "Rua" }
+    },
+    {
+      "name": "prioridade", "type": "integer", "required": true,
+      "ui": { "label": "Prioridade (menor = preferida)" }
+    }
+  ],
+  "invariants": [
+    { "name": "RankingRuaPrioridadePositive", "type": "expression", "expr": "prioridade > 0" }
+  ]
+}

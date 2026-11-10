@@ -1,0 +1,65 @@
+{
+  "$schema": "informal - Wave 8.1 of NPDEV_FEATURE_PLAN_2026-09-24.md",
+  "generatedAt": "2026-09-26",
+  "supersededBy": "MOST OF THIS WAVE IS ALREADY DONE. Before writing this file's first draft, this session did not know that a materially more rigorous version of this exact checklist already exists and has already been executed against, closed, and ledgered: D:\\WorkSpace\\NPDev\\NPDev_General__OutsideRepo\\roadmap-2026-09-14\\WMSOFFICE_SCREEN_PARITY_CHECKLIST.md (112 PASS/FAIL/N-A lines across 8 screens + a 12-primitive requirements table extracted 2026-09-14) was executed as Sessions 7-11 of the OLDER NPDEV_MEGA_ROADMAP.md (same outside-repo folder), closed via ledger items WMS-7, WMS-8, WMS-9, WMS-11, WMS-12 (all status DONE) between 2026-09-18 and 2026-09-20 -- roughly two months before NPDEV_FEATURE_PLAN_2026-09-24.md's Wave 8 re-asked for essentially the same artifact, apparently without knowing this history. Read those 5 ledger items (ledger/items/WMS-{7,8,9,11,12}.yml) for the authoritative, line-by-line, browser-verified record -- this file only summarizes their conclusion and should not be treated as a replacement for them.",
+  "purpose": "Cross-reference between the NEW plan's Wave 8 ask and the OLD plan's already-completed equivalent work, plus the short list of concretely-named residuals that survived that work unfixed.",
+  "screenStatusSummary": [
+    {
+      "screen": "Movimento Livre (MVL) / Origem-Destino",
+      "checklistRef": "WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.1, ledger WMS-8 (DONE) + WMS-11 (DONE)",
+      "npdevPanel": "MovimentoWorkbench (aggregate-bound autoPanel over the Movimento aggregate: itens -> posicoes, papel=Origem|Destino, balances[].OrigemDestinoBalance, lookupFields[].maxQuantity, checkBalances action, SugerirOrigem/SugerirDestino procedures with applyTo appendRow)",
+      "status": "Built, wired into the real menu (menu.json target __panel-MovimentoWorkbench__, movimentacao-livre.html retired from navigation), and browser-verified twice (WMS-8: renders depth-2 nesting + Recalcular Saldos returns 'Balanced.'; WMS-11: a full keyboard-only multi-origin/multi-destination entry -- 2 origem + 2 destino rows across 4 posicoes, arrow-key nav, Enter-adds-row -- proven live with screenshots and DOM proofs, 2 full passing ScrapForAI runs).",
+      "OPEN_BLOCKING_DEFECT": "FIXED 2026-09-26 as WMS-13 (ledger/items/WMS-13.yml, status DONE). OcupacaoDisponivelQuery's lookupField valueField was repointed from the nonexistent 'disponivel' to the real 'quantidade' field. Live-verified: a balanced Origem/Destino Movimento draft now commits successfully via POST /api/runtime/aggregate/Movimento (the first successful MVL save in this app's history), and an over-limit Origem quantity is still correctly refused with the PosicaoDentroDoMaximo message. Accepted simplification (see WMS-13's own detail): this fixes Origem's ceiling only -- Destino's real ceiling would need a capacity field LocalArmazenagem does not have yet, but PosicaoDentroDoMaximo's own invariant expression only constrains Origem, so this is not a gap for the invariant as written.",
+      "whatWouldFixIt": "DONE -- see WMS-13. A role-conditional lookupField or a real LocalArmazenagem capacity field remains future work only if Destino ever needs its own ceiling."
+    },
+    {
+      "screen": "Recebimento (Editar Enderecamento + Conferencia)",
+      "checklistRef": "WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.2 + 2.3, ledger WMS-9 (DONE)",
+      "npdevPanel": "RecebimentoWorkbench (aggregate Recebimento -> lotes) + ConferenciaRecebimentoPanel",
+      "status": "Menu reachability, generic lifecycle transitions (PreRecebimento->Enderecado->Conferido->Armazenado) all browser-verified live (R15, R22 PASS).",
+      "OPEN_NAMED_GAPS": [
+        "R16 FIXED 2026-09-26 as WMS-14 (ledger/items/WMS-14.yml, status DONE, live-verified). A new EnderecarRecebimentoProcedure + AllocationCapability.enderecarRecebimento now allocate real LocalArmazenagemLote rows and mark LocalArmazenagem Ocupado on the PreRecebimento->Enderecado transition, replacing the bare field flip. Finding and fixing this also surfaced a genuine platform bug (REG-249, DONE): the plugin process-isolation IPC layer had no JSON-safe handling for date-typed concept fields (java.sql.Date specifically), the same bug class REG-217 fixed for UUID.",
+        "Item-level wizard (Adicionar Itens selection panel, default-1-position, row clone, duplicate-product refusal, computed Total -- checklist R6-R12) is not declared on RecebimentoWorkbench at all (BLOCKER, declaration gap). Tracked as ledger/items/WMS-16.yml (OPEN, not started) -- largest-scoped of the Wave 8 residuals, deliberately deferred."
+      ]
+    },
+    {
+      "screen": "Expedicao",
+      "checklistRef": "WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.4, ledger WMS-9 (DONE)",
+      "npdevPanel": "ExpedicaoWorkbench (aggregate Expedicao -> itens) + ExpedicaoDemandaPanel",
+      "status": "E1/E7 browser-verified (menu reachability, Gerar Demanda transition).",
+      "OPEN_NAMED_GAPS": [
+        "E15 FAIL (source-verified): 'Confirmar Saida' is a plain one-click flow invocation with zero confirmation step and no item-listing -- the checklist's 'explicit second confirmation naming the listed items' has no declared mechanism anywhere, client or server. Tracked as ledger/items/WMS-15.yml (OPEN, not started) -- the DSL has no declarative confirmation-gate primitive (same limitation Reset's own Z1-Z6 work hit and worked around by hand-authoring reset-ambiente.html), so a real fix needs a deliberate design call, not a quick pickup.",
+        "Item-level wizard, same shape as Recebimento's R6-R12 gap (BLOCKER, declaration gap). Tracked as ledger/items/WMS-16.yml alongside Recebimento's -- one item covers both aggregates."
+      ]
+    },
+    {
+      "screen": "CrossDocking",
+      "checklistRef": "WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.5, ledger WMS-9 (DONE)",
+      "npdevPanel": "CrossDockingConsolePanel + BuscarCandidatosCrossDockingProcedure (C6) + bay auto-provisioning (C7)",
+      "status": "C1-C10 all closed as of the 2026-09-20 residual-closure pass (C6 dynamic-CD-offer, C7 bay provisioning + confirm-gate blocking until conference, C10 cancel-restores-both all live-verified). Explicitly NOT built: routing SugerirOrigem/SugerirDestino's normal (non-cross-docked) ranking output through the bay for the cross-docked QUANTITY specifically when a Movimento mixes cross-docked and normal stock in the same call -- recorded in WMS-9 as real further work, not attempted.",
+      "OPEN_NAMED_GAPS": []
+    },
+    {
+      "screen": "Inventario Inicial",
+      "checklistRef": "WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.6, ledger WMS-9 (DONE)",
+      "npdevPanel": "InventarioArquivoAggregateWorkbench + InventarioHistoricoPanel",
+      "status": "I3-I8 all closed (REG-217/REG-218 platform bugs found and fixed along the way; paste-CSV wizard browser-verified end to end with real parsed rows).",
+      "OPEN_NAMED_GAPS": []
+    },
+    {
+      "screen": "Novo Armazem",
+      "checklistRef": "WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.7, ledger WMS-9 (DONE)",
+      "npdevPanel": "seed machinery (warehouse-a-small) + novo-estabelecimento.html (Tier 1, by design -- first-run wizard) + platform shell additions (live clock N4, company-name query N4, quick-access N5, self-service change-password N6, all built 2026-09-19/20)",
+      "status": "N1-N7 all closed. N8 ('should be visibly better than the original') is explicitly a design review, not a checkbox -- not scored pass/fail.",
+      "OPEN_NAMED_GAPS": []
+    },
+    {
+      "screen": "Reset",
+      "checklistRef": "WMSOFFICE_SCREEN_PARITY_CHECKLIST.md 2.8, ledger WMS-9 (DONE)",
+      "npdevPanel": "ResetarAmbienteTransacionalProcedure + web/reset-ambiente.html (type-to-confirm gate; deliberately hand-authored since the DSL has no confirmation primitive)",
+      "status": "Z1-Z6 built and browser-verified: wipes transactional data (Movimento/Recebimento/Expedicao/Romaneio/CrossDocking/DocumentoFiscal + zeroes occupancy) while leaving master data and storage structure untouched -- correctly distinguished from excluir-estabelecimento.html (a different, correctly-scoped establishment-decommission tool).",
+      "OPEN_NAMED_GAPS": []
+    }
+  ],
+  "netAssessmentForWave8": "Six of seven screen groups are effectively DONE per the OLD checklist's own line-by-line scoring, live-verified in a real browser via ScrapForAI, with roughly 15 real platform bugs found and fixed along the way (REG-213 through REG-227+, plus REG-72 through REG-78 from an even earlier July effort on the same Origem/Destino shape). Of the four residuals this file originally named as NOT tracked by any ledger item: (1) the MovimentoItemPosicao.maxQuantity defect and (2) R16 (Recebimento's Enderecado transition) were both FIXED 2026-09-26 -- see WMS-13 and WMS-14 (both DONE, live-verified) -- and WMS-14's own fix surfaced a real platform bug fixed the same day as REG-249. The remaining two residuals -- (3) E15 (Expedicao's Confirmar Saida confirmation gap) and (4) the item-level wizard sub-panels on Recebimento/Expedicao -- are now tracked as ledger/items/WMS-15.yml and WMS-16.yml respectively (both OPEN, not started), deliberately deferred: E15 needs a design decision the DSL has no primitive for yet, and the wizard sub-panels are the largest-scoped residual of the four."
+}

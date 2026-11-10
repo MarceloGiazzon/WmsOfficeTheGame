@@ -1,0 +1,9356 @@
+{
+  "id": "warehouse-c-wizard",
+  "label": "Warehouse C - GeneXus Wizard Defaults",
+  "description": "Full literal scale from the original GeneXus WmsOffice.NewStorageStructureStep1/Step2 wizard (the Acesso login panel's \"Wisard\" button): 12 Recebimento baias (60 pos each), 12 Expedicao baias (50 pos each), 1 Pre-Picking rua (200 pos), 1 Avarias rua (80 pos), and 11 Armazenagem corredores (A-J, T) with per-corredor rua/andar/posicao counts hardcoded in NewStorageStructureStep2's GridSection.Load -- 290 ruas, 6268 total storage positions.",
+  "kind": "smart",
+  "records": [
+    {
+      "alias": "entidadeC",
+      "concept": "Entidade",
+      "data": {
+        "nome": "Warehouse C - GeneXus Wizard Defaults",
+        "tipo": "Estabelecimento",
+        "ativo": true
+      }
+    },
+    {
+      "alias": "armazemC",
+      "concept": "Armazem",
+      "data": {
+        "entidadeId": "$ref:entidadeC",
+        "nome": "Armazem Wizard",
+        "ativo": true
+      }
+    },
+    {
+      "alias": "areaRecebimento",
+      "concept": "Area",
+      "data": {
+        "armazemId": "$ref:armazemC",
+        "nome": "Area Recebimento",
+        "funcao": "Recebimento",
+        "ativo": true
+      }
+    },
+    {
+      "alias": "areaExpedicao",
+      "concept": "Area",
+      "data": {
+        "armazemId": "$ref:armazemC",
+        "nome": "Area Expedicao",
+        "funcao": "Expedicao",
+        "ativo": true
+      }
+    },
+    {
+      "alias": "areaArmazenagem",
+      "concept": "Area",
+      "data": {
+        "armazemId": "$ref:armazemC",
+        "nome": "Area Armazenagem",
+        "funcao": "Armazenagem",
+        "ativo": true
+      }
+    },
+    {
+      "alias": "areaPrePicking",
+      "concept": "Area",
+      "data": {
+        "armazemId": "$ref:armazemC",
+        "nome": "Pre-Picking",
+        "funcao": "PrePicking",
+        "ativo": true
+      }
+    },
+    {
+      "alias": "areaAvarias",
+      "concept": "Area",
+      "data": {
+        "armazemId": "$ref:armazemC",
+        "nome": "Area de Avarias",
+        "funcao": "Avarias",
+        "ativo": true
+      }
+    },
+    {
+      "alias": "rua1",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC01",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua1",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua2",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC02",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua2",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua3",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC03",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua3",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua4",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC04",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua4",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua5",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC05",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua5",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua6",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC06",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua6",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua7",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC07",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua7",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua8",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC08",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua8",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua9",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC09",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua9",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua10",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC10",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua10",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua11",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC11",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua11",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua12",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaRecebimento",
+        "codigo": "REC12",
+        "qtdPosicoes": 60,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            60
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua12",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua13",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP01",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua13",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua14",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP02",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua14",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua15",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP03",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua15",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua16",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP04",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua16",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua17",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP05",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua17",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua18",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP06",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua18",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua19",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP07",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua19",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua20",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP08",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua20",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua21",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP09",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua21",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua22",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP10",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua22",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua23",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP11",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua23",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua24",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaExpedicao",
+        "codigo": "EXP12",
+        "qtdPosicoes": 50,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            50
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua24",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua25",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaPrePicking",
+        "codigo": "PP01",
+        "qtdPosicoes": 200,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            200
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua25",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua26",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaAvarias",
+        "codigo": "AVARIAS",
+        "qtdPosicoes": 80,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            80
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua26",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua27",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "A01",
+        "qtdPosicoes": 56,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            56
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua27",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua28",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B01",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua28",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua29",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B02",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua29",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua30",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B03",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua30",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua31",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B04",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua31",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua32",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B05",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua32",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua33",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B06",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua33",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua34",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B07",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua34",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua35",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B08",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua35",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua36",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B09",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua36",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua37",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B10",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua37",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua38",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B11",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua38",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua39",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B12",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua39",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua40",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B13",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua40",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua41",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B14",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua41",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua42",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B15",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua42",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua43",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B16",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua43",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua44",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B17",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua44",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua45",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B18",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua45",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua46",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B19",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua46",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua47",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B20",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua47",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua48",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B21",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua48",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua49",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B22",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua49",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua50",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B23",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua50",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua51",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B24",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua51",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua52",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B25",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua52",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua53",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B26",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua53",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua54",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B27",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua54",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua55",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B28",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua55",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua56",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B29",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua56",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua57",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B30",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua57",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua58",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B31",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua58",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua59",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B32",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua59",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua60",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B33",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua60",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua61",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B34",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua61",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua62",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B35",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua62",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua63",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B36",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua63",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua64",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "B37",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua64",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua65",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C01",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua65",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua66",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C02",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua66",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua67",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C03",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua67",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua68",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C04",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua68",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua69",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C05",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua69",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua70",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C06",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua70",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua71",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C07",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua71",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua72",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C08",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua72",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua73",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C09",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua73",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua74",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C10",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua74",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua75",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C11",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua75",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua76",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C12",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua76",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua77",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C13",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua77",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua78",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C14",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua78",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua79",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C15",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua79",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua80",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C16",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua80",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua81",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C17",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua81",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua82",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C18",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua82",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua83",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C19",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua83",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua84",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C20",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua84",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua85",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C21",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua85",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua86",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C22",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua86",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua87",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C23",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua87",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua88",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C24",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua88",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua89",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C25",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua89",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua90",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C26",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua90",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua91",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C27",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua91",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua92",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C28",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua92",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua93",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C29",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua93",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua94",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C30",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua94",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua95",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C31",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua95",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua96",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C32",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua96",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua97",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C33",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua97",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua98",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C34",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua98",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua99",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C35",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua99",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua100",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C36",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua100",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua101",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "C37",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua101",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua102",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D01",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua102",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua103",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D02",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua103",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua104",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D03",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua104",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua105",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D04",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua105",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua106",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D05",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua106",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua107",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D06",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua107",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua108",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D07",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua108",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua109",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D08",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua109",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua110",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D09",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua110",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua111",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D10",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua111",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua112",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D11",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua112",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua113",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D12",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua113",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua114",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D13",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua114",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua115",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D14",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua115",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua116",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D15",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua116",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua117",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D16",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua117",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua118",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D17",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua118",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua119",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D18",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua119",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua120",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D19",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua120",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua121",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D20",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua121",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua122",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D21",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua122",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua123",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D22",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua123",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua124",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D23",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua124",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua125",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D24",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua125",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua126",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D25",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua126",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua127",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D26",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua127",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua128",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D27",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua128",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua129",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D28",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua129",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua130",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D29",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua130",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua131",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D30",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua131",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua132",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D31",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua132",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua133",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D32",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua133",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua134",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D33",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua134",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua135",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D34",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua135",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua136",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D35",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua136",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua137",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D36",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua137",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua138",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "D37",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua138",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua139",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E01",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua139",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua140",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E02",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua140",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua141",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E03",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua141",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua142",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E04",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua142",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua143",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E05",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua143",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua144",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E06",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua144",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua145",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E07",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua145",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua146",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E08",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua146",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua147",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E09",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua147",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua148",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E10",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua148",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua149",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E11",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua149",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua150",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E12",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua150",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua151",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E13",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua151",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua152",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E14",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua152",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua153",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E15",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua153",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua154",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E16",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua154",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua155",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E17",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua155",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua156",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E18",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua156",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua157",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E19",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua157",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua158",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E20",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua158",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua159",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E21",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua159",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua160",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E22",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua160",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua161",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E23",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua161",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua162",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E24",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua162",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua163",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E25",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua163",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua164",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E26",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua164",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua165",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E27",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua165",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua166",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E28",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua166",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua167",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E29",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua167",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua168",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E30",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua168",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua169",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E31",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua169",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua170",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E32",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua170",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua171",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E33",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua171",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua172",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E34",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua172",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua173",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E35",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua173",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua174",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E36",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua174",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua175",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "E37",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua175",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua176",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F01",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua176",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua177",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F02",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua177",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua178",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F03",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua178",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua179",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F04",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua179",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua180",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F05",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua180",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua181",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F06",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua181",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua182",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F07",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua182",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua183",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F08",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua183",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua184",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F09",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua184",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua185",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F10",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua185",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua186",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F11",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua186",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua187",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F12",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua187",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua188",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F13",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua188",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua189",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F14",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua189",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua190",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F15",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua190",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua191",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F16",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua191",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua192",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F17",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua192",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua193",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F18",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua193",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua194",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F19",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua194",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua195",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F20",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua195",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua196",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F21",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua196",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua197",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F22",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua197",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua198",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F23",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua198",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua199",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F24",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua199",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua200",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F25",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua200",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua201",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F26",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua201",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua202",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F27",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua202",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua203",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F28",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua203",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua204",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F29",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua204",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua205",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F30",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua205",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua206",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F31",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua206",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua207",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F32",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua207",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua208",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F33",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua208",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua209",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F34",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua209",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua210",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F35",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua210",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua211",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F36",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua211",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua212",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "F37",
+        "qtdPosicoes": 5,
+        "qtdAndares": 4,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            4
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua212",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua213",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G01",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua213",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua214",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G02",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua214",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua215",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G03",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua215",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua216",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G04",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua216",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua217",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G05",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua217",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua218",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G06",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua218",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua219",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G07",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua219",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua220",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G08",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua220",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua221",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G09",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua221",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua222",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G10",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua222",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua223",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G11",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua223",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua224",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G12",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua224",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua225",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G13",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua225",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua226",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G14",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua226",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua227",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G15",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua227",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua228",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G16",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua228",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua229",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G17",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua229",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua230",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G18",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua230",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua231",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G19",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua231",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua232",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G20",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua232",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua233",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G21",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua233",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua234",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G22",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua234",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua235",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G23",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua235",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua236",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G24",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua236",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua237",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G25",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua237",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua238",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G26",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua238",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua239",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G27",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua239",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua240",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G28",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua240",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua241",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G29",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua241",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua242",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G30",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua242",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua243",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G31",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua243",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua244",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G32",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua244",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua245",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G33",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua245",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua246",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G34",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua246",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua247",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G35",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua247",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua248",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G36",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua248",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua249",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G37",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua249",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua250",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "G38",
+        "qtdPosicoes": 5,
+        "qtdAndares": 3,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            5
+          ],
+          "andar": [
+            1,
+            3
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua250",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua251",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "H01",
+        "qtdPosicoes": 35,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            35
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua251",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua252",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I01",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua252",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua253",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I02",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua253",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua254",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I03",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua254",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua255",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I04",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua255",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua256",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I05",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua256",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua257",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I06",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua257",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua258",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I07",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua258",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua259",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I08",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua259",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua260",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I09",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua260",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua261",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I10",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua261",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua262",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I11",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua262",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua263",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I12",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua263",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua264",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I13",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua264",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua265",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I14",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua265",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua266",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I15",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua266",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua267",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I16",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua267",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua268",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I17",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua268",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua269",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "I18",
+        "qtdPosicoes": 7,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            7
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua269",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua270",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J01",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua270",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua271",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J02",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua271",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua272",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J03",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua272",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua273",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J04",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua273",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua274",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J05",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua274",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua275",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J06",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua275",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua276",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J07",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua276",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua277",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J08",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua277",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua278",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J09",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua278",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua279",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J10",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua279",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua280",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J11",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua280",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua281",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J12",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua281",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua282",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J13",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua282",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua283",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J14",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua283",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua284",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J15",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua284",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua285",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J16",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua285",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua286",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J17",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua286",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua287",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "J18",
+        "qtdPosicoes": 11,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            11
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua287",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua288",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "T01",
+        "qtdPosicoes": 56,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            56
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua288",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua289",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "T02",
+        "qtdPosicoes": 56,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            56
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua289",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    },
+    {
+      "alias": "rua290",
+      "concept": "Rua",
+      "data": {
+        "areaId": "$ref:areaArmazenagem",
+        "codigo": "T03",
+        "qtdPosicoes": 56,
+        "qtdAndares": 1,
+        "ativo": true
+      }
+    },
+    {
+      "concept": "LocalArmazenagem",
+      "repeatOver": {
+        "vars": {
+          "posicao": [
+            1,
+            56
+          ],
+          "andar": [
+            1,
+            1
+          ]
+        }
+      },
+      "data": {
+        "ruaId": "$ref:rua290",
+        "posicao": "$posicao",
+        "andar": "$andar",
+        "situacao": "Disponivel"
+      }
+    }
+  ]
+}

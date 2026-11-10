@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Excluir Estabelecimento</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #status { margin-left: auto; color: #6b7280; }
+    main { padding: 14px; max-width: 900px; margin: 0 auto; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; box-shadow: 0 1px 3px rgba(41,85,114,.1); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; }
+    .note { font-size: 11px; opacity: .55; margin-top: -4px; margin-bottom: 10px; }
+    .warn { font-size: 12px; color: #b35900; margin-bottom: 10px; }
+    .row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 8px; flex-wrap: wrap; }
+    .row label { display: flex; flex-direction: column; font-size: 11px; opacity: .8; gap: 3px; }
+    select { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; min-width: 260px; }
+    button.action { background: #b42323; color: #fff; border: 0; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
+    button.action:disabled { opacity: .5; cursor: not-allowed; }
+    .progress-track { background: #dfe4e9; border-radius: 4px; height: 18px; overflow: hidden; margin: 10px 0; }
+    .progress-fill { background: #b42323; height: 100%; width: 0%; transition: width .2s; }
+    #log { background: #f7f9fb; border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; font-size: 12px;
+      max-height: 260px; overflow: auto; white-space: pre-wrap; }
+    #log .ok { color: #008000; }
+    #log .err { color: #cc1f1f; }
+    #log .step { color: #295572; }
+    .hint { font-size: 11px; opacity: .6; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="http://localhost:8100" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <button id="reload">Recarregar</button>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section>
+      <h2>Excluir / Resetar Estabelecimento</h2>
+      <div class="note">
+        Contraparte de exclusao do "Novo Estabelecimento": remove a Entidade e toda a estrutura de
+        armazem/areas/ruas/posicoes e o ranking de ruas criados para ela. Produtos e Perfis de
+        Alocacao NAO sao removidos automaticamente -- sao catalogos globais/compartilhados (nao tem
+        vinculo com uma Entidade especifica), entao apagar um estabelecimento nao apaga produtos ou
+        perfis, mesmo que tenham sido criados junto com ele.
+      </div>
+      <div class="warn">
+        Se o estabelecimento ja tiver movimentacao real (Recebimento, Expedicao, Movimento, etc.), a
+        exclusao vai falhar com um erro de vinculo (restrict) -- isso e esperado: esta tela e um reset
+        para ambientes de demonstracao/desenvolvimento, nao uma ferramenta de encerramento de tenant
+        com dados reais.
+      </div>
+      <div class="row">
+        <label>Estabelecimento
+          <select id="estabSelect"></select>
+        </label>
+        <button class="action" id="excluirBtn">Excluir Estabelecimento e Estrutura</button>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div id="log"></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () { var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved; });
+    const apiBase = () => $('base').value.replace(/\/$/, '');
+    const apiKey = () => $('key').value.trim();
+
+    function log(message, cls) {
+      const div = document.createElement('div');
+      div.className = cls || '';
+      div.textContent = message;
+      $('log').appendChild(div);
+      $('log').scrollTop = $('log').scrollHeight;
+    }
+    async function apiGet(path) {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + apiKey() } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+    async function apiDelete(path) {
+      const res = await fetch(apiBase() + path, {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + apiKey() }
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        let parsed = null;
+        try { parsed = text ? JSON.parse(text) : null; } catch (e) { /* leave null */ }
+        const msg = (parsed && (parsed.error || parsed.message)) || text || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
+    }
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+    const short = (id) => id ? id.slice(0, 8) + '...' : '';
+
+    async function loadEstabelecimentos() {
+      $('status').textContent = 'carregando...';
+      try {
+        const entidades = list(await apiGet('/api/entidades'));
+        const estabs = entidades.filter(function (e) { return e.tipo === 'Estabelecimento'; });
+        const sel = $('estabSelect');
+        const previous = sel.value;
+        sel.innerHTML = '';
+        if (!estabs.length) {
+          const hint = document.createElement('option');
+          hint.textContent = 'Nenhum estabelecimento encontrado';
+          hint.disabled = true;
+          sel.appendChild(hint);
+        } else {
+          estabs.forEach(function (e) {
+            const opt = document.createElement('option');
+            opt.value = e.id;
+            opt.textContent = e.nome + ' (' + short(e.id) + ')';
+            sel.appendChild(opt);
+          });
+          if (previous && estabs.some(function (e) { return e.id === previous; })) { sel.value = previous; }
+        }
+        $('excluirBtn').disabled = !estabs.length;
+        $('status').textContent = 'ok';
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+      }
+    }
+
+    // Deletes deepest-first so the restrict bond on RankingRua.ruaId never blocks a Rua/Armazem
+    // deletion: RankingRua -> LocalArmazenagem -> Rua -> Area -> Armazem -> Entidade. Produto and
+    // PerfilAlocacao are untouched (see note in the page) since neither is scoped to an Entidade.
+    async function excluirEstabelecimento() {
+      const entidadeId = $('estabSelect').value;
+      if (!entidadeId) { return; }
+      $('excluirBtn').disabled = true;
+      $('log').innerHTML = '';
+      $('progressFill').style.width = '0%';
+      try {
+        log('Levantando estrutura do estabelecimento...', 'step');
+        const armazens = list(await apiGet('/api/armazems')).filter(function (a) { return a.entidadeId === entidadeId; });
+        const areas = list(await apiGet('/api/areas')).filter(function (a) { return armazens.some(function (arm) { return arm.id === a.armazemId; }); });
+        const ruas = list(await apiGet('/api/ruas')).filter(function (r) { return areas.some(function (a) { return a.id === r.areaId; }); });
+        const locais = list(await apiGet('/api/local_armazenagems')).filter(function (l) { return ruas.some(function (r) { return r.id === l.ruaId; }); });
+        const rankings = list(await apiGet('/api/ranking_ruas')).filter(function (rk) { return ruas.some(function (r) { return r.id === rk.ruaId; }); });
+
+        const total = rankings.length + locais.length + ruas.length + areas.length + armazens.length + 1;
+        let done = 0;
+        function tick(msg) {
+          done++;
+          $('progressFill').style.width = Math.min(100, Math.round(done / total * 100)) + '%';
+          if (msg) log(msg, 'ok');
+        }
+
+        log('Excluindo ' + rankings.length + ' registros de ranking de ruas...', 'step');
+        for (const rk of rankings) { await apiDelete('/api/ranking_ruas/' + rk.id); tick(); }
+
+        log('Excluindo ' + locais.length + ' posicoes de armazenagem...', 'step');
+        for (const l of locais) { await apiDelete('/api/local_armazenagems/' + l.id); tick(); }
+
+        log('Excluindo ' + ruas.length + ' ruas...', 'step');
+        for (const r of ruas) { await apiDelete('/api/ruas/' + r.id); tick(); }
+
+        log('Excluindo ' + areas.length + ' areas...', 'step');
+        for (const a of areas) { await apiDelete('/api/areas/' + a.id); tick(); }
+
+        log('Excluindo ' + armazens.length + ' armazem(ns)...', 'step');
+        for (const a of armazens) { await apiDelete('/api/armazems/' + a.id); tick(); }
+
+        log('Excluindo Entidade...', 'step');
+        await apiDelete('/api/entidades/' + entidadeId);
+        tick('Estabelecimento excluido.');
+
+        log('Concluido! Produtos e Perfis de Alocacao globais foram preservados.', 'ok');
+        await loadEstabelecimentos();
+      } catch (e) {
+        log('Falha: ' + e.message + ' -- se o estabelecimento tiver movimentacao real, isto e esperado (restrict bond).', 'err');
+      } finally {
+        $('excluirBtn').disabled = false;
+      }
+    }
+
+    $('excluirBtn').addEventListener('click', excluirEstabelecimento);
+    $('reload').addEventListener('click', loadEstabelecimentos);
+    window.addEventListener('DOMContentLoaded', loadEstabelecimentos);
+  </script>
+</body>
+</html>

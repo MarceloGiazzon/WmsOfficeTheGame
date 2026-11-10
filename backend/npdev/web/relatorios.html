@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Relatorios</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #bar button { background: #295572; color: #fff; border: 0; font-weight: 600; border-radius: 4px; padding: 5px 12px; cursor: pointer; }
+    #status { margin-left: auto; color: #6b7280; }
+    main { padding: 14px; max-width: 1200px; margin: 0 auto; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; box-shadow: 0 1px 3px rgba(41,85,114,.1); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; display: flex; align-items: center; justify-content: space-between; }
+    .count { font-size: 11px; opacity: .7; font-weight: normal; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+    th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid #e5e5e5; }
+    th { background: #295572; color: #ffffff; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #f0f2f5; }
+    .hint { font-size: 11px; opacity: .6; }
+    .row-divergente td { color: #b35900; }
+    .note { font-size: 11px; opacity: .55; margin-top: -4px; margin-bottom: 10px; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="http://localhost:8100" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <button id="reload">Recarregar Tudo</button>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section id="lotesSection">
+      <h2>Lotes em Estoque <span class="count" id="lotesCount"></span></h2>
+      <div class="note">Lote.situacao == 'Recebido', ordenado por data de validade (FIFO)</div>
+      <div id="lotesBody"></div>
+    </section>
+    <section id="produtosSection">
+      <h2>Produtos Ativos <span class="count" id="produtosCount"></span></h2>
+      <div class="note">Produto.ativo == true, ordenado por nome</div>
+      <div id="produtosBody"></div>
+    </section>
+    <section id="divergenciasSection">
+      <h2>Divergencias de Inventario <span class="count" id="divergenciasCount"></span></h2>
+      <div class="note">InventarioArquivoLinha.divergente == true</div>
+      <div id="divergenciasBody"></div>
+    </section>
+    <section id="historicoSection">
+      <h2>Historico de Movimentacao <span class="count" id="historicoCount"></span></h2>
+      <div class="note">Todos os eventos, mais recentes primeiro</div>
+      <div id="historicoBody"></div>
+    </section>
+  </main>
+
+  <script>
+    // These four reports call the declared queries (LotesEmEstoque, ProdutosAtivos,
+    // DivergenciasInventario, HistoricoMovimentacaoTodos) via GET /api/queries/{name}, which routes
+    // through ConceptGateway.query with the same tenant/permission row-scoping as every other
+    // concept read (business-ui-query-controller.mustache, Move 10 B1 + WMS-12 gap closure). The
+    // where/orderBy filtering these reports need is evaluated server-side; only the join lookups
+    // (produto/local/movimento names) still use the generic CRUD endpoints.
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () { var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved; });
+    const apiBase = () => $('base').value.replace(/\/$/, '');
+    const apiKey = () => $('key').value.trim();
+
+    async function apiGet(path) {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + apiKey() } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+    async function runQuery(name) {
+      const body = await apiGet('/api/queries/' + name + '?limit=1000');
+      return { rows: Array.isArray(body.rows) ? body.rows : [], total: body.total };
+    }
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+    const short = (id) => id ? id.slice(0, 8) + '...' : '';
+    const fmt = (v) => (v === null || v === undefined || v === '') ? '-' : String(v);
+
+    function table(headers, rows, rowClassFn) {
+      const t = document.createElement('table');
+      const thead = document.createElement('thead');
+      const htr = document.createElement('tr');
+      headers.forEach(function (h) { const th = document.createElement('th'); th.textContent = h; htr.appendChild(th); });
+      thead.appendChild(htr);
+      t.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      rows.forEach(function (cells) {
+        const tr = document.createElement('tr');
+        if (rowClassFn) { const cls = rowClassFn(cells); if (cls) tr.className = cls; }
+        cells.forEach(function (c) { const td = document.createElement('td'); td.textContent = fmt(c); tr.appendChild(td); });
+        tbody.appendChild(tr);
+      });
+      t.appendChild(tbody);
+      return t;
+    }
+    function empty(message) {
+      const div = document.createElement('div');
+      div.className = 'hint';
+      div.textContent = message;
+      return div;
+    }
+
+    async function loadLotesEmEstoque(produtosById) {
+      const { rows, total } = await runQuery('LotesEmEstoque');
+      $('lotesCount').textContent = rows.length + ' de ' + total + ' lote(s)';
+      const body = $('lotesBody');
+      body.innerHTML = '';
+      if (!rows.length) { body.appendChild(empty('Nenhum lote recebido em estoque.')); return; }
+      body.appendChild(table(
+        ['Produto', 'Data de Validade', 'Ocorrencia', 'Quantidade'],
+        rows.map(function (l) {
+          const p = produtosById[l.produtoId];
+          return [p ? p.nome : short(l.produtoId), l.dataValidade, l.ocorrencia, l.quantidade];
+        })
+      ));
+    }
+
+    async function loadProdutosAtivos() {
+      const { rows, total } = await runQuery('ProdutosAtivos');
+      $('produtosCount').textContent = rows.length + ' de ' + total + ' produto(s)';
+      const body = $('produtosBody');
+      body.innerHTML = '';
+      if (!rows.length) { body.appendChild(empty('Nenhum produto ativo.')); return; }
+      body.appendChild(table(
+        ['Nome', 'NCM', 'Caixas/Pallet', 'Dias Validade Padrao'],
+        rows.map(function (p) { return [p.nome, p.ncm, p.qtdCaixasPorPallet, p.diasValidadePadrao]; })
+      ));
+    }
+
+    async function loadDivergenciasInventario(produtosById, locaisById) {
+      const { rows, total } = await runQuery('DivergenciasInventario');
+      $('divergenciasCount').textContent = rows.length + ' de ' + total + ' linha(s)';
+      const body = $('divergenciasBody');
+      body.innerHTML = '';
+      if (!rows.length) { body.appendChild(empty('Nenhuma divergencia de inventario.')); return; }
+      body.appendChild(table(
+        ['Produto', 'Local', 'Qtd. Esperada', 'Qtd. Contada', 'Diferenca'],
+        rows.map(function (l) {
+          const p = produtosById[l.produtoId];
+          const loc = locaisById[l.localArmazenagemId];
+          const esperada = Number(l.quantidadeEsperada || 0);
+          const contada = l.quantidadeContada === null || l.quantidadeContada === undefined ? null : Number(l.quantidadeContada);
+          const diff = contada === null ? '-' : (contada - esperada);
+          return [
+            p ? p.nome : short(l.produtoId),
+            loc ? ('Pos ' + loc.posicao + '/And ' + loc.andar) : short(l.localArmazenagemId),
+            esperada, contada === null ? '-' : contada, diff
+          ];
+        }),
+        function () { return 'row-divergente'; }
+      ));
+    }
+
+    async function loadHistoricoMovimentacao(movimentosById) {
+      const { rows } = await runQuery('HistoricoMovimentacaoTodos');
+      const sorted = rows.slice().sort(function (a, b) { return (b.ocorridoEm || '').localeCompare(a.ocorridoEm || ''); });
+      $('historicoCount').textContent = sorted.length + ' evento(s)';
+      const body = $('historicoBody');
+      body.innerHTML = '';
+      if (!sorted.length) { body.appendChild(empty('Nenhum evento registrado.')); return; }
+      body.appendChild(table(
+        ['Ocorrido em', 'Evento', 'Descricao', 'Movimento'],
+        sorted.map(function (h) {
+          const m = movimentosById[h.movimentoId];
+          return [h.ocorridoEm, h.evento, h.descricao, m ? (m.tipo + ' ' + short(m.id)) : short(h.movimentoId)];
+        })
+      ));
+    }
+
+    function byId(rows) {
+      const map = {};
+      rows.forEach(function (r) { map[r.id] = r; });
+      return map;
+    }
+
+    async function loadAll() {
+      $('status').textContent = 'carregando...';
+      try {
+        const [produtos, locais, movimentos] = await Promise.all([
+          apiGet('/api/produtos'), apiGet('/api/local_armazenagems'), apiGet('/api/movimentos')
+        ]).then(function (r) { return r.map(list); });
+        const produtosById = byId(produtos);
+        const locaisById = byId(locais);
+        const movimentosById = byId(movimentos);
+
+        await Promise.all([
+          loadLotesEmEstoque(produtosById),
+          loadProdutosAtivos(),
+          loadDivergenciasInventario(produtosById, locaisById),
+          loadHistoricoMovimentacao(movimentosById)
+        ]);
+        $('status').textContent = 'ok';
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+      }
+    }
+
+    $('reload').addEventListener('click', loadAll);
+    window.addEventListener('DOMContentLoaded', loadAll);
+  </script>
+</body>
+</html>

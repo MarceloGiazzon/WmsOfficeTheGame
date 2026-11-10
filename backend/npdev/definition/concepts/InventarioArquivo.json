@@ -1,0 +1,35 @@
+{
+  "name": "InventarioArquivo",
+  "ui": { "label": "Inventario - Arquivo" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "entidadeId", "type": "reference", "required": true,
+      "reference": { "target": "Entidade", "onDelete": "restrict" },
+      "ui": { "label": "Entidade" }
+    },
+    { "name": "dataGeracao", "type": "date", "required": true, "ui": { "label": "Data de geracao" } },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["Gerado", "Conferido", "Confirmado"],
+      "default": "Gerado",
+      "ui": { "label": "Situacao" }
+    },
+    {
+      "name": "origem", "type": "string", "required": false, "maxLength": 40,
+      "ui": { "label": "Origem" }
+    }
+  ],
+  "lifecycle": {
+    "statusField": "situacao",
+    "states": [
+      { "value": "Gerado", "label": "Gerado", "initial": true },
+      { "value": "Conferido", "label": "Conferido" },
+      { "value": "Confirmado", "label": "Confirmado", "terminal": true }
+    ],
+    "transitions": [
+      { "from": "Gerado", "to": "Conferido" },
+      { "from": "Conferido", "to": "Confirmado" }
+    ]
+  }
+}

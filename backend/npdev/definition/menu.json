@@ -1,0 +1,226 @@
+[
+  {
+    "label": "Demanda",
+    "ordinal": 10,
+    "children": [
+      {
+        "label": "Movimentacao Livre",
+        "kind": "GROUP",
+        "ordinal": 20,
+        "children": [
+          {
+            "label": "Movimentos (Panel)",
+            "kind": "BUSINESS",
+            "target": "__panel-MovimentoLivrePanel__",
+            "ordinal": 10
+          },
+          {
+            "label": "Movimento (Workbench)",
+            "kind": "BUSINESS",
+            "target": "__panel-MovimentoWorkbench__",
+            "ordinal": 20
+          }
+        ]
+      },
+      {
+        "label": "Cross-Docking",
+        "kind": "BUSINESS",
+        "target": "__panel-CrossDockingConsolePanel__",
+        "ordinal": 30
+      },
+      {
+        "label": "Conferencia Fiscal",
+        "ordinal": 40,
+        "children": [
+          {
+            "label": "NF-e - Importar",
+            "kind": "BUSINESS",
+            "target": "__panel-DocumentoFiscalAggregateWorkbench__",
+            "ordinal": 10
+          },
+          {
+            "label": "NF-e - Historico",
+            "kind": "BUSINESS",
+            "target": "__panel-ConferenciaFiscalNfePanel__",
+            "ordinal": 20
+          },
+          {
+            "label": "Romaneio - Importar",
+            "kind": "BUSINESS",
+            "target": "__panel-RomaneioAggregateWorkbench__",
+            "ordinal": 30
+          },
+          {
+            "label": "Romaneio - Historico",
+            "kind": "BUSINESS",
+            "target": "__panel-ConferenciaFiscalRomaneioPanel__",
+            "ordinal": 40
+          }
+        ]
+      },
+      {
+        "label": "Inventario Fisico",
+        "kind": "BUSINESS",
+        "target": "__panel-InventarioArquivoAggregateWorkbench__",
+        "ordinal": 50
+      },
+      {
+        "label": "Recebimentos",
+        "kind": "BUSINESS",
+        "target": "Recebimento",
+        "ordinal": 60
+      },
+      {
+        "label": "Recebimento (Workbench)",
+        "kind": "BUSINESS",
+        "target": "__panel-RecebimentoWorkbench__",
+        "ordinal": 65
+      },
+      {
+        "label": "Expedicoes",
+        "kind": "BUSINESS",
+        "target": "Expedicao",
+        "ordinal": 70
+      },
+      {
+        "label": "Expedicao (Workbench)",
+        "kind": "BUSINESS",
+        "target": "__panel-ExpedicaoWorkbench__",
+        "ordinal": 75
+      },
+      {
+        "label": "Movimentos",
+        "kind": "BUSINESS",
+        "target": "Movimento",
+        "ordinal": 80
+      }
+    ]
+  },
+  {
+    "label": "Cadastros",
+    "ordinal": 20,
+    "children": [
+      {
+        "label": "Novo Estabelecimento",
+        "kind": "PAGE",
+        "target": "novo-estabelecimento.html",
+        "ordinal": 10
+      },
+      {
+        "label": "Entidades",
+        "kind": "BUSINESS",
+        "target": "Entidade",
+        "ordinal": 20
+      },
+      {
+        "label": "Armazens",
+        "kind": "BUSINESS",
+        "target": "Armazem",
+        "ordinal": 30
+      },
+      {
+        "label": "Topologia",
+        "ordinal": 40,
+        "children": [
+          {
+            "label": "Areas",
+            "kind": "BUSINESS",
+            "target": "Area",
+            "ordinal": 10
+          },
+          {
+            "label": "Ruas",
+            "kind": "BUSINESS",
+            "target": "Rua",
+            "ordinal": 20
+          },
+          {
+            "label": "Locais de Armazenagem",
+            "kind": "BUSINESS",
+            "target": "LocalArmazenagem",
+            "ordinal": 30
+          },
+          {
+            "label": "Perfis de Alocacao",
+            "kind": "BUSINESS",
+            "target": "PerfilAlocacao",
+            "ordinal": 40
+          },
+          {
+            "label": "Rankings de Rua",
+            "kind": "BUSINESS",
+            "target": "RankingRua",
+            "ordinal": 50
+          }
+        ]
+      },
+      {
+        "label": "Produtos",
+        "kind": "BUSINESS",
+        "target": "Produto",
+        "ordinal": 50
+      },
+      {
+        "label": "Lotes",
+        "kind": "BUSINESS",
+        "target": "Lote",
+        "ordinal": 60
+      }
+    ]
+  },
+  {
+    "label": "Consultas",
+    "ordinal": 30,
+    "children": [
+      {
+        "label": "Mapa do Armazem",
+        "kind": "PAGE",
+        "target": "mapa-armazem.html",
+        "ordinal": 10
+      },
+      {
+        "label": "Analytics",
+        "kind": "PAGE",
+        "target": "analytics.html",
+        "ordinal": 20
+      },
+      {
+        "label": "Relatorios",
+        "kind": "PAGE",
+        "target": "relatorios.html",
+        "ordinal": 30
+      },
+      {
+        "label": "Historico de Movimentacao",
+        "kind": "BUSINESS",
+        "target": "HistoricoMovimentacao",
+        "ordinal": 40
+      },
+      {
+        "label": "Documentos Fiscais",
+        "kind": "BUSINESS",
+        "target": "DocumentoFiscal",
+        "ordinal": 50
+      }
+    ]
+  },
+  {
+    "label": "Desenvolvimento",
+    "ordinal": 40,
+    "requiredRole": "ADMIN",
+    "children": [
+      {
+        "label": "Resetar Ambiente",
+        "kind": "PAGE",
+        "target": "reset-ambiente.html",
+        "ordinal": 10
+      },
+      {
+        "label": "Excluir Estabelecimento",
+        "kind": "PAGE",
+        "target": "excluir-estabelecimento.html",
+        "ordinal": 20
+      }
+    ]
+  }
+]

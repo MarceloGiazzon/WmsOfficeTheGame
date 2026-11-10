@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Centro de Trabalho (Recebimento / Expedicao)</title>
+  <!-- Look lifted from the original GeneXus "Centro de Conferencia" screens (OriginalArtifacts):
+       soft khaki work area, white cards with light-teal borders, steel-blue #295572 table headers
+       with white text, green "Enderecamento OK!"-style confirmations. Brand tokens: /theme.css. -->
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5;
+      border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input, #bar select { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #bar button { background: #295572; color: #fff; border: 0; border-radius: 4px; padding: 5px 12px; cursor: pointer; font-weight: 600; }
+    #bar button:hover { background: #1f425a; }
+    #status { margin-left: auto; color: #6b7280; }
+    /* The khaki "conference work area" from the original Centro de Conferencia screens lives on
+       <main> (not <body>) so the shell's own --np-bg body background doesn't swallow it. */
+    main { padding: 14px; max-width: 1200px; margin: 10px auto; background: #f4efd3;
+      border: 1px solid #e3dcae; border-radius: 8px; }
+    section { background: #ffffff; border: 1px solid #99cdcb; border-radius: 8px; padding: 14px; margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(41, 85, 114, .1); }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; }
+    h3 { margin: 0 0 8px 0; font-size: 13px; color: #3d6a8a; }
+    .row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .row label { display: flex; flex-direction: column; font-size: 11px; color: #45525f; gap: 3px; }
+    select, input[type=number], input[type=date], input[type=text] {
+      background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; min-width: 150px;
+    }
+    select:focus, input:focus { outline: none; border-color: #295572; box-shadow: 0 0 0 2px rgba(41, 85, 114, .2); }
+    input.qty-input { min-width: 90px; }
+    button.action { background: #295572; color: #fff; border: 0; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-weight: 600; }
+    button.action:hover { background: #1f425a; }
+    button.secondary { background: #e4e5e6; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+    button.suggest { background: #ff8000; color: #fff; border: 0; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    button.small { padding: 3px 8px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+    th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid #e5e5e5; }
+    th { background: #295572; color: #ffffff; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #f0f2f5; }
+    .item-block { border: 1px solid #99cdcb; border-radius: 6px; padding: 10px; margin-bottom: 10px; background: #fdfcf6; }
+    .item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .banner { padding: 4px 10px; border-radius: 4px; font-size: 12px; display: inline-block; font-weight: 600; }
+    .banner.ok { background: #e6f6ea; color: #008000; }
+    .banner.pending { background: #fff3da; color: #b35900; }
+    .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge.pendente, .badge.PreRecebimento, .badge.PreExpedicao, .badge.Enderecado, .badge.DemandaGerada,
+    .badge.Conferido, .badge.MovimentacaoConcluida { background: #d9e6f2; color: #295572; }
+    .badge.Armazenado, .badge.SaidaConfirmada, .badge.Concluido { background: #d9f2d9; color: #008000; }
+    #log { background: #f7f9fb; border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; font-size: 12px;
+      max-height: 200px; overflow: auto; white-space: pre-wrap; }
+    #log .ok { color: #008000; }
+    #log .err { color: #cc1f1f; }
+    .hint { font-size: 11px; color: #6b7280; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="http://localhost:8100" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <label>Operacao
+      <select id="tipoSel">
+        <option value="Recebimento">Recebimento (aloca Destino)</option>
+        <option value="Expedicao">Expedicao (aloca Origem)</option>
+      </select>
+    </label>
+    <label>Registro pendente
+      <select id="recordSel"></select>
+    </label>
+    <button id="reload">Recarregar</button>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section id="headerSection"></section>
+    <section id="planningSection"></section>
+    <section id="itensSection"></section>
+    <section>
+      <h2>Log</h2>
+      <div id="log"></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () { var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved; });
+    const apiBase = () => $('base').value.replace(/\/$/, '');
+    const apiKey = () => $('key').value.trim();
+    const papelAlvo = () => $('tipoSel').value === 'Recebimento' ? 'Destino' : 'Origem';
+    const estagioTerminal = () => $('tipoSel').value === 'Recebimento' ? 'Armazenado' : 'SaidaConfirmada';
+    const recordPath = () => $('tipoSel').value === 'Recebimento' ? 'recebimentos' : 'expedicaos';
+
+    function log(message, ok) {
+      const div = document.createElement('div');
+      div.className = ok ? 'ok' : 'err';
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      $('log').prepend(div);
+    }
+    async function apiGet(path) {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + apiKey() } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+    async function apiSend(method, path, body) {
+      const res = await fetch(apiBase() + path, {
+        method, headers: { 'Authorization': 'Bearer ' + apiKey(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const text = await res.text();
+      let parsed = null;
+      try { parsed = text ? JSON.parse(text) : null; } catch (e) { /* leave null */ }
+      if (!res.ok) {
+        const msg = (parsed && (parsed.error || parsed.message)) || text || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
+      return parsed;
+    }
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+    const short = (id) => id ? id.slice(0, 8) + '...' : '';
+
+    let cache = { produtos: [], lotes: [], locais: [], movimentos: [], itens: [], posicoes: [], ocupacoes: [], recebimentoLotes: [], expedicaoItens: [] };
+    let selectedRecord = null;
+    let selectedMovimento = null;
+
+    async function loadReferenceData() {
+      const [produtos, lotes, locais] = await Promise.all([
+        apiGet('/api/produtos'), apiGet('/api/lotes'), apiGet('/api/local_armazenagems')
+      ]).then(r => r.map(list));
+      cache.produtos = produtos; cache.lotes = lotes; cache.locais = locais;
+    }
+    function produtoNome(id) { const p = cache.produtos.find(x => x.id === id); return p ? p.nome : short(id); }
+    function loteLabel(id) {
+      const l = cache.lotes.find(x => x.id === id);
+      return l ? `${produtoNome(l.produtoId)} (val. ${l.dataValidade}, ${l.ocorrencia})` : short(id);
+    }
+    function localLabel(id) {
+      const local = cache.locais.find(x => x.id === id);
+      return local ? `Pos ${local.posicao}/And ${local.andar} (${local.situacao})` : short(id);
+    }
+
+    async function loadPendentes() {
+      $('status').textContent = 'carregando...';
+      try {
+        await loadReferenceData();
+        const records = list(await apiGet('/api/' + recordPath()));
+        const pendentes = records.filter(r => r.estagio !== estagioTerminal());
+        const sel = $('recordSel');
+        sel.innerHTML = '';
+        pendentes.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.id;
+          opt.textContent = `${short(r.id)} - ${r.estagio}`;
+          sel.appendChild(opt);
+        });
+        $('status').textContent = `${pendentes.length} pendente(s)`;
+        if (pendentes.length > 0) {
+          await selectRecord(pendentes[0].id);
+        } else {
+          selectedRecord = null; selectedMovimento = null;
+          renderHeader(); renderItens();
+        }
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+        log('Falha ao carregar pendentes: ' + e.message, false);
+      }
+    }
+
+    async function selectRecord(id) {
+      try {
+        selectedRecord = await apiGet(`/api/${recordPath()}/${id}`);
+        if (selectedRecord.movimentoId) {
+          selectedMovimento = await apiGet(`/api/movimentos/${selectedRecord.movimentoId}`);
+          await loadItensEPosicoes();
+        } else {
+          selectedMovimento = null;
+          cache.itens = []; cache.posicoes = [];
+        }
+        await loadPlanning();
+        renderHeader();
+        renderPlanning();
+        renderItens();
+      } catch (e) {
+        log('Falha ao selecionar registro: ' + e.message, false);
+      }
+    }
+
+    // ---- Planning layer (RecebimentoLote/ExpedicaoItem) -- what's *expected/demanded*, kept
+    // separate from MovimentoItem/MovimentoItemPosicao, which record what actually happened.
+    // These concepts existed in the schema since Phase 2 but nothing ever populated them.
+    async function loadPlanning() {
+      if (!selectedRecord) { cache.recebimentoLotes = []; cache.expedicaoItens = []; return; }
+      if ($('tipoSel').value === 'Recebimento') {
+        const rows = list(await apiGet('/api/recebimento_lotes'));
+        cache.recebimentoLotes = rows.filter(r => r.recebimentoId === selectedRecord.id);
+      } else {
+        const rows = list(await apiGet('/api/expedicao_items'));
+        cache.expedicaoItens = rows.filter(r => r.expedicaoId === selectedRecord.id);
+      }
+    }
+
+    function renderPlanning() {
+      const section = $('planningSection');
+      section.innerHTML = '';
+      if (!selectedRecord) return;
+      const isRecebimento = $('tipoSel').value === 'Recebimento';
+
+      const h = document.createElement('h2');
+      h.textContent = isRecebimento ? 'Lotes Esperados (planejamento)' : 'Itens Demandados (planejamento)';
+      section.appendChild(h);
+      const note = document.createElement('div');
+      note.className = 'hint';
+      note.textContent = isRecebimento
+        ? 'O que se espera receber para este Recebimento -- independente do que de fato foi alocado abaixo.'
+        : 'O que se demanda expedir para esta Expedicao -- independente do que de fato foi alocado abaixo.';
+      note.style.marginBottom = '8px';
+      section.appendChild(note);
+
+      const table = document.createElement('table');
+      const tbody = document.createElement('tbody');
+      if (isRecebimento) {
+        table.innerHTML = '<thead><tr><th>Lote/Produto</th><th>Quantidade</th><th>Cross-docking</th></tr></thead>';
+        cache.recebimentoLotes.forEach(rl => {
+          const tr = document.createElement('tr');
+          [loteLabel(rl.loteId), rl.quantidade, rl.crossDocking ? 'Sim' : 'Nao'].forEach(v => {
+            const td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      } else {
+        table.innerHTML = '<thead><tr><th>Produto</th><th>Quantidade</th><th>Auto-finalizacao</th></tr></thead>';
+        cache.expedicaoItens.forEach(ei => {
+          const tr = document.createElement('tr');
+          [produtoNome(ei.produtoId), ei.quantidade, ei.autoFinalizacao ? 'Sim' : 'Nao'].forEach(v => {
+            const td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+      table.appendChild(tbody);
+      section.appendChild(table);
+
+      if ((isRecebimento ? cache.recebimentoLotes : cache.expedicaoItens).length === 0) {
+        const hint = document.createElement('div'); hint.className = 'hint';
+        hint.textContent = 'Nenhum registro de planejamento ainda.';
+        section.appendChild(hint);
+      }
+
+      section.appendChild(isRecebimento ? renderAddRecebimentoLoteForm() : renderAddExpedicaoItemForm());
+    }
+
+    function renderAddRecebimentoLoteForm() {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const loteSel = document.createElement('select');
+      cache.lotes.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id; opt.textContent = loteLabel(l.id);
+        loteSel.appendChild(opt);
+      });
+      const qty = document.createElement('input');
+      qty.type = 'number'; qty.min = '1'; qty.value = '1'; qty.className = 'qty-input';
+      const crossDockingChk = document.createElement('input');
+      crossDockingChk.type = 'checkbox';
+      const btn = document.createElement('button');
+      btn.className = 'action small'; btn.textContent = 'Adicionar Lote Esperado';
+      btn.onclick = async () => {
+        try {
+          await apiSend('POST', '/api/recebimento_lotes', {
+            recebimentoId: selectedRecord.id, loteId: loteSel.value,
+            quantidade: Number(qty.value || 1), crossDocking: crossDockingChk.checked
+          });
+          log('Lote esperado adicionado.', true);
+          await loadPlanning();
+          renderPlanning();
+        } catch (e) { log('Falha ao adicionar lote esperado: ' + e.message, false); }
+      };
+      row.append(labelWrap('Lote/Produto', loteSel), labelWrap('Quantidade', qty), labelWrap('Cross-docking', crossDockingChk), btn);
+      return row;
+    }
+
+    function renderAddExpedicaoItemForm() {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const produtoSel = document.createElement('select');
+      cache.produtos.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id; opt.textContent = p.nome;
+        produtoSel.appendChild(opt);
+      });
+      const qty = document.createElement('input');
+      qty.type = 'number'; qty.min = '1'; qty.value = '1'; qty.className = 'qty-input';
+      const autoFinalizacaoChk = document.createElement('input');
+      autoFinalizacaoChk.type = 'checkbox';
+      const btn = document.createElement('button');
+      btn.className = 'action small'; btn.textContent = 'Adicionar Item Demandado';
+      btn.onclick = async () => {
+        try {
+          await apiSend('POST', '/api/expedicao_items', {
+            expedicaoId: selectedRecord.id, produtoId: produtoSel.value,
+            quantidade: Number(qty.value || 1), autoFinalizacao: autoFinalizacaoChk.checked
+          });
+          log('Item demandado adicionado.', true);
+          await loadPlanning();
+          renderPlanning();
+        } catch (e) { log('Falha ao adicionar item demandado: ' + e.message, false); }
+      };
+      row.append(labelWrap('Produto', produtoSel), labelWrap('Quantidade', qty), labelWrap('Auto-finalizacao', autoFinalizacaoChk), btn);
+      return row;
+    }
+
+    async function loadItensEPosicoes() {
+      const [itens, posicoes, ocupacoes] = await Promise.all([
+        apiGet('/api/movimento_items'), apiGet('/api/movimento_item_posicaos'), apiGet('/api/local_armazenagem_lotes')
+      ]).then(r => r.map(list));
+      cache.itens = itens.filter(i => i.movimentoId === selectedMovimento.id);
+      cache.posicoes = posicoes;
+      cache.ocupacoes = ocupacoes;
+    }
+
+    function posicoesDoItem(itemId) {
+      return cache.posicoes.filter(p => p.movimentoItemId === itemId && p.papel === papelAlvo());
+    }
+
+    // Keeps LocalArmazenagemLote (the current-stock ledger the allocation engine/reports read,
+    // Phase 3/6) in sync with what's actually allocated here -- without this, confirming a
+    // Recebimento would never make the received goods appear as real stock anywhere, and
+    // Expedicao's FIFO suggestion would have nothing genuine to read from.
+    async function syncOcupacao(localArmazenagemId, loteId, quantidadeDelta) {
+      const existente = cache.ocupacoes.find(o => o.localArmazenagemId === localArmazenagemId && o.loteId === loteId);
+      if (existente) {
+        const nova = Math.max(0, Number(existente.quantidade) + quantidadeDelta);
+        await apiSend('PUT', `/api/local_armazenagem_lotes/${existente.id}`, { ...existente, quantidade: nova });
+      } else if (quantidadeDelta > 0) {
+        await apiSend('POST', '/api/local_armazenagem_lotes', {
+          localArmazenagemId, loteId, quantidade: quantidadeDelta
+        });
+      }
+    }
+
+    // ---- Header (record + movimento) ----
+    function renderHeader() {
+      const section = $('headerSection');
+      section.innerHTML = '';
+      if (!selectedRecord) {
+        section.innerHTML = '<div class="hint">Nenhum registro pendente selecionado.</div>';
+        return;
+      }
+      const h = document.createElement('h2');
+      h.textContent = `${$('tipoSel').value} ${short(selectedRecord.id)}`;
+      section.appendChild(h);
+
+      const info = document.createElement('div');
+      info.className = 'row';
+      info.innerHTML = `
+        <span>Estagio: <span class="badge ${selectedRecord.estagio}">${selectedRecord.estagio}</span></span>
+        <span>Situacao: ${selectedRecord.situacao}</span>
+        <span>Movimento: ${selectedMovimento ? short(selectedMovimento.id) + ' (' + selectedMovimento.situacao + ')' : 'nao vinculado'}</span>
+      `;
+      section.appendChild(info);
+
+      const actions = document.createElement('div');
+      actions.className = 'row';
+      if (!selectedRecord.movimentoId) {
+        actions.appendChild(actionButton('Criar Movimento', criarMovimento));
+      } else {
+        actions.appendChild(actionButton('Avancar Estagio', avancarEstagio));
+        actions.appendChild(actionButton('Confirmar Movimentacao', confirmarMovimentacao));
+        actions.appendChild(actionButton(
+          $('tipoSel').value === 'Recebimento' ? 'Confirmar Recebimento (Armazenado)' : 'Confirmar Saida',
+          confirmarHeaderFinal
+        ));
+      }
+      section.appendChild(actions);
+    }
+
+    function actionButton(label, handler) {
+      const btn = document.createElement('button');
+      btn.className = 'action'; btn.textContent = label;
+      btn.onclick = async () => {
+        try { await handler(); } catch (e) { log(label + ' falhou: ' + e.message, false); }
+      };
+      return btn;
+    }
+
+    async function criarMovimento() {
+      const tipo = $('tipoSel').value;
+      const mov = await apiSend('POST', '/api/movimentos', {
+        entidadeId: selectedRecord.entidadeId, tipo, dataMovimento: new Date().toISOString().slice(0, 10)
+      });
+      const updated = { ...selectedRecord, movimentoId: mov.id };
+      await apiSend('PUT', `/api/${recordPath()}/${selectedRecord.id}`, updated);
+      log(`Movimento ${short(mov.id)} criado e vinculado.`, true);
+      await selectRecord(selectedRecord.id);
+    }
+
+    const ESTAGIOS = {
+      Recebimento: ['PreRecebimento', 'Enderecado', 'Conferido', 'Armazenado'],
+      Expedicao: ['PreExpedicao', 'DemandaGerada', 'MovimentacaoConcluida', 'SaidaConfirmada']
+    };
+    async function avancarEstagio() {
+      const tipo = $('tipoSel').value;
+      const stages = ESTAGIOS[tipo];
+      const idx = stages.indexOf(selectedRecord.estagio);
+      if (idx < 0 || idx >= stages.length - 1) { log('Ja no ultimo estagio anterior a confirmacao final.', false); return; }
+      const next = stages[idx + 1];
+      if (next === stages[stages.length - 1]) {
+        log('Use o botao de confirmacao final para o ultimo estagio (valida invariantes).', false);
+        return;
+      }
+      const updated = { ...selectedRecord, estagio: next };
+      const saved = await apiSend('PUT', `/api/${recordPath()}/${selectedRecord.id}`, updated);
+      log(`Estagio avancado: ${selectedRecord.estagio} -> ${saved.estagio}`, true);
+      await selectRecord(selectedRecord.id);
+    }
+
+    async function confirmarMovimentacao() {
+      if (!selectedMovimento) { log('Nenhum movimento vinculado.', false); return; }
+      const result = await apiSend('POST', '/api/flows/ConfirmarMovimentacao/execute', { ...selectedMovimento, situacao: 'Concluido' });
+      if (result.status !== 'OK') throw new Error(result.error || 'Falha ao confirmar movimentacao');
+      log('Movimentacao confirmada.', true);
+      await selectRecord(selectedRecord.id);
+    }
+
+    async function confirmarHeaderFinal() {
+      const tipo = $('tipoSel').value;
+      const flow = tipo === 'Recebimento' ? 'ConfirmarRecebimento' : 'ConfirmarSaidaExpedicao';
+      const finalEstagio = estagioTerminal();
+      const result = await apiSend('POST', `/api/flows/${flow}/execute`, { ...selectedRecord, estagio: finalEstagio });
+      if (result.status !== 'OK') throw new Error(result.error || 'Falha ao confirmar');
+      log(`${tipo} confirmado (${finalEstagio}).`, true);
+      await loadPendentes();
+    }
+
+    // ---- Level 2: MovimentoItem lines ----
+    function renderItens() {
+      const section = $('itensSection');
+      section.innerHTML = '';
+      if (!selectedMovimento) {
+        section.innerHTML = '<div class="hint">Crie o Movimento para adicionar itens.</div>';
+        return;
+      }
+      const h = document.createElement('h2');
+      h.textContent = 'Itens (produto/lote) e alocacao de posicoes';
+      section.appendChild(h);
+
+      section.appendChild(renderAddItemForm());
+
+      cache.itens.forEach(item => section.appendChild(renderItemBlock(item)));
+
+      if (cache.itens.length === 0) {
+        const hint = document.createElement('div');
+        hint.className = 'hint';
+        hint.textContent = 'Nenhum item ainda. Adicione um produto/lote acima.';
+        section.appendChild(hint);
+      }
+    }
+
+    function renderAddItemForm() {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const loteSel = document.createElement('select');
+      cache.lotes.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id; opt.textContent = loteLabel(l.id);
+        loteSel.appendChild(opt);
+      });
+      const qty = document.createElement('input');
+      qty.type = 'number'; qty.min = '1'; qty.value = '1'; qty.className = 'qty-input';
+      const btn = document.createElement('button');
+      btn.className = 'action'; btn.textContent = 'Adicionar Item';
+      btn.onclick = async () => {
+        try {
+          const lote = cache.lotes.find(l => l.id === loteSel.value);
+          await apiSend('POST', '/api/movimento_items', {
+            movimentoId: selectedMovimento.id, produtoId: lote.produtoId, loteId: lote.id,
+            quantidade: Number(qty.value || 1)
+          });
+          log('Item adicionado.', true);
+          await loadItensEPosicoes();
+          renderItens();
+        } catch (e) { log('Falha ao adicionar item: ' + e.message, false); }
+      };
+      row.append(labelWrap('Lote/Produto', loteSel), labelWrap('Quantidade', qty), btn);
+      return row;
+    }
+
+    function labelWrap(text, el) {
+      const label = document.createElement('label');
+      const span = document.createElement('span'); span.textContent = text;
+      label.append(span, el);
+      return label;
+    }
+
+    function renderItemBlock(item) {
+      const block = document.createElement('div');
+      block.className = 'item-block';
+
+      const posicoes = posicoesDoItem(item.id);
+      const totalAlocado = posicoes.reduce((sum, p) => sum + Number(p.quantidade || 0), 0);
+      const ok = totalAlocado === Number(item.quantidade);
+
+      const head = document.createElement('div');
+      head.className = 'item-head';
+      head.innerHTML = `
+        <span><b>${produtoNome(item.produtoId)}</b> &middot; Lote: ${loteLabel(item.loteId)} &middot; Qtd: ${item.quantidade}</span>
+        <span class="banner ${ok ? 'ok' : 'pending'}">${ok ? 'Enderecamento OK!' : `Pendente: ${item.quantidade - totalAlocado} restante(s)`}</span>
+      `;
+      block.appendChild(head);
+
+      const table = document.createElement('table');
+      table.innerHTML = `<thead><tr><th>${papelAlvo()}</th><th>Quantidade</th><th></th></tr></thead>`;
+      const tbody = document.createElement('tbody');
+      posicoes.forEach(p => tbody.appendChild(renderPosicaoRow(p)));
+      table.appendChild(tbody);
+      block.appendChild(table);
+
+      block.appendChild(renderAddPosicaoRow(item));
+      return block;
+    }
+
+    function renderPosicaoRow(posicao) {
+      const tr = document.createElement('tr');
+      const localTd = document.createElement('td');
+      localTd.textContent = localLabel(posicao.localArmazenagemId);
+      const qtyTd = document.createElement('td');
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'number'; qtyInput.min = '1'; qtyInput.value = posicao.quantidade; qtyInput.className = 'qty-input';
+      qtyTd.appendChild(qtyInput);
+      const actionTd = document.createElement('td');
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'secondary small'; saveBtn.textContent = 'Salvar';
+      saveBtn.onclick = async () => {
+        try {
+          const itemDaPosicao = cache.itens.find(i => i.id === posicao.movimentoItemId);
+          const novaQtd = Number(qtyInput.value);
+          const delta = novaQtd - Number(posicao.quantidade);
+          await apiSend('PUT', `/api/movimento_item_posicaos/${posicao.id}`, { ...posicao, quantidade: novaQtd });
+          const sinal = posicao.papel === 'Destino' ? 1 : -1;
+          await syncOcupacao(posicao.localArmazenagemId, itemDaPosicao.loteId, sinal * delta);
+          log('Posicao atualizada (estoque sincronizado).', true);
+          await loadItensEPosicoes();
+          renderItens();
+        } catch (e) { log('Falha ao atualizar posicao: ' + e.message, false); }
+      };
+      actionTd.appendChild(saveBtn);
+      tr.append(localTd, qtyTd, actionTd);
+      return tr;
+    }
+
+    function renderAddPosicaoRow(item) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const localSel = document.createElement('select');
+      cache.locais.filter(l => l.situacao === 'Disponivel' || l.situacao === 'Ocupado').forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id; opt.textContent = localLabel(l.id);
+        localSel.appendChild(opt);
+      });
+      const qty = document.createElement('input');
+      qty.type = 'number'; qty.min = '1'; qty.value = '1'; qty.className = 'qty-input';
+      const addBtn = document.createElement('button');
+      addBtn.className = 'action small'; addBtn.textContent = 'Adicionar Posicao';
+      addBtn.onclick = async () => {
+        try {
+          const quantidade = Number(qty.value || 1);
+          await apiSend('POST', '/api/movimento_item_posicaos', {
+            movimentoItemId: item.id, localArmazenagemId: localSel.value,
+            papel: papelAlvo(), quantidade
+          });
+          const sinal = papelAlvo() === 'Destino' ? 1 : -1;
+          await syncOcupacao(localSel.value, item.loteId, sinal * quantidade);
+          log('Posicao adicionada (estoque sincronizado).', true);
+          await loadItensEPosicoes();
+          renderItens();
+        } catch (e) { log('Falha ao adicionar posicao: ' + e.message, false); }
+      };
+      const suggestBtn = document.createElement('button');
+      suggestBtn.className = 'suggest'; suggestBtn.textContent = 'Sugerir';
+      suggestBtn.title = 'Chama a capacidade de alocacao (Fase 3) para sugerir um local';
+      suggestBtn.onclick = () => sugerir(item, localSel, qty);
+
+      row.append(labelWrap('Local', localSel), labelWrap('Quantidade', qty), addBtn, suggestBtn);
+      return row;
+    }
+
+    async function sugerir(item, localSel, qtyInput) {
+      try {
+        const flow = papelAlvo() === 'Destino' ? 'SugerirDestino' : 'SugerirOrigem';
+        let body;
+        if (flow === 'SugerirDestino') {
+          const candidatos = cache.locais.map(l => ({
+            localArmazenagemId: l.id, ruaId: l.ruaId, prioridade: 1,
+            loteOcupanteId: null
+          }));
+          // WMS-9 C7: recebimentoId lets the server short-circuit to the CrossDocking bay when this
+          // Recebimento has an active cross-docking, instead of ranking ordinary storage candidatos.
+          body = { loteId: item.loteId, recebimentoId: selectedRecord.id, candidatos };
+        } else {
+          // Reads the real current-stock ledger (LocalArmazenagemLote, Phase 3/6) for this exact
+          // lot -- not movement history, which doesn't tell you what's actually still in a bin.
+          const candidatos = cache.ocupacoes
+            .filter(o => o.loteId === item.loteId && Number(o.quantidade) > 0)
+            .map(o => ({
+              localArmazenagemId: o.localArmazenagemId, loteId: o.loteId,
+              dataValidade: (cache.lotes.find(l => l.id === o.loteId) || {}).dataValidade,
+              quantidadeDisponivel: o.quantidade, prioridade: 1
+            }));
+          // WMS-9 C7: expedicaoId lets the server short-circuit to the CrossDocking bay when this
+          // Expedicao has an active cross-docking, instead of ranking ordinary storage candidatos.
+          body = { quantidadeNecessaria: item.quantidade, expedicaoId: selectedRecord.id, candidatos };
+        }
+        const result = await apiSend('POST', `/api/flows/${flow}/execute`, body);
+        if (result.status !== 'OK') throw new Error(result.error || 'Sugestao falhou');
+        if (flow === 'SugerirDestino' && result.output.localArmazenagemId) {
+          localSel.value = result.output.localArmazenagemId;
+          log('Sugestao: ' + result.output.motivo, true);
+        } else if (flow === 'SugerirOrigem' && result.output.alocacoes && result.output.alocacoes.length) {
+          const primeira = result.output.alocacoes[0];
+          localSel.value = primeira.localArmazenagemId;
+          qtyInput.value = primeira.quantidadeAlocada;
+          log(`Sugestao FIFO: ${result.output.alocacoes.length} local(is), ${result.output.quantidadeAtendida} atendido(s).`, true);
+        } else {
+          log('Nenhuma sugestao retornada.', false);
+        }
+      } catch (e) {
+        log('Falha ao sugerir: ' + e.message, false);
+      }
+    }
+
+    $('reload').addEventListener('click', loadPendentes);
+    $('tipoSel').addEventListener('change', loadPendentes);
+    $('recordSel').addEventListener('change', () => selectRecord($('recordSel').value));
+    window.addEventListener('DOMContentLoaded', loadPendentes);
+  </script>
+</body>
+</html>

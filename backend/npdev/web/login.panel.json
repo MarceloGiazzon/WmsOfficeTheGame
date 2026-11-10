@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "npdev-panel-provenance.v1",
+  "panel": "Login",
+  "screen": "web/login.html",
+  "screenClass": "auth",
+  "producer": "human",
+  "generatedFrom": {
+    "modelHash": "sha256:cbedab5f298ab34a3dc4c118355ae535e343218b274efe3d4bd8b300ef4c3781",
+    "generatedAt": "2026-07-29T00:00:00Z",
+    "generator": "bootstrap-panel-provenance.py + human review",
+    "bundleScope": {}
+  },
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "calls": [
+    "/api/auth/login"
+  ],
+  "slotOf": null,
+  "confirmed": true,
+  "unresolved": [],
+  "reviewedBy": "claude-sonnet-5",
+  "notes": "Auth login goes through the identity pack's own bespoke /api/auth/login endpoint, which is not part of the invocations catalog and touches no concept field directly (username/password/tenantId are auth request params, not a read of identity::User or Usuario). All 4 draft 'reads' were false positives: 'DocumentoFiscal.chave' matched the unrelated Portuguese word 'chave' (key) in a note string; 'identity::Role.name'/'workspace::Menu.label' are the recurring shell.js-chrome token collision already corrected in the pre-existing confirmed manifests; 'identity::User.username' matched the local JS variable 'username', not a field read through any cataloged route."
+}

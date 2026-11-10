@@ -1,0 +1,48 @@
+/* WmsOffice brand theme -- loaded automatically by shell.js (after shell.css) on every page,
+   including the generated business UI. Palette lifted from the original GeneXus WmsOffice
+   (OriginalArtifacts): steel-blue #295572 grid/section headers, dark charcoal top bar with light
+   text, dense striped grids, green/red semantic numbers, #FF8000 orange accent.
+
+   `:root:root` matches shell.css's dark-block specificity (0,2,0) so, loading later, these brand
+   tokens win in BOTH light and dark mode -- WmsOffice deliberately keeps one corporate look. */
+:root:root {
+  --np-accent: #295572;
+  --np-on-accent: #ffffff;
+
+  --np-topbar-bg: #3a4147;
+  --np-topbar-text: #f5f5f5;
+  --np-topbar-muted: #c3c9ce;
+  --np-topbar-border: #2b3136;
+  --np-topbar-logo: #ffffff;
+  --np-topbar-hover: rgba(255, 255, 255, .12);
+
+  --np-grid-head-bg: #295572;
+  --np-grid-head-text: #ffffff;
+  --np-row-stripe: #f0f2f5;
+  --np-row-hover: #e2ebf2;
+
+  --np-positive: #008000;
+  --np-negative: #cc1f1f;
+  --np-warning: #b35900;
+}
+
+/* ---- shared WmsOffice visual language for hand-authored pages ---- */
+
+/* Steel-blue section/table header bar, exactly like the original WorkWithPlus grids. */
+.wms-head {
+  background: #295572;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Warehouse-map position label: the original's yellow block with dark-red street/position code. */
+.wms-pos-label {
+  background: #ffff00;
+  color: #c00000;
+  font-weight: 700;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+/* Semantic variance numbers (Resumo screens: green = gained space, red = lost space). */
+.wms-num-pos { color: var(--np-positive); font-weight: 700; }
+.wms-num-neg { color: var(--np-negative); font-weight: 700; }

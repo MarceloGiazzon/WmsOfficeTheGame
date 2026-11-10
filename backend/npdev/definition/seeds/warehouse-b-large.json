@@ -1,0 +1,33 @@
+{
+  "id": "warehouse-b-large",
+  "label": "Warehouse B - High-Density Storage",
+  "description": "A distinctly-shaped second warehouse: only 3 areas (no PrePicking/Avarias), 5 storage ruas at 5 andares each (150 positions), 25 products, a higher-density allocation profile (85% ideal occupancy).",
+  "kind": "smart",
+  "records": [
+    { "alias": "entidadeB", "concept": "Entidade", "data": { "nome": "Warehouse B", "tipo": "Estabelecimento", "ativo": true } },
+    { "alias": "armazemB", "concept": "Armazem", "data": { "entidadeId": "$ref:entidadeB", "nome": "Armazem Alta Densidade", "ativo": true } },
+
+    { "alias": "areaRecebimento", "concept": "Area", "data": { "armazemId": "$ref:armazemB", "nome": "Area Recebimento", "funcao": "Recebimento", "ativo": true } },
+    { "alias": "areaExpedicao", "concept": "Area", "data": { "armazemId": "$ref:armazemB", "nome": "Area Expedicao", "funcao": "Expedicao", "ativo": true } },
+    { "alias": "areaArmazenagem", "concept": "Area", "data": { "armazemId": "$ref:armazemB", "nome": "Area Armazenagem", "funcao": "Armazenagem", "ativo": true } },
+
+    { "alias": "ruaREC01", "concept": "Rua", "data": { "areaId": "$ref:areaRecebimento", "codigo": "REC01", "qtdPosicoes": 15, "qtdAndares": 1, "ativo": true } },
+    { "alias": "ruaEXP01", "concept": "Rua", "data": { "areaId": "$ref:areaExpedicao", "codigo": "EXP01", "qtdPosicoes": 15, "qtdAndares": 1, "ativo": true } },
+    { "alias": "ruaE001", "concept": "Rua", "data": { "areaId": "$ref:areaArmazenagem", "codigo": "E001", "qtdPosicoes": 8, "qtdAndares": 5, "ativo": true } },
+    { "alias": "ruaE002", "concept": "Rua", "data": { "areaId": "$ref:areaArmazenagem", "codigo": "E002", "qtdPosicoes": 8, "qtdAndares": 5, "ativo": true } },
+    { "alias": "ruaF001", "concept": "Rua", "data": { "areaId": "$ref:areaArmazenagem", "codigo": "F001", "qtdPosicoes": 8, "qtdAndares": 5, "ativo": true } },
+
+    { "concept": "LocalArmazenagem", "repeatOver": { "vars": { "posicao": [1, 15], "andar": [1, 1] } }, "data": { "ruaId": "$ref:ruaREC01", "posicao": "$posicao", "andar": "$andar", "situacao": "Disponivel" } },
+    { "concept": "LocalArmazenagem", "repeatOver": { "vars": { "posicao": [1, 15], "andar": [1, 1] } }, "data": { "ruaId": "$ref:ruaEXP01", "posicao": "$posicao", "andar": "$andar", "situacao": "Disponivel" } },
+    { "concept": "LocalArmazenagem", "repeatOver": { "vars": { "posicao": [1, 8], "andar": [1, 5] } }, "data": { "ruaId": "$ref:ruaE001", "posicao": "$posicao", "andar": "$andar", "situacao": "Disponivel" } },
+    { "concept": "LocalArmazenagem", "repeatOver": { "vars": { "posicao": [1, 8], "andar": [1, 5] } }, "data": { "ruaId": "$ref:ruaE002", "posicao": "$posicao", "andar": "$andar", "situacao": "Disponivel" } },
+    { "concept": "LocalArmazenagem", "repeatOver": { "vars": { "posicao": [1, 8], "andar": [1, 5] } }, "data": { "ruaId": "$ref:ruaF001", "posicao": "$posicao", "andar": "$andar", "situacao": "Disponivel" } },
+
+    { "concept": "Produto", "repeatOver": { "vars": { "index": [1, 25] } }, "data": { "nome": "Produto B $index", "qtdCaixasPorPallet": 2, "ativo": true } },
+
+    { "alias": "perfilB", "concept": "PerfilAlocacao", "data": { "nome": "Perfil B - Alta Densidade", "ocupacaoIdealPercent": 85, "ativo": true } },
+    { "concept": "RankingRua", "data": { "perfilAlocacaoId": "$ref:perfilB", "ruaId": "$ref:ruaE001", "prioridade": 1 } },
+    { "concept": "RankingRua", "data": { "perfilAlocacaoId": "$ref:perfilB", "ruaId": "$ref:ruaE002", "prioridade": 2 } },
+    { "concept": "RankingRua", "data": { "perfilAlocacaoId": "$ref:perfilB", "ruaId": "$ref:ruaF001", "prioridade": 3 } }
+  ]
+}

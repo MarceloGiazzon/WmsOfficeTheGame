@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Conferencia Fiscal (NF-e / Romaneio)</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input, #bar select { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #status { margin-left: auto; color: #6b7280; }
+    main { padding: 14px; max-width: 1200px; margin: 0 auto; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; box-shadow: 0 1px 3px rgba(41,85,114,.1); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; }
+    h3 { margin: 0 0 8px 0; font-size: 13px; color: #3d6a8a; }
+    .row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; }
+    .row label { display: flex; flex-direction: column; font-size: 11px; opacity: .8; gap: 3px; }
+    select, input[type=number], input[type=date], input[type=text] {
+      background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; min-width: 150px;
+    }
+    textarea { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; width: 100%; font-family: monospace; font-size: 12px; }
+    input.qty-input { min-width: 90px; }
+    button.action { background: #295572; color: #fff; border: 0; font-weight: 600; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+    button.secondary { background: #e4e5e6; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+    button.danger { background: #b42323; color: #fff; border: 0; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+    button.small { padding: 3px 8px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+    th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid #e5e5e5; }
+    th { background: #295572; color: #ffffff; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #f0f2f5; }
+    .doc-block { border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; margin-bottom: 10px; background: #f7f9fb; }
+    .doc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }
+    .banner { padding: 4px 10px; border-radius: 4px; font-size: 12px; display: inline-block; }
+    .banner.ok { background: #e6f6ea; color: #008000; }
+    .banner.pending { background: #fff3da; color: #b35900; }
+    .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .badge.Importada, .badge.Importado { background: #d9e6f2; color: #295572; }
+    .badge.RecebimentoGerado, .badge.ExpedicaoGerada { background: #d9f2d9; color: #008000; }
+    .badge.Cancelada, .badge.Cancelado { background: #fbe4e4; color: #cc1f1f; }
+    .row-unregistered { background: #fbe4e4; }
+    #log { background: #f7f9fb; border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; font-size: 12px;
+      max-height: 200px; overflow: auto; white-space: pre-wrap; }
+    #log .ok { color: #008000; }
+    #log .err { color: #cc1f1f; }
+    .hint { font-size: 11px; opacity: .6; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="http://localhost:8100" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <label>Tipo
+      <select id="tipoSel">
+        <option value="Nfe">NF-e</option>
+        <option value="Romaneio">Romaneio</option>
+      </select>
+    </label>
+    <button id="reload" class="action">Recarregar</button>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section id="importSection">
+      <h2>Importar</h2>
+      <div id="importForm"></div>
+    </section>
+    <section id="parseResultSection" style="display:none">
+      <h2>Resultado do Parse</h2>
+      <div id="parseResultBody"></div>
+    </section>
+    <section id="historySection">
+      <h2 id="historyTitle">Documentos Importados</h2>
+      <div id="historyBody"></div>
+    </section>
+    <section>
+      <h2>Log</h2>
+      <div id="log"></div>
+    </section>
+  </main>
+
+  <script>
+    // "Conferencia Fiscal" -- Phase 8 of the gap-closure roadmap: a hand-authored master-detail
+    // page for the Phase 4 fiscal-import capabilities (NF-e / Romaneio), which had parsing logic
+    // and flows but no operator-facing screen at all (REST-only). Follows the same client-side
+    // fetch-batch-and-join pattern as centro-trabalho.html rather than the Tier 2 Panel primitive,
+    // since Panel nesting is capped at 1 level and this roadmap deliberately avoids growing that
+    // primitive further -- this page can nest to any depth a screen needs, hand-authored per screen.
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () { var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved; });
+    const apiBase = () => $('base').value.replace(/\/$/, '');
+    const apiKey = () => $('key').value.trim();
+    const tipo = () => $('tipoSel').value;
+
+    function log(message, ok) {
+      const div = document.createElement('div');
+      div.className = ok ? 'ok' : 'err';
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      $('log').prepend(div);
+    }
+    async function apiGet(path) {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + apiKey() } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+    async function apiSend(method, path, body) {
+      const res = await fetch(apiBase() + path, {
+        method, headers: { 'Authorization': 'Bearer ' + apiKey(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const text = await res.text();
+      let parsed = null;
+      try { parsed = text ? JSON.parse(text) : null; } catch (e) { /* leave null */ }
+      if (!res.ok) {
+        const msg = (parsed && (parsed.error || parsed.message)) || text || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
+      return parsed;
+    }
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+    const short = (id) => id ? id.slice(0, 8) + '...' : '';
+
+    // The FiscalImportCapability matches a parsed line's "codigo" against a caller-supplied
+    // produtosConhecidos list ({codigo, produtoId}). Produto has no native SKU/barcode field in
+    // this simplified model, so this page uses the product's own name as "codigo" -- documented
+    // here rather than hidden, since it's a deliberate convention for this demo parser, not a
+    // real fiscal code lookup.
+    function produtosConhecidos(produtos) {
+      return produtos.map(function (p) { return { codigo: p.nome, produtoId: p.id }; });
+    }
+
+    let cache = { entidades: [], produtos: [], documentosFiscais: [], documentoFiscalItens: [], romaneios: [], romaneioItens: [] };
+    let parsedResult = null; // last successful parse, awaiting confirm
+
+    async function loadReferenceData() {
+      const [entidades, produtos] = await Promise.all([
+        apiGet('/api/entidades'), apiGet('/api/produtos')
+      ]).then(function (r) { return r.map(list); });
+      cache.entidades = entidades;
+      cache.produtos = produtos;
+    }
+    function produtoNome(id) { const p = cache.produtos.find(function (x) { return x.id === id; }); return p ? p.nome : short(id); }
+
+    async function loadHistory() {
+      if (tipo() === 'Nfe') {
+        const [docs, itens] = await Promise.all([
+          apiGet('/api/documento_fiscals'), apiGet('/api/documento_fiscal_items')
+        ]).then(function (r) { return r.map(list); });
+        cache.documentosFiscais = docs;
+        cache.documentoFiscalItens = itens;
+      } else {
+        const [romaneios, itens] = await Promise.all([
+          apiGet('/api/romaneios'), apiGet('/api/romaneio_items')
+        ]).then(function (r) { return r.map(list); });
+        cache.romaneios = romaneios;
+        cache.romaneioItens = itens;
+      }
+    }
+
+    function labelWrap(text, el) {
+      const label = document.createElement('label');
+      const span = document.createElement('span'); span.textContent = text;
+      label.append(span, el);
+      return label;
+    }
+    function button(label, className, onClick) {
+      const b = document.createElement('button');
+      b.className = className; b.textContent = label;
+      b.onclick = function () { onClick(); };
+      return b;
+    }
+    function entidadeSelect() {
+      const sel = document.createElement('select');
+      cache.entidades.forEach(function (e) {
+        const opt = document.createElement('option');
+        opt.value = e.id; opt.textContent = e.nome + ' (' + e.tipo + ')';
+        sel.appendChild(opt);
+      });
+      return sel;
+    }
+    function produtoSelect(selectedId) {
+      const sel = document.createElement('select');
+      const blank = document.createElement('option');
+      blank.value = ''; blank.textContent = '(selecione)';
+      sel.appendChild(blank);
+      cache.produtos.forEach(function (p) {
+        const opt = document.createElement('option');
+        opt.value = p.id; opt.textContent = p.nome;
+        if (p.id === selectedId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      return sel;
+    }
+
+    // ---- Import form ----
+    function renderImportForm() {
+      const container = $('importForm');
+      container.innerHTML = '';
+      $('parseResultSection').style.display = 'none';
+      parsedResult = null;
+
+      const entidadeRow = document.createElement('div');
+      entidadeRow.className = 'row';
+      const entidadeSel = entidadeSelect();
+      entidadeRow.appendChild(labelWrap('Entidade', entidadeSel));
+      container.appendChild(entidadeRow);
+
+      if (tipo() === 'Nfe') {
+        const xmlArea = document.createElement('textarea');
+        xmlArea.rows = 10;
+        xmlArea.placeholder = '<nfe><numero>123</numero><chave>...</chave><dataEmissao>2026-07-04</dataEmissao>' +
+          '<emitente><cnpj>...</cnpj></emitente><item><codigo>Produto X</codigo><descricao>...</descricao>' +
+          '<quantidade>10</quantidade><valorUnitario>12.50</valorUnitario></item></nfe>';
+        container.appendChild(labelWrapBlock('XML da NF-e (formato simplificado, item.codigo casado por nome de Produto)', xmlArea));
+        const btn = button('Importar (Parse)', 'action', function () { parseNfe(entidadeSel.value, xmlArea.value); });
+        container.appendChild(btn);
+      } else {
+        const numeroInput = document.createElement('input');
+        numeroInput.type = 'text'; numeroInput.placeholder = 'Numero do romaneio';
+        container.appendChild(labelWrap('Numero', numeroInput));
+        const textoArea = document.createElement('textarea');
+        textoArea.rows = 8;
+        textoArea.placeholder = 'codigo;quantidade\nProduto X;10\nProduto Y;5';
+        container.appendChild(labelWrapBlock('Linhas (codigo;quantidade, casado por nome de Produto)', textoArea));
+        const btn = button('Importar (Parse)', 'action', function () { parseRomaneio(entidadeSel.value, numeroInput.value, textoArea.value); });
+        container.appendChild(btn);
+      }
+    }
+    function labelWrapBlock(text, el) {
+      const wrap = document.createElement('div');
+      const label = document.createElement('div');
+      label.className = 'hint'; label.textContent = text; label.style.marginBottom = '4px';
+      wrap.append(label, el);
+      const row = document.createElement('div'); row.className = 'row'; row.style.display = 'block';
+      row.appendChild(wrap);
+      return row;
+    }
+
+    async function parseNfe(entidadeId, xml) {
+      try {
+        const chavesJaImportadas = cache.documentosFiscais.map(function (d) { return d.chave; });
+        const result = await apiSend('POST', '/api/flows/ImportarNfe/execute', {
+          xml: xml, produtosConhecidos: produtosConhecidos(cache.produtos), chavesJaImportadas: chavesJaImportadas
+        });
+        handleParseResult(entidadeId, result.output || result.result || result);
+      } catch (e) { log('Falha ao importar NF-e: ' + e.message, false); }
+    }
+    async function parseRomaneio(entidadeId, numero, texto) {
+      try {
+        const numerosJaImportados = cache.romaneios.map(function (r) { return r.numero; });
+        const result = await apiSend('POST', '/api/flows/ImportarRomaneio/execute', {
+          texto: texto, numero: numero, produtosConhecidos: produtosConhecidos(cache.produtos), numerosJaImportados: numerosJaImportados
+        });
+        handleParseResult(entidadeId, Object.assign({ numero: numero }, result.output || result.result || result));
+      } catch (e) { log('Falha ao importar Romaneio: ' + e.message, false); }
+    }
+
+    function handleParseResult(entidadeId, parsed) {
+      if (!parsed || parsed.sucesso === false) {
+        log('Parse falhou: ' + (parsed && parsed.motivo || 'motivo desconhecido'), false);
+        return;
+      }
+      parsedResult = Object.assign({ entidadeId: entidadeId }, parsed);
+      log('Parse OK: ' + parsed.itens.length + ' item(ns), todosRegistrados=' + parsed.todosRegistrados, true);
+      renderParseResult();
+    }
+
+    function renderParseResult() {
+      const section = $('parseResultSection');
+      const body = $('parseResultBody');
+      body.innerHTML = '';
+      section.style.display = 'block';
+      if (!parsedResult) { section.style.display = 'none'; return; }
+
+      const banner = document.createElement('div');
+      banner.className = 'banner ' + (parsedResult.todosRegistrados ? 'ok' : 'pending');
+      banner.textContent = parsedResult.todosRegistrados
+        ? 'Todos os itens tem produto registrado.'
+        : 'Alguns itens nao tem produto registrado -- selecione manualmente antes de confirmar.';
+      body.appendChild(banner);
+
+      const table = document.createElement('table');
+      const isNfe = tipo() === 'Nfe';
+      table.innerHTML = '<thead><tr><th>Codigo</th>' + (isNfe ? '<th>Descricao</th>' : '') +
+        '<th>Quantidade</th>' + (isNfe ? '<th>Valor Unit. (centavos)</th>' : '') + '<th>Produto</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      parsedResult.itens.forEach(function (item, idx) {
+        const tr = document.createElement('tr');
+        if (!item.registrado) tr.className = 'row-unregistered';
+        const codigoTd = document.createElement('td'); codigoTd.textContent = item.codigo; tr.appendChild(codigoTd);
+        if (isNfe) { const descTd = document.createElement('td'); descTd.textContent = item.descricao; tr.appendChild(descTd); }
+        const qtyTd = document.createElement('td'); qtyTd.textContent = item.quantidade; tr.appendChild(qtyTd);
+        if (isNfe) { const valTd = document.createElement('td'); valTd.textContent = item.valorUnitarioCentavos; tr.appendChild(valTd); }
+        const prodTd = document.createElement('td');
+        const sel = produtoSelect(item.produtoId);
+        sel.addEventListener('change', function () {
+          // Re-render (not just update the in-memory item) so the row's "unregistered" highlight
+          // clears and the Confirmar Importacao button's disabled state re-evaluates -- a manual
+          // reconciliation here previously updated parsedResult silently while the button stayed
+          // disabled forever, so the import could never actually be confirmed.
+          parsedResult.itens[idx].produtoId = sel.value || null;
+          parsedResult.itens[idx].registrado = !!sel.value;
+          renderParseResult();
+        });
+        prodTd.appendChild(sel);
+        tr.appendChild(prodTd);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      body.appendChild(table);
+
+      const allResolved = parsedResult.itens.every(function (it) { return it.produtoId; });
+      const confirmBtn = button('Confirmar Importacao', 'action', confirmImport);
+      confirmBtn.disabled = !allResolved;
+      if (!allResolved) confirmBtn.title = 'Resolva o produto de todos os itens antes de confirmar.';
+      body.appendChild(confirmBtn);
+    }
+
+    async function confirmImport() {
+      try {
+        if (tipo() === 'Nfe') {
+          const doc = await apiSend('POST', '/api/documento_fiscals', {
+            entidadeId: parsedResult.entidadeId, numero: parsedResult.numero, chave: parsedResult.chave,
+            dataEmissao: parsedResult.dataEmissao, emitenteCnpj: parsedResult.emitenteCnpj || null, situacao: 'Importada'
+          });
+          for (const item of parsedResult.itens) {
+            await apiSend('POST', '/api/documento_fiscal_items', {
+              documentoFiscalId: doc.id, produtoId: item.produtoId, quantidade: item.quantidade,
+              valorUnitarioCentavos: item.valorUnitarioCentavos
+            });
+          }
+          log('NF-e ' + parsedResult.numero + ' importada com ' + parsedResult.itens.length + ' item(ns).', true);
+        } else {
+          const doc = await apiSend('POST', '/api/romaneios', {
+            entidadeId: parsedResult.entidadeId, numero: parsedResult.numero,
+            dataEmissao: new Date().toISOString().slice(0, 10), situacao: 'Importado'
+          });
+          for (const item of parsedResult.itens) {
+            await apiSend('POST', '/api/romaneio_items', {
+              romaneioId: doc.id, produtoId: item.produtoId, quantidade: item.quantidade
+            });
+          }
+          log('Romaneio ' + parsedResult.numero + ' importado com ' + parsedResult.itens.length + ' item(ns).', true);
+        }
+        parsedResult = null;
+        $('parseResultSection').style.display = 'none';
+        await loadHistory();
+        renderHistory();
+        renderImportForm();
+      } catch (e) { log('Falha ao confirmar importacao: ' + e.message, false); }
+    }
+
+    // ---- History (master-detail: header -> items, client-side join) ----
+    function renderHistory() {
+      $('historyTitle').textContent = tipo() === 'Nfe' ? 'NF-e Importadas' : 'Romaneios Importados';
+      const body = $('historyBody');
+      body.innerHTML = '';
+      const headers = tipo() === 'Nfe' ? cache.documentosFiscais : cache.romaneios;
+      const itens = tipo() === 'Nfe' ? cache.documentoFiscalItens : cache.romaneioItens;
+      const parentKey = tipo() === 'Nfe' ? 'documentoFiscalId' : 'romaneioId';
+      const activeState = tipo() === 'Nfe' ? 'Importada' : 'Importado';
+
+      if (!headers.length) {
+        const hint = document.createElement('div'); hint.className = 'hint';
+        hint.textContent = 'Nenhum documento importado ainda.';
+        body.appendChild(hint);
+        return;
+      }
+
+      headers.forEach(function (doc) {
+        const block = document.createElement('div');
+        block.className = 'doc-block';
+
+        const head = document.createElement('div');
+        head.className = 'doc-head';
+        const cnpjSuffix = tipo() === 'Nfe' && doc.emitenteCnpj ? ' &middot; CNPJ ' + doc.emitenteCnpj : '';
+        head.innerHTML = '<span><b>' + (doc.numero || short(doc.id)) + '</b> &middot; ' + (doc.dataEmissao || '') +
+          cnpjSuffix + ' <span class="badge ' + doc.situacao + '">' + doc.situacao + '</span></span>';
+        if (doc.situacao === activeState) {
+          const cancelBtn = button('Cancelar', 'danger small', function () { cancelDocument(doc); });
+          head.appendChild(cancelBtn);
+        }
+        block.appendChild(head);
+
+        const docItens = itens.filter(function (i) { return i[parentKey] === doc.id; });
+        const table = document.createElement('table');
+        table.innerHTML = '<thead><tr><th>Produto</th><th>Quantidade</th><th></th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        docItens.forEach(function (item) { tbody.appendChild(renderItemRow(item)); });
+        table.appendChild(tbody);
+        block.appendChild(table);
+        body.appendChild(block);
+      });
+    }
+
+    function renderItemRow(item) {
+      const tr = document.createElement('tr');
+      const prodTd = document.createElement('td');
+      const sel = produtoSelect(item.produtoId);
+      prodTd.appendChild(sel);
+      tr.appendChild(prodTd);
+
+      const qtyTd = document.createElement('td');
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'number'; qtyInput.min = '1'; qtyInput.value = item.quantidade; qtyInput.className = 'qty-input';
+      qtyTd.appendChild(qtyInput);
+      tr.appendChild(qtyTd);
+
+      const actionTd = document.createElement('td');
+      const saveBtn = button('Salvar', 'secondary small', async function () {
+        try {
+          const path = tipo() === 'Nfe' ? '/api/documento_fiscal_items/' + item.id : '/api/romaneio_items/' + item.id;
+          const updated = Object.assign({}, item, { produtoId: sel.value, quantidade: Number(qtyInput.value) });
+          await apiSend('PUT', path, updated);
+          log('Item atualizado (produto/quantidade).', true);
+          await loadHistory();
+          renderHistory();
+        } catch (e) { log('Falha ao salvar item: ' + e.message, false); }
+      });
+      actionTd.appendChild(saveBtn);
+      tr.appendChild(actionTd);
+      return tr;
+    }
+
+    async function cancelDocument(doc) {
+      try {
+        const path = tipo() === 'Nfe' ? '/api/documento_fiscals/' + doc.id : '/api/romaneios/' + doc.id;
+        const updated = Object.assign({}, doc, { situacao: tipo() === 'Nfe' ? 'Cancelada' : 'Cancelado' });
+        await apiSend('PUT', path, updated);
+        log('Documento ' + (doc.numero || short(doc.id)) + ' cancelado.', true);
+        await loadHistory();
+        renderHistory();
+      } catch (e) { log('Falha ao cancelar: ' + e.message, false); }
+    }
+
+    async function reloadAll() {
+      $('status').textContent = 'carregando...';
+      try {
+        await loadReferenceData();
+        await loadHistory();
+        renderImportForm();
+        renderHistory();
+        $('status').textContent = 'ok';
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+        log('Falha ao carregar: ' + e.message, false);
+      }
+    }
+
+    $('reload').addEventListener('click', reloadAll);
+    $('tipoSel').addEventListener('change', reloadAll);
+    window.addEventListener('DOMContentLoaded', reloadAll);
+  </script>
+</body>
+</html>

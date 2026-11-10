@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "npdev-panel-provenance.v1",
+  "panel": "Analytics",
+  "screen": "web/analytics.html",
+  "screenClass": "dashboard",
+  "producer": "human",
+  "generatedFrom": {
+    "modelHash": "sha256:cbedab5f298ab34a3dc4c118355ae535e343218b274efe3d4bd8b300ef4c3781",
+    "generatedAt": "2026-07-29T00:00:00Z",
+    "generator": "bootstrap-panel-provenance.py + human review",
+    "bundleScope": {}
+  },
+  "reads": [
+    "LocalArmazenagem.ruaId",
+    "LocalArmazenagem.situacao",
+    "Movimento.tipo",
+    "Movimento.situacao"
+  ],
+  "writes": [],
+  "invokes": [],
+  "calls": [
+    "/api/queries/LocationsByRuaAndSituacao",
+    "/api/queries/MovementsByTipoAndSituacao",
+    "/api/queries/TotalOccupiedLocations"
+  ],
+  "slotOf": null,
+  "confirmed": true,
+  "unresolved": [],
+  "handWritten": true,
+  "reviewedBy": "claude-sonnet-5",
+  "notes": "REPLACED 2026-08-01 (Move 10 B2, LC-B2): web/analytics.html shrunk from 11,455 B to a ~1.1 KB thin host (meta name=\"npdev-guide-page\" content=\"AnalyticsDashboard\" + shell.css/shell.js -- no page-specific JS at all). All client-side aggregation JS deleted; the platform's own groupBy/aggregates query primitive (Move 10 B1) now computes the totals server-side via a real SQL GROUP BY, and the new guidePageGadget catalog (kpi/bar/table) renders them. Frozen original kept as analytics.original.html. Behavioural parity: 2 of 3 original widgets replaced faithfully (Ocupacao por Rua -> table gadget on LocationsByRuaAndSituacao; Movimentos por Tipo e Situacao -> bar gadget on MovementsByTipoAndSituacao, x=tipo/series=situacao/y=total) plus a new kpi headline (Locais Ocupados); 1 of 3 (Estoque por Produto, sum of LocalArmazenagemLote.quantidade joined through Lote to Produto) is a NAMED cannot-express gap -- B1's aggregate query is single-concept only, no join translator exists. LocationsByRuaAndSituacao also differs cosmetically from the original: groups by the raw ruaId, not the joined Armazem/Area/Rua.codigo display path the hand-written widget built."
+}

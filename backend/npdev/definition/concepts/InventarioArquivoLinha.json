@@ -1,0 +1,74 @@
+{
+  "name": "InventarioArquivoLinha",
+  "ui": { "label": "Inventario - Linha" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "inventarioArquivoId", "type": "reference", "required": true,
+      "reference": { "target": "InventarioArquivo", "onDelete": "cascade" },
+      "ui": { "label": "Inventario - Arquivo" }
+    },
+    {
+      "name": "localArmazenagemId", "type": "reference", "required": false,
+      "reference": { "target": "LocalArmazenagem", "onDelete": "restrict" },
+      "ui": { "label": "Local de Armazenagem" }
+    },
+    {
+      "name": "produtoId", "type": "reference", "required": true,
+      "reference": { "target": "Produto", "onDelete": "restrict" },
+      "ui": { "label": "Produto" }
+    },
+    {
+      "name": "loteId", "type": "reference", "required": false,
+      "reference": { "target": "Lote", "onDelete": "restrict" },
+      "ui": { "label": "Lote" }
+    },
+    { "name": "quantidadeEsperada", "type": "long", "required": false, "ui": { "label": "Quantidade esperada" } },
+    { "name": "quantidadeContada", "type": "long", "required": false, "ui": { "label": "Quantidade contada" } },
+    { "name": "divergente", "type": "boolean", "required": true, "default": false, "ui": { "label": "Divergente" } },
+    {
+      "name": "ruaCodigo", "type": "string", "required": false, "maxLength": 40,
+      "ui": { "label": "Rua (codigo)" }
+    },
+    {
+      "name": "ruaId", "type": "reference", "required": false,
+      "reference": { "target": "Rua", "onDelete": "nullify" },
+      "ui": { "label": "Rua" }
+    },
+    {
+      "name": "produtoCodigo", "type": "string", "required": false, "maxLength": 40,
+      "ui": { "label": "Produto (codigo)" }
+    },
+    {
+      "name": "dataValidade", "type": "date", "required": false,
+      "ui": { "label": "Data de validade" }
+    },
+    {
+      "name": "alerta", "type": "string", "required": false, "maxLength": 200,
+      "ui": { "label": "Alerta" }
+    },
+    {
+      "name": "ok", "type": "boolean", "required": false, "default": false,
+      "ui": { "label": "OK" }
+    },
+    {
+      "name": "quantidadeAvulsa", "type": "long", "required": false,
+      "ui": { "label": "Quantidade avulsa (caixas)" }
+    },
+    {
+      "name": "posicoes", "type": "long", "required": false,
+      "ui": { "label": "Posicoes (pallets)" }
+    },
+    {
+      "name": "quantidade", "type": "long", "required": false,
+      "ui": { "label": "Quantidade (recebimento)" }
+    },
+    {
+      "name": "linha", "type": "long", "required": false,
+      "ui": { "label": "Linha (CSV)" }
+    }
+  ],
+  "invariants": [
+    { "name": "InventarioArquivoLinhaQuantidadeEsperadaNonNegative", "type": "expression", "expr": "quantidadeEsperada == null || quantidadeEsperada >= 0" }
+  ]
+}

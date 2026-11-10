@@ -1,0 +1,98 @@
+{
+  "$schema": "npdev/capability-plugin.schema.json",
+  "packageFormatVersion": "1.0",
+  "packageId": "wmsoffice-alocacao-java-source-package",
+  "pluginId": "wmsoffice-alocacao-java-source-plugin",
+  "displayName": "WmsOffice Allocation Capability",
+  "version": "1.0.0",
+  "description": "Pure-Java bin allocation/ranking logic: sugerirDestino (receiving) and sugerirOrigem (shipping, FIFO by expiry).",
+  "capability": "alocacao",
+  "capabilityType": "AlocacaoCapability",
+  "adapterId": "plugin:java-source",
+  "runtimeRef": "alocacaoJavaSourceHandler",
+  "implementation": {
+    "kind": "javaSource",
+    "sourceRoot": "capabilities/alocacao/src/main/java",
+    "mainClass": "com.wmsoffice.capabilities.alocacao.AllocationCapability",
+    "factory": { "kind": "defaultConstructor" }
+  },
+  "operationBindings": [
+    {
+      "operation": "sugerirDestino", "method": "sugerirDestino",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "sugerirOrigem", "method": "sugerirOrigem",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "verificarUnicidade", "method": "verificarUnicidade",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "alocarRecebimento", "method": "alocarRecebimento",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "encontrarOcupacao", "method": "encontrarOcupacao",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "somarQuantidadePorLocalLote", "method": "somarQuantidadePorLocalLote",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "ruasElegiveis", "method": "ruasElegiveis",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "alocarRecebimentoPorRua", "method": "alocarRecebimentoPorRua",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "enderecarRecebimento", "method": "enderecarRecebimento",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "encontrarLotePorChave", "method": "encontrarLotePorChave",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "candidatosCrossDocking", "method": "candidatosCrossDocking",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "verificarGateCrossDocking", "method": "verificarGateCrossDocking",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "localizarBaiaCrossDocking", "method": "localizarBaiaCrossDocking",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "verificarProdutoDuplicado", "method": "verificarProdutoDuplicado",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "verificarProdutoDuplicadoExpedicao", "method": "verificarProdutoDuplicadoExpedicao",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    }
+  ],
+  "trust": { "mode": "artifact-local-source", "source": "external-artifact-bundle", "level": "developer-supplied" },
+  "generation": { "mount": "compileIntoGeneratedApp", "emitManifestContribution": true, "emitPackageDescriptor": true, "emitBinding": true }
+}

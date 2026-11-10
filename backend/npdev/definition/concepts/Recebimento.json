@@ -1,0 +1,73 @@
+{
+  "name": "Recebimento",
+  "ui": { "label": "Recebimento" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "entidadeId", "type": "reference", "required": true,
+      "reference": { "target": "Entidade", "onDelete": "restrict" },
+      "ui": { "label": "Cliente" }
+    },
+    {
+      "name": "transportadoraId", "type": "reference", "required": false,
+      "reference": { "target": "Entidade", "onDelete": "nullify" },
+      "ui": { "label": "Transportadora" }
+    },
+    {
+      "name": "movimentoId", "type": "reference", "required": false,
+      "reference": { "target": "Movimento", "onDelete": "restrict" },
+      "ui": { "label": "Movimento" }
+    },
+    { "name": "dataRecebimento", "type": "date", "required": true, "ui": { "label": "Data de recebimento" } },
+    {
+      "name": "estagio", "type": "enum", "required": true,
+      "values": ["PreRecebimento", "Enderecado", "Conferido", "Armazenado"],
+      "default": "PreRecebimento",
+      "ui": { "label": "Estagio" }
+    },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["Normal", "Suspenso", "Cancelado"],
+      "default": "Normal",
+      "ui": { "label": "Situacao" }
+    },
+    { "name": "nfePendente", "type": "boolean", "required": true, "default": false, "ui": { "label": "NF-e pendente" } },
+    {
+      "name": "divergenciaItensXNotas", "type": "boolean", "required": true, "default": false,
+      "ui": { "label": "Divergencia itens x notas" }
+    },
+    { "name": "observacao", "type": "string", "maxLength": 500, "ui": { "label": "Observacao" } },
+    {
+      "name": "crossDockingAtivo", "type": "boolean", "required": true, "default": false,
+      "ui": { "label": "Cross-docking ativo" }
+    }
+  ],
+  "lifecycle": {
+    "statusField": "estagio",
+    "states": [
+      { "value": "PreRecebimento", "label": "Pre-Recebimento", "initial": true },
+      { "value": "Enderecado", "label": "Enderecado" },
+      { "value": "Conferido", "label": "Conferido" },
+      { "value": "Armazenado", "label": "Armazenado", "terminal": true }
+    ],
+    "transitions": [
+      { "from": "PreRecebimento", "to": "Enderecado" },
+      { "from": "Enderecado", "to": "Conferido" },
+      { "from": "Conferido", "to": "Armazenado" }
+    ]
+  },
+  "invariants": [
+    {
+      "name": "RecebimentoObservacaoRequiredOnDivergence", "type": "expression",
+      "expr": "nfePendente == false && divergenciaItensXNotas == false || observacao != null && observacao != ''"
+    },
+    {
+      "name": "RecebimentoMovimentoRequiredWhenArmazenado", "type": "expression",
+      "expr": "estagio != 'Armazenado' || movimentoId != null"
+    },
+    {
+      "name": "RecebimentoCrossDockingBlocksCancelamento", "type": "expression",
+      "expr": "situacao != 'Cancelado' || crossDockingAtivo == false"
+    }
+  ]
+}

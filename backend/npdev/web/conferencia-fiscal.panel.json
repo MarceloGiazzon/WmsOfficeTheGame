@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "npdev-panel-provenance.v1",
+  "panel": "ConferenciaFiscal",
+  "screen": "web/conferencia-fiscal.html",
+  "screenClass": "operator-console",
+  "producer": "human",
+  "generatedFrom": {
+    "modelHash": "sha256:cbedab5f298ab34a3dc4c118355ae535e343218b274efe3d4bd8b300ef4c3781",
+    "generatedAt": "2026-07-29T00:00:00Z",
+    "generator": "bootstrap-panel-provenance.py + human review",
+    "bundleScope": {}
+  },
+  "reads": [
+    "Entidade.nome",
+    "Entidade.tipo",
+    "Produto.nome",
+    "DocumentoFiscal.numero",
+    "DocumentoFiscal.dataEmissao",
+    "DocumentoFiscal.situacao",
+    "Romaneio.numero",
+    "Romaneio.situacao",
+    "Romaneio.dataEmissao"
+  ],
+  "writes": [
+    "DocumentoFiscal.entidadeId",
+    "DocumentoFiscal.numero",
+    "DocumentoFiscal.chave",
+    "DocumentoFiscal.dataEmissao",
+    "DocumentoFiscal.emitenteCnpj",
+    "DocumentoFiscal.situacao",
+    "DocumentoFiscalItem.documentoFiscalId",
+    "DocumentoFiscalItem.produtoId",
+    "DocumentoFiscalItem.quantidade",
+    "DocumentoFiscalItem.valorUnitarioCentavos",
+    "Romaneio.entidadeId",
+    "Romaneio.numero",
+    "Romaneio.dataEmissao",
+    "Romaneio.situacao",
+    "RomaneioItem.romaneioId",
+    "RomaneioItem.produtoId",
+    "RomaneioItem.quantidade"
+  ],
+  "invokes": [
+    "flow:ImportarNfe",
+    "flow:ImportarRomaneio"
+  ],
+  "calls": [
+    "/api/documento_fiscal_items",
+    "/api/documento_fiscal_items/{id}",
+    "/api/documento_fiscals",
+    "/api/documento_fiscals/{id}",
+    "/api/entidades",
+    "/api/flows/ImportarNfe/execute",
+    "/api/flows/ImportarRomaneio/execute",
+    "/api/produtos",
+    "/api/romaneio_items",
+    "/api/romaneio_items/{id}",
+    "/api/romaneios",
+    "/api/romaneios/{id}"
+  ],
+  "slotOf": null,
+  "confirmed": true,
+  "unresolved": [],
+  "reviewedBy": "claude-sonnet-5",
+  "notes": "RETIRED 2026-07-31 (Move 10 W1.1): web/conferencia-fiscal.html reached behavioural parity (10 works / 3 cosmetic differs / 1 n/a / 0 cannot-express) and was DELETED; conferencia-fiscal.original.html is kept frozen. This manifest is kept as the provenance record of what that screen touched -- check-panel-provenance-impact.py treats a manifest whose screen no longer exists as retired (advisory, never blocking), see REG-93. The 'flow:ImportarNfe'/'flow:ImportarRomaneio' invocations below intentionally no longer exist: both flows were deleted in the same change as the HTML, since they were one-step capability wrappers with no remaining caller and would otherwise have become incomplete duplicates of ParseNfeProcedure/ParseRomaneioProcedure (no product auto-match, no duplicate-key rejection) that a future author could bind to with no validation error. ORIGINAL NOTES: Import-then-confirm master-detail: parse via flow (invokes, correctly caught by the draft), then persist headers/items via direct CRUD (writes, missed by the draft -- apiSend(method, path, body) positional style again, same systemic gap as the other operator-console screens). Also handles cancel (PUT situacao update) for both document types. Dropped the draft's 'HistoricoMovimentacao.descricao'/'identity::Role.name'/'workspace::Menu.label' false positives (unrelated Portuguese word 'Descricao' and shell.js chrome)."
+}

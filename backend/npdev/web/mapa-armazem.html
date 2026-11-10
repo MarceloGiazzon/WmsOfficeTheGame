@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Visualizacao Oficial</title>
+  <!-- Visualizacao Oficial: recreation of the GeneXus WmsOffice warehouse map object.
+       Toolbar (time/consulta + Corredores/Situacao/Produto filters), a per-Rua position map,
+       a closable legend with live counts, KPIs and hover tooltips. The map stage keeps the
+       dark "control-room" canvas of the original render; the toolbar uses the app's steel-blue
+       (#295572) shell identity. Data comes live from the REST API (Rua/LocalArmazenagem/
+       LocalArmazenagemLote + in-flight Movimentos for the inbound/outbound reserve hint). -->
+  <style>
+    :root{
+      --steel:#295572; --steel-d:#1f425a; --line:#d3d4d3;
+      --disp:#4caf50; --ocup:#8c98a8; --reserv:#b39ddb;
+      --res-dest:#4d8fe8; --res-orig:#ff9d33; --bloq:#e05d5d;
+      --stage:#0f1420; --stage2:#161d2c; --sline:#2a3446; --sink:#e7ecf5; --smuted:#8b98ad;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:#fff;color:#1c2333;font-family:"Segoe UI",system-ui,sans-serif}
+    body{display:flex;flex-direction:column;overflow:hidden}
+
+    /* toolbar */
+    #bar{display:flex;gap:8px;align-items:center;padding:8px 12px;background:#f0f2f5;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+    #bar .grp{display:flex;align-items:center;gap:5px}
+    #bar label{color:#54607a;font-size:12px}
+    #bar input,#bar select{background:#fff;color:#1c2333;border:1px solid #c8d0da;border-radius:4px;padding:4px 6px}
+    #bar input#base{width:180px}
+    #bar input#key{width:120px}
+    #bar input#prod{width:150px}
+    #bar .timenav button{width:26px;height:26px;padding:0;font-size:14px}
+    #bar button{background:var(--steel);color:#fff;border:0;border-radius:4px;padding:5px 12px;cursor:pointer;font-weight:600}
+    #bar button:hover{background:var(--steel-d)}
+    #bar button.ghost{background:#fff;color:var(--steel);border:1px solid #c8d0da}
+    #dt{width:150px;text-align:center}
+    .chk{display:flex;align-items:center;gap:5px;color:#54607a;cursor:pointer;user-select:none}
+    #status{margin-left:8px;color:#6b7280}
+
+    /* KPIs */
+    .kpis{display:flex;gap:8px;margin-left:auto}
+    .kpi{background:#fff;border:1px solid #d7dde6;border-radius:6px;padding:3px 12px;text-align:center;min-width:70px}
+    .kpi .n{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+    .kpi .l{font-size:10px;color:#7a869a;text-transform:uppercase;letter-spacing:.4px}
+
+    /* map stage */
+    .stage{flex:1;position:relative;overflow:auto;background:
+       linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px) 0 0/32px 32px,
+       linear-gradient(0deg,rgba(255,255,255,.02) 1px,transparent 1px) 0 0/32px 32px,
+       radial-gradient(1200px 500px at 30% 0%,#141c2b,#0d1220)}
+    #content{padding:20px;display:flex;flex-wrap:wrap;gap:16px;align-content:flex-start}
+    #empty{padding:40px;color:var(--smuted)}
+
+    .rua-block{background:var(--stage2);border:1px solid var(--sline);border-radius:8px;padding:8px 10px 10px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+    .rua-block.dim{opacity:.18;filter:grayscale(.6)}
+    .rua-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+    .rua-head .code{color:#ffd94a;font-weight:700;font-family:Consolas,"Courier New",monospace;letter-spacing:.5px;font-size:13px}
+    .rua-head .meta{color:var(--smuted);font-size:11px}
+    .grid{display:grid;gap:3px}
+    .cell{width:30px;height:24px;border-radius:3px;border:1px solid rgba(0,0,0,.35);cursor:pointer;
+      display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:rgba(0,0,0,.6);
+      transition:transform .07s,box-shadow .07s,outline-color .07s}
+    .cell:hover{transform:translateY(-2px) scale(1.12);box-shadow:0 5px 12px rgba(0,0,0,.5);z-index:4;outline:2px solid #fff}
+    .cell.hole{visibility:hidden}
+    .cell.dim{opacity:.12;filter:grayscale(.8)}
+    .cell.disponivel{background:var(--disp)}
+    .cell.ocupado{background:var(--ocup)}
+    .cell.reservado{background:var(--reserv)}
+    .cell.reservado-destino{background:var(--res-dest);color:#eaf2ff}
+    .cell.reservado-origem{background:var(--res-orig)}
+    .cell.bloqueado{background:var(--bloq);color:#fff}
+
+    /* legend */
+    .legend{position:absolute;left:20px;bottom:20px;background:rgba(20,27,40,.94);border:1px solid var(--sline);
+      border-radius:10px;padding:12px 14px;backdrop-filter:blur(6px);box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:12;min-width:230px}
+    .legend h3{margin:0 0 8px;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--smuted);display:flex;justify-content:space-between;align-items:center}
+    .legend h3 .x{cursor:pointer;font-size:15px;line-height:1}
+    .legend .row{display:flex;align-items:center;gap:8px;font-size:12px;padding:2px 0;color:var(--sink)}
+    .legend .sw{width:16px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.4);flex:0 0 auto}
+    .legend .cnt{margin-left:auto;color:var(--smuted);font-variant-numeric:tabular-nums}
+    .legend.closed{display:none}
+    #legopen{position:absolute;left:20px;bottom:20px;z-index:12;display:none}
+
+    /* tooltip */
+    #tip{position:fixed;pointer-events:none;z-index:50;background:#0b1018;border:1px solid var(--res-dest);border-radius:8px;
+      padding:9px 11px;font-size:12px;line-height:1.5;max-width:300px;box-shadow:0 10px 30px rgba(0,0,0,.6);opacity:0;transition:opacity .1s;color:var(--sink)}
+    #tip b{color:#8fd0ff}
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <div class="grp"><label>API</label><input id="base" value="http://localhost:8100" /></div>
+    <div class="grp"><label>Token</label><input id="key" placeholder="faca login" /></div>
+    <div class="grp timenav">
+      <label>Consulta</label>
+      <button id="hprev" class="ghost" title="Hora anterior">&lsaquo;</button>
+      <input id="dt" />
+      <button id="hnext" class="ghost" title="Proxima hora">&rsaquo;</button>
+    </div>
+    <div class="grp"><label>Armazem</label><select id="armazemFilter"><option value="">(todos)</option></select></div>
+    <div class="grp"><label>Corredor</label><select id="corFilter"><option value="">(todos)</option></select></div>
+    <div class="grp"><label>Situacao</label>
+      <select id="sitFilter">
+        <option value="">(todas)</option>
+        <option value="disponivel">Disponivel</option>
+        <option value="ocupado">Ocupado</option>
+        <option value="reservado-destino">Reservado (entrada)</option>
+        <option value="reservado-origem">Reservado (saida)</option>
+        <option value="reservado">Reservado (outro)</option>
+        <option value="bloqueado">Bloqueado</option>
+      </select>
+    </div>
+    <div class="grp"><label>Produto/Lote</label><input id="prod" placeholder="filtrar..." /></div>
+    <label class="chk"><input type="checkbox" id="soLivres" /> so livres</label>
+    <button id="load">Carregar</button>
+    <span id="status">idle</span>
+
+    <div class="kpis">
+      <div class="kpi"><div class="n" id="k-total">0</div><div class="l">Posicoes</div></div>
+      <div class="kpi"><div class="n" id="k-ocup" style="color:#5c6470">0</div><div class="l">Ocupadas</div></div>
+      <div class="kpi"><div class="n" id="k-disp" style="color:#2e7d32">0</div><div class="l">Livres</div></div>
+      <div class="kpi"><div class="n" id="k-occ" style="color:var(--steel)">0%</div><div class="l">Ocupacao</div></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div id="content"><div id="empty">Clique em "Carregar" para buscar o mapa do armazem.</div></div>
+    <div class="legend" id="legend">
+      <h3>Legenda <span class="x" id="legx" title="Fechar">&times;</span></h3>
+      <div class="row"><span class="sw" style="background:var(--disp)"></span>Disponivel<span class="cnt" id="c-disponivel"></span></div>
+      <div class="row"><span class="sw" style="background:var(--ocup)"></span>Ocupado<span class="cnt" id="c-ocupado"></span></div>
+      <div class="row"><span class="sw" style="background:var(--res-dest)"></span>Reservado (entrada em andamento)<span class="cnt" id="c-reservado-destino"></span></div>
+      <div class="row"><span class="sw" style="background:var(--res-orig)"></span>Reservado (saida em andamento)<span class="cnt" id="c-reservado-origem"></span></div>
+      <div class="row"><span class="sw" style="background:var(--reserv)"></span>Reservado (outro)<span class="cnt" id="c-reservado"></span></div>
+      <div class="row"><span class="sw" style="background:var(--bloq)"></span>Bloqueado<span class="cnt" id="c-bloqueado"></span></div>
+    </div>
+    <button id="legopen" class="ghost">Legenda</button>
+  </div>
+  <div id="tip"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+
+    window.addEventListener("DOMContentLoaded", function () {
+      const saved = localStorage.getItem("npdev.shell.token");
+      if (saved) $('key').value = saved;
+      const now = new Date(); const p = n => String(n).padStart(2,'0');
+      $('dt').value = `${p(now.getDate())}/${p(now.getMonth()+1)}/${now.getFullYear()} ${p(now.getHours())}:00`;
+    });
+
+    async function api(base, key, path) {
+      const res = await fetch(base + path, { headers: { 'Authorization': 'Bearer ' + key } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+
+    // ---- state kept for filtering without re-fetch ----
+    let MODEL = null;
+
+    async function load() {
+      const base = $('base').value.replace(/\/$/, '');
+      const key = $('key').value.trim();
+      $('status').textContent = 'carregando...';
+      try {
+        const [armazens, areas, ruas, locais, lotesOcup, lotes, produtos, movimentos, itens, posicoes] =
+          await Promise.all([
+            api(base, key, '/api/armazems'), api(base, key, '/api/areas'),
+            api(base, key, '/api/ruas'), api(base, key, '/api/local_armazenagems'),
+            api(base, key, '/api/local_armazenagem_lotes'), api(base, key, '/api/lotes'),
+            api(base, key, '/api/produtos'), api(base, key, '/api/movimentos'),
+            api(base, key, '/api/movimento_items'), api(base, key, '/api/movimento_item_posicaos')
+          ]).then(r => r.map(list));
+
+        // reserve direction hint: a bin "Reservado" is inbound (Destino) or outbound (Origem)
+        // if it has a MovimentoItemPosicao whose parent Movimento is still in progress.
+        const ACTIVE = new Set(['Pendente', 'Suspenso']);
+        const movById = Object.fromEntries(movimentos.map(m => [m.id, m]));
+        const itemById = Object.fromEntries(itens.map(i => [i.id, i]));
+        const reservaPapel = {};
+        posicoes.forEach(p => {
+          const it = itemById[p.movimentoItemId]; const mv = it ? movById[it.movimentoId] : null;
+          if (mv && ACTIVE.has(mv.situacao)) reservaPapel[p.localArmazenagemId] = p.papel;
+        });
+
+        // occupancy: lote rows per local (product/lot info for tooltip + product filter)
+        const loteById = Object.fromEntries(lotes.map(l => [l.id, l]));
+        const prodById = Object.fromEntries(produtos.map(p => [p.id, p]));
+        const ocupByLocal = {};
+        lotesOcup.forEach(o => {
+          (ocupByLocal[o.localArmazenagemId] = ocupByLocal[o.localArmazenagemId] || []).push(o);
+        });
+
+        MODEL = {
+          armazemById: Object.fromEntries(armazens.map(a => [a.id, a])),
+          areaById: Object.fromEntries(areas.map(a => [a.id, a])),
+          ruaById: Object.fromEntries(ruas.map(r => [r.id, r])),
+          armazens, areas, ruas, locais, reservaPapel, ocupByLocal, loteById, prodById
+        };
+
+        fillSelect($('armazemFilter'), armazens.map(a => [a.id, a.nome]));
+        fillSelect($('corFilter'), ruas.map(r => [r.id, r.codigo]).sort((a,b)=>a[1].localeCompare(b[1])));
+        render();
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+        $('content').innerHTML = `<div id="empty" style="color:#ff6b6b">${e.message}<br>` +
+          `<small>Confirme que o app WmsOffice esta rodando em ${base} e que voce fez login.</small></div>`;
+      }
+    }
+
+    function fillSelect(sel, pairs) {
+      if (sel.dataset.filled) return;
+      pairs.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); });
+      sel.dataset.filled = '1';
+    }
+
+    // classify a local into a legend bucket
+    function bucket(local, m) {
+      if (local.situacao === 'Bloqueado') return 'bloqueado';
+      if (local.situacao === 'Ocupado') return 'ocupado';
+      if (local.situacao === 'Reservado') {
+        const papel = m.reservaPapel[local.id];
+        if (papel === 'Destino') return 'reservado-destino';
+        if (papel === 'Origem') return 'reservado-origem';
+        return 'reservado';
+      }
+      return 'disponivel';
+    }
+
+    function loteText(local, m) {
+      const rows = m.ocupByLocal[local.id] || [];
+      return rows.map(o => {
+        const lt = m.loteById[o.loteId]; const pr = lt ? m.prodById[lt.produtoId] : null;
+        return `${pr ? pr.nome : 'Produto ?'}${lt ? ' / lote ' + (lt.codigo || lt.numero || lt.id.slice(0,8)) : ''} (qtd ${o.quantidade})`;
+      });
+    }
+
+    function render() {
+      const m = MODEL; if (!m) return;
+      const content = $('content'); content.innerHTML = '';
+      const fArm = $('armazemFilter').value, fCor = $('corFilter').value,
+            fSit = $('sitFilter').value, fProd = $('prod').value.trim().toLowerCase(),
+            soLivres = $('soLivres').checked;
+
+      let ruasToShow = m.ruas.slice();
+      if (fArm) {
+        const areaIds = new Set(m.areas.filter(a => a.armazemId === fArm).map(a => a.id));
+        ruasToShow = ruasToShow.filter(r => areaIds.has(r.areaId));
+      }
+      if (fCor) ruasToShow = ruasToShow.filter(r => r.id === fCor);
+      ruasToShow.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+
+      const counts = { disponivel:0, ocupado:0, 'reservado-destino':0, 'reservado-origem':0, reservado:0, bloqueado:0 };
+      let vis = 0, ocupN = 0, dispN = 0, shownRuas = 0;
+
+      for (const rua of ruasToShow) {
+        const area = m.areaById[rua.areaId];
+        const armazem = area ? m.armazemById[area.armazemId] : null;
+        const locais = m.locais.filter(l => l.ruaId === rua.id);
+        const maxAndar = Math.max(1, ...locais.map(l => l.andar || 1), rua.qtdAndares || 1);
+        const maxPos   = Math.max(1, ...locais.map(l => l.posicao || 1), rua.qtdPosicoes || 1);
+        const byCoord = {}; locais.forEach(l => byCoord[`${l.andar}:${l.posicao}`] = l);
+
+        const block = document.createElement('div');
+        block.className = 'rua-block';
+        block.innerHTML = `<div class="rua-head"><span class="code">${rua.codigo}</span>` +
+          `<span class="meta">${armazem ? armazem.nome : '?'} / ${area ? area.nome : '?'} &middot; ${locais.length} pos.` +
+          `${rua.bloqueiaRecebimento ? ' &middot; rec.bloq' : ''}${rua.bloqueiaExpedicao ? ' &middot; exp.bloq' : ''}</span></div>`;
+
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+        grid.style.gridTemplateColumns = `repeat(${maxPos}, 30px)`;
+        let ruaHasVisible = false;
+
+        for (let andar = maxAndar; andar >= 1; andar--) {
+          for (let pos = 1; pos <= maxPos; pos++) {
+            const local = byCoord[`${andar}:${pos}`];
+            const cell = document.createElement('div');
+            if (!local) { cell.className = 'cell hole'; grid.appendChild(cell); continue; }
+
+            const b = bucket(local, m);
+            const lotes = loteText(local, m);
+            let ok = true;
+            if (fSit && b !== fSit) ok = false;
+            if (soLivres && b !== 'disponivel') ok = false;
+            if (fProd && !lotes.join(' ').toLowerCase().includes(fProd)) ok = false;
+
+            cell.className = 'cell ' + b + (ok ? '' : ' dim');
+            cell.textContent = pos;
+            if (ok) {
+              vis++; counts[b]++; ruaHasVisible = true;
+              if (b === 'disponivel') dispN++; else ocupN++;
+            }
+            const tip = `Rua ${rua.codigo} · Pos ${pos} · Andar ${andar}\n` +
+              `Situacao: ${local.situacao}` +
+              (b === 'reservado-destino' ? ' (entrada em andamento)' : b === 'reservado-origem' ? ' (saida em andamento)' : '') +
+              (lotes.length ? '\n' + lotes.join('\n') : '');
+            cell.addEventListener('mousemove', e => showTip(e, rua, local, b, lotes));
+            cell.addEventListener('mouseleave', () => $('tip').style.opacity = 0);
+            grid.appendChild(cell);
+          }
+        }
+        block.appendChild(grid);
+        if (!ruaHasVisible && (fSit || soLivres || fProd)) block.classList.add('dim');
+        content.appendChild(block);
+        shownRuas++;
+      }
+
+      if (shownRuas === 0) content.innerHTML = '<div id="empty">Nenhuma rua encontrada para o filtro atual.</div>';
+      $('k-total').textContent = vis;
+      $('k-ocup').textContent = ocupN;
+      $('k-disp').textContent = dispN;
+      $('k-occ').textContent = vis ? Math.round(ocupN / vis * 100) + '%' : '0%';
+      for (const k in counts) $('c-' + k).textContent = counts[k];
+      $('status').textContent = `${shownRuas} rua(s) · ${vis} posicao(oes) visivel(is)`;
+    }
+
+    function showTip(e, rua, local, b, lotes) {
+      const tip = $('tip');
+      const roleTxt = b === 'reservado-destino' ? ' <b>(entrada em andamento)</b>'
+                    : b === 'reservado-origem' ? ' <b>(saida em andamento)</b>' : '';
+      tip.innerHTML = `<b>Rua ${rua.codigo}</b> &middot; Pos ${local.posicao} &middot; Andar ${local.andar}<br>` +
+        `Situacao: <b>${local.situacao}</b>${roleTxt}` +
+        (lotes.length ? '<br>' + lotes.map(x => x.replace(/</g,'&lt;')).join('<br>') : '');
+      tip.style.opacity = 1;
+      let x = e.clientX + 14, y = e.clientY + 14;
+      if (x + 310 > innerWidth) x = e.clientX - 310;
+      if (y + 130 > innerHeight) y = e.clientY - 130;
+      tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    }
+
+    function stepHour(delta) {
+      const el = $('dt'); const mm = el.value.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+      if (!mm) return;
+      const dt = new Date(+mm[3], +mm[2]-1, +mm[1], +mm[4]+delta, +mm[5]);
+      const p = n => String(n).padStart(2,'0');
+      el.value = `${p(dt.getDate())}/${p(dt.getMonth()+1)}/${dt.getFullYear()} ${p(dt.getHours())}:${p(dt.getMinutes())}`;
+      // NOTE: point-in-time replay is not yet wired to a server history endpoint; the field
+      // reflects the intended "consulta" instant. Reloads still show current state.
+    }
+
+    $('load').addEventListener('click', load);
+    ['armazemFilter','corFilter','sitFilter','soLivres'].forEach(id => $(id).addEventListener('change', () => MODEL && render()));
+    $('prod').addEventListener('input', () => MODEL && render());
+    $('hprev').addEventListener('click', () => stepHour(-1));
+    $('hnext').addEventListener('click', () => stepHour(1));
+    $('legx').addEventListener('click', () => { $('legend').classList.add('closed'); $('legopen').style.display = 'block'; });
+    $('legopen').addEventListener('click', () => { $('legend').classList.remove('closed'); $('legopen').style.display = 'none'; });
+  </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+[
+  {
+    "path": "novo-estabelecimento.html",
+    "label": "Novo Estabelecimento",
+    "requiredRole": null,
+    "ordinal": 10
+  },
+  {
+    "path": "excluir-estabelecimento.html",
+    "label": "Excluir Estabelecimento",
+    "requiredRole": "ADMIN",
+    "ordinal": 20
+  },
+  {
+    "path": "reset-ambiente.html",
+    "label": "Resetar Ambiente",
+    "requiredRole": "ADMIN",
+    "ordinal": 15
+  },
+  {
+    "path": "mapa-armazem.html",
+    "label": "Mapa do Armazem",
+    "requiredRole": null,
+    "ordinal": 60
+  },
+  {
+    "path": "analytics.html",
+    "label": "Analytics",
+    "requiredRole": null,
+    "ordinal": 100
+  },
+  {
+    "path": "relatorios.html",
+    "label": "Relatorios",
+    "requiredRole": null,
+    "ordinal": 110
+  }
+]

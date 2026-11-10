@@ -1,0 +1,50 @@
+{
+  "name": "CrossDocking",
+  "ui": { "label": "Cross-Docking" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "recebimentoId", "type": "reference", "required": true,
+      "reference": { "target": "Recebimento", "onDelete": "restrict" },
+      "ui": { "label": "Recebimento" }
+    },
+    {
+      "name": "expedicaoId", "type": "reference", "required": true,
+      "reference": { "target": "Expedicao", "onDelete": "restrict" },
+      "ui": { "label": "Expedicao" }
+    },
+    {
+      "name": "produtoId", "type": "reference", "required": true,
+      "reference": { "target": "Produto", "onDelete": "restrict" },
+      "ui": { "label": "Produto" }
+    },
+    { "name": "quantidade", "type": "long", "required": true, "ui": { "label": "Quantidade" } },
+    { "name": "dataAtivacao", "type": "date", "required": true, "ui": { "label": "Data de ativacao" } },
+    {
+      "name": "baiaLocalArmazenagemId", "type": "reference", "required": false,
+      "reference": { "target": "LocalArmazenagem", "onDelete": "restrict" },
+      "ui": { "label": "Baia de Cross-Docking" }
+    },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["Ativo", "Concluido", "Cancelado"],
+      "default": "Ativo",
+      "ui": { "label": "Situacao" }
+    }
+  ],
+  "lifecycle": {
+    "statusField": "situacao",
+    "states": [
+      { "value": "Ativo", "label": "Ativo", "initial": true },
+      { "value": "Concluido", "label": "Concluido", "terminal": true },
+      { "value": "Cancelado", "label": "Cancelado", "terminal": true }
+    ],
+    "transitions": [
+      { "from": "Ativo", "to": "Concluido" },
+      { "from": "Ativo", "to": "Cancelado" }
+    ]
+  },
+  "invariants": [
+    { "name": "CrossDockingQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
+  ]
+}

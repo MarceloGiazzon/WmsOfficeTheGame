@@ -1,0 +1,26 @@
+{
+  "name": "MovimentoItem",
+  "ui": { "label": "Movimento - Item" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "movimentoId", "type": "reference", "required": true,
+      "reference": { "target": "Movimento", "onDelete": "cascade" },
+      "ui": { "label": "Movimento" }
+    },
+    {
+      "name": "produtoId", "type": "reference", "required": true,
+      "reference": { "target": "Produto", "onDelete": "restrict" },
+      "ui": { "label": "Produto" }
+    },
+    {
+      "name": "loteId", "type": "reference", "required": false,
+      "reference": { "target": "Lote", "onDelete": "restrict" },
+      "ui": { "label": "Lote" }
+    },
+    { "name": "quantidade", "type": "long", "required": true, "ui": { "label": "Quantidade" } }
+  ],
+  "invariants": [
+    { "name": "MovimentoItemQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
+  ]
+}

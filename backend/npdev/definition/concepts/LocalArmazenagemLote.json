@@ -1,0 +1,28 @@
+{
+  "name": "LocalArmazenagemLote",
+  "ui": { "label": "Ocupacao do Local" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "localArmazenagemId", "type": "reference", "required": true,
+      "reference": { "target": "LocalArmazenagem", "onDelete": "cascade" },
+      "ui": { "label": "Local de Armazenagem" }
+    },
+    {
+      "name": "loteId", "type": "reference", "required": true,
+      "reference": { "target": "Lote", "onDelete": "restrict" },
+      "ui": { "label": "Lote" }
+    },
+    { "name": "quantidade", "type": "long", "required": true, "default": 0, "ui": { "label": "Quantidade" } }
+  ],
+  "invariants": [
+    { "name": "LocalArmazenagemLoteQuantidadeNonNegative", "type": "expression", "expr": "quantidade >= 0" }
+  ],
+  "indexes": [
+    {
+      "name": "ux_local_armazenagem_lote_pair",
+      "fields": ["localArmazenagemId", "loteId"],
+      "unique": true
+    }
+  ]
+}

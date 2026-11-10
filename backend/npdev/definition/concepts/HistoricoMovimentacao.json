@@ -1,0 +1,18 @@
+{
+  "name": "HistoricoMovimentacao",
+  "ui": { "label": "Historico de Movimentacao" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "movimentoId", "type": "reference", "required": true,
+      "reference": { "target": "Movimento", "onDelete": "cascade" },
+      "ui": { "label": "Movimento" }
+    },
+    {
+      "name": "evento", "type": "string", "required": true, "maxLength": 100,
+      "ui": { "label": "Evento" }
+    },
+    { "name": "descricao", "type": "string", "maxLength": 500, "ui": { "label": "Descricao" } },
+    { "name": "ocorridoEm", "type": "datetime", "ui": { "label": "Ocorrido em" } }
+  ]
+}

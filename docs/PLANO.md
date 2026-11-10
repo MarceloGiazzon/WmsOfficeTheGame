@@ -65,17 +65,21 @@ header `Authorization: Bearer <jwt>`.
 - `sugerirDestino` / `sugerirOrigem` / `ruasElegiveis` viram funções TS puras.
 - **Testes de paridade**: o mesmo JSON de entrada roda contra o Java (via flow) e contra o TS; saída deve ser igual.
 
-### D4. Os concepts de jogo ficam isolados dentro do WmsOffice
+### D4. O backend do jogo é um app NPDev próprio: WmsOfficeTheGame
 
-- Prefixo `Sim*` e role própria (`JOGADOR`), sem alterar o comportamento dos concepts de WMS.
+- **O WmsOffice é um produto real e independente — o jogo não o altera.** (Decidido em 2026-11-10.)
+- A definição NPDev do jogo vive **neste repositório**, em [`backend/npdev/`](../backend/npdev/) (versionada junto
+  com o front). Ela nasceu como cópia do WmsOffice (snapshot 2026-11-10) — ver [`backend/npdev/README.md`](../backend/npdev/README.md).
+- Novos concepts com prefixo `Sim*` e role própria (`JOGADOR`).
 - Topologia do cenário **reaproveita** `Armazem/Area/Rua/LocalArmazenagem` (um `Armazem` por cenário),
-  para que o mapa existente e as capabilities funcionem sem adaptação.
-- **Decidido (2026-11-10):** concepts `Sim*` dentro do `_official/WmsOffice` (alternativa descartada: fork em `_experiments/WmsOfficeGame`).
+  para que o mapa e as capabilities copiadas funcionem sem adaptação.
+- Mudanças futuras do WmsOffice **não** chegam automaticamente ao jogo; trazer algo do produto é uma decisão explícita.
 
 ### D5. Mesma origem em produção
 
 - O generator monta `web/` como estáticos do app. O build do Vite vai para `web/jogo/` → servido em
-  `http://localhost:8100/jogo/`, sem CORS. Em dev, proxy do Vite `/api → :8100`.
+  `http://localhost:8200/jogo/`, sem CORS. Em dev, proxy do Vite `/api → :8200`.
+- Porta **8200** para o jogo (o WmsOffice usa 8100; os dois podem rodar lado a lado).
 
 ### D6. Inteiros escalados (convenção única)
 
@@ -94,7 +98,7 @@ header `Authorization: Bearer <jwt>`.
   trocar `decimal` por inteiros escalados (D6).
 - §6: score final = `min(100, max(0, 100 − (P_dist + P_atraso + P_conflito)) + B_ocup)`; recalcular a tabela 6.2
   (Estratégia B → 100,0 com o teto, ou ajustar os números de exemplo).
-- §2: porta 8100, JWT, motor no cliente (D1/D2).
+- §2: app NPDev próprio na porta 8200 (D4/D5), JWT, motor no cliente (D1/D2).
 - §7: substituir o roadmap pelo deste plano.
 
 ---
@@ -112,9 +116,9 @@ Runbook completo e armadilhas: [NPDEV_LINUX.md](NPDEV_LINUX.md).
 - [x] Geração → `build-final-app.sh` → `start-app.sh` (os `.ps1` de `_ops` não funcionam no Linux).
 - [x] `bootstrap-admin`, login, REST, `mapa-armazem.html` e flow `SugerirDestino` verificados.
 - [x] Smoke test equivalente com Bearer (o `smoke-test.sh` gerado só suporta API key).
-- [x] D4 decidido (`_official`).
+- [x] D4 decidido: app próprio `WmsOfficeTheGame` em `backend/npdev/` (porta 8200), WmsOffice intocado.
 
-**Pendência antes da N1:** `AppGen/` não está sob controle de versão — as mudanças da N1+ no `_official/WmsOffice` não terão histórico.
+Resolvido: a definição do jogo fica neste repo (versionada), então N1+ têm histórico normal.
 
 ### N1. Concepts de simulação
 
@@ -214,8 +218,8 @@ GET cenário → { cenario, armazem, areas[], ruas[], locais[], produtos[], orde
 
 ### N5. Mount do jogo e CORS
 
-- Script `npm run deploy:npdev` → `vite build` → copia `dist/` para `WmsOffice/web/jogo/`.
-- Validar `http://localhost:8100/jogo/` com login via `/api/auth/login`.
+- Script `npm run deploy:npdev` → `vite build` → copia `dist/` para `backend/npdev/web/jogo/`.
+- Validar `http://localhost:8200/jogo/` com login via `/api/auth/login`.
 
 ---
 
@@ -321,7 +325,7 @@ N0 ─► N1 ─► N2 ─► N3 ─► N4 ─► N5 ──────► F5 �
 Marcos:
 1. **M1 — Jogável offline**: F0–F4 com o cenário `WH-A-PEQUENO` mockado.
 2. **M2 — Backend pronto**: N0–N3 de pé no Linux, cenários semeados, score validado no servidor.
-3. **M3 — Integrado**: F5 + N4/N5, servido em `:8100/jogo/`, ranking funcionando.
+3. **M3 — Integrado**: F5 + N4/N5, servido em `:8200/jogo/`, ranking funcionando.
 4. **M4 — Mobile**: F6–F7, APK offline.
 
 ---
@@ -334,14 +338,14 @@ Marcos:
 | Divergência TS × Java nas regras de alocação | Score "WmsReal" inconsistente | Fixtures compartilhadas + testes de paridade |
 | Limites de procedures (sem filtro) | Pacote do cenário lento | Opção A (várias chamadas) + cache |
 | Score falsificável no cliente | Ranking não confiável | `validarScore` recalcula a partir das métricas; replay completo (seed + log de decisões) fica para depois |
-| Mexer no `_official` quebra o WMS | Regressão | Concepts `Sim*` isolados + `Test-App.ps1` antes de cada merge; ou fork (D4) |
+| Fork diverge do WmsOffice | Correções do produto não chegam ao jogo | Snapshot documentado em `backend/npdev/README.md`; sincronizar só quando necessário |
 | Performance no cenário mega em celulares | UX ruim | Medir na F6; canvas em camadas / PixiJS |
 
 ---
 
 ## 7. Questões em aberto
 
-1. ~~**D4**~~: decidido — `_official/WmsOffice` com prefixo `Sim*`.
+1. ~~**D4**~~: decidido — app NPDev próprio (`backend/npdev/`), WmsOffice intocado.
 2. O NPDev será mantido nas duas máquinas (Windows e Linux)? Se sim, `config.json` por máquina vai para fora do git.
 3. O ranking é global ou por usuário/tenant?
 4. Haverá validação por replay (o servidor reexecuta a partida)? Isso exige o motor em Java também — fora de escopo por ora.

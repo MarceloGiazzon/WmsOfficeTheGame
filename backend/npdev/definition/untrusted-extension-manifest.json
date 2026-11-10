@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "npdev-untrusted-extension-manifest.v1",
+  "scenarioId": "wmsofficethegame",
+  "policyVersion": "1.0",
+  "expectedOutcome": "pass",
+  "entries": [
+    {
+      "entryId": "widget-armazem-location-map",
+      "kind": "widget",
+      "relativePath": "widgets/armazem-location-map.js",
+      "language": "javascript",
+      "sha256": "8c06afd90f9bf67160519f1e0ac2df4aadd110cbe3fc3212a928e5075a184b2f"
+    },
+    {
+      "entryId": "procedure-registrar-entidade-trusted",
+      "kind": "procedure",
+      "relativePath": "trusted-source/procedure/RegistrarEntidadeTrustedProcedure.java",
+      "language": "java",
+      "sha256": "1b6b196d47640deb8573f4598b4159a1b35366c433997a2d3fa86b4ff64268a8",
+      "runtimeBinding": "procedure:RegistrarEntidadeTrustedProcedure",
+      "className": "RegistrarEntidadeTrustedProcedure",
+      "method": "execute",
+      "requiredRole": "ADMIN",
+      "tenantScoped": true
+    },
+    {
+      "entryId": "procedure-registrar-produto-trusted",
+      "kind": "procedure",
+      "relativePath": "trusted-source/procedure/RegistrarProdutoTrustedProcedure.java",
+      "language": "java",
+      "sha256": "6ae4835b00540cf193ba63b0565c9737058bfe7d2eb7679c3f2ea5a8fb8afe44",
+      "runtimeBinding": "procedure:RegistrarProdutoTrustedProcedure",
+      "className": "RegistrarProdutoTrustedProcedure",
+      "method": "execute",
+      "requiredRole": "ADMIN",
+      "tenantScoped": true
+    },
+    {
+      "entryId": "panel-entidades-trusted",
+      "kind": "panel",
+      "relativePath": "trusted-source/panel/entidades-trusted.html",
+      "language": "html+javascript",
+      "sha256": "8d9c6d79c623888053d29374e76447bf6cf9f755ba9e82814bad4c5926340e35",
+      "runtimeBinding": "panel:/entidades-trusted",
+      "requiredRole": "ADMIN",
+      "tenantScoped": true
+    },
+    {
+      "entryId": "panel-produtos-trusted",
+      "kind": "panel",
+      "relativePath": "trusted-source/panel/produtos-trusted.html",
+      "language": "html+javascript",
+      "sha256": "da8c91e474a65a4cd2e8bd9c1eb4e67c35739a9d20a06dbf42f8262ff5572f40",
+      "runtimeBinding": "panel:/produtos-trusted",
+      "requiredRole": "ADMIN",
+      "tenantScoped": true
+    }
+  ]
+}

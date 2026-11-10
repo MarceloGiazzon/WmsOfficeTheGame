@@ -1,0 +1,34 @@
+{
+  "name": "Lote",
+  "ui": { "label": "Lote" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "entidadeId", "type": "reference", "required": true,
+      "reference": { "target": "Entidade", "onDelete": "restrict" },
+      "ui": { "label": "Entidade" }
+    },
+    {
+      "name": "produtoId", "type": "reference", "required": true,
+      "reference": { "target": "Produto", "onDelete": "restrict" },
+      "ui": { "label": "Produto" }
+    },
+    { "name": "dataValidade", "type": "date", "required": true, "ui": { "label": "Data de validade" } },
+    {
+      "name": "ocorrencia", "type": "enum", "required": true,
+      "values": ["Normal", "Avariado"],
+      "default": "Normal",
+      "ui": { "label": "Ocorrencia" }
+    },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["PreRecebimento", "Recebido", "Cancelado"],
+      "default": "PreRecebimento",
+      "ui": { "label": "Situacao" }
+    },
+    { "name": "quantidade", "type": "long", "required": true, "default": 0, "ui": { "label": "Quantidade" } }
+  ],
+  "invariants": [
+    { "name": "LoteQuantidadeNonNegative", "type": "expression", "expr": "quantidade >= 0" }
+  ]
+}

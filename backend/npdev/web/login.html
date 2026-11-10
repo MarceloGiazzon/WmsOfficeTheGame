@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <!-- This page never includes shell.js, so the shell never actually renders here -- this tag is
+       defensive: if a future change ever does add shell.js to a login-like page, it renders
+       chromeless (no top bar/sidebar/rightbar) instead of suddenly gaining platform nav. -->
+  <meta name="npdev-guide-page" content="None" />
+  <title>WmsOffice - Login</title>
+  <!-- WmsOffice brand identity (steel blue #295572 / charcoal / orange) -- see web/theme.css.
+       This page never loads shell.js, so the palette is applied inline here. -->
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #e9edf1; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    main { display: flex; align-items: center; justify-content: center; height: 100%; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; border-radius: 8px; width: 380px;
+      overflow: hidden; box-shadow: 0 8px 28px rgba(41, 85, 114, .18); }
+    header { background: #295572; color: #ffffff; padding: 18px 24px; }
+    h1 { margin: 0; font-size: 20px; letter-spacing: .4px; }
+    h1 small { font-weight: 400; font-size: 12px; color: #b8cbd8; display: block; margin-top: 2px; }
+    .body { padding: 20px 24px 24px; }
+    .note { font-size: 11px; color: #6b7280; margin-bottom: 18px; }
+    label { display: flex; flex-direction: column; font-size: 12px; color: #45525f; gap: 4px; margin-bottom: 12px; }
+    input[type=text], input[type=password] {
+      background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 8px;
+    }
+    input[type=text]:focus, input[type=password]:focus {
+      outline: none; border-color: #295572; box-shadow: 0 0 0 2px rgba(41, 85, 114, .25);
+    }
+    button.action { background: #295572; color: #fff; border: 0; border-radius: 4px; padding: 10px 16px;
+      cursor: pointer; font-size: 13px; font-weight: 600; width: 100%; margin-top: 4px; }
+    button.action:hover { background: #1f425a; }
+    button.action:disabled { opacity: .5; cursor: not-allowed; }
+    #msg { font-size: 12px; margin-top: 12px; min-height: 16px; }
+    #msg.ok { color: #008000; }
+    #msg.err { color: #cc1f1f; }
+    #links { margin-top: 18px; font-size: 12px; }
+    #links a { color: #295572; display: block; margin-bottom: 4px; }
+    #links a.home-btn {
+      background: #295572; color: #fff; text-align: center; text-decoration: none;
+      border-radius: 4px; padding: 10px 16px; font-size: 13px; font-weight: 600;
+    }
+    #links a.home-btn:hover { background: #1f425a; }
+    #tokenBox { margin-top: 12px; }
+    #tokenBox textarea { width: 100%; height: 60px; font-size: 10px; background: #f5f7fa; color: #1c2333;
+      border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <header>
+        <h1>WmsOffice <small>Gestao de Armazem e Logistica</small></h1>
+      </header>
+      <div class="body">
+        <div class="note">
+          Login real contra o identity pack do NPDev (identity_users/identity_roles/identity_user_roles,
+          bonded a Usuario) -- substitui a chave de API estatica usada nas fases anteriores.
+        </div>
+        <label>API <input type="text" id="base" value="http://localhost:8100" /></label>
+        <label>Usuario <input type="text" id="username" value="admin" /></label>
+        <label>Senha <input type="password" id="password" /></label>
+        <!-- LoginController defaults a missing tenantId to "dev"; this app's data/identity rows
+             live under the trial tenant, so the page must send it explicitly. -->
+        <label>Tenant <input type="text" id="tenant" value="trial" /></label>
+        <button class="action" id="loginBtn">Entrar</button>
+        <div id="msg"></div>
+        <div id="tokenBox" style="display:none">
+          <div class="note" style="margin-bottom:4px">Token (ja salvo no navegador para as demais paginas):</div>
+          <textarea id="tokenDisplay" readonly></textarea>
+        </div>
+        <div id="links" style="display:none">
+          <a class="home-btn" href="/npdev-business-ui/index.html">Ir para o WmsOffice &raquo;</a>
+          <div class="note" style="margin-top:10px">Ou va direto a uma tarefa:</div>
+          <a href="novo-estabelecimento.html">Novo Estabelecimento &raquo;</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    window.addEventListener('DOMContentLoaded', function () {
+      const params = new URLSearchParams(window.location.search);
+      const qsUsername = params.get('username');
+      const qsTenant = params.get('tenant');
+      if (qsUsername) $('username').value = qsUsername;
+      if (qsTenant) $('tenant').value = qsTenant;
+      if (params.get('created') === '1') {
+        const msg = $('msg');
+        msg.className = 'ok';
+        msg.textContent = 'Usuario criado. Informe a senha para entrar.';
+      }
+      if (qsUsername) $('password').focus();
+    });
+
+    async function login() {
+      const base = $('base').value.replace(/\/$/, '');
+      const username = $('username').value.trim();
+      const password = $('password').value;
+      const tenantId = $('tenant').value.trim();
+      const msg = $('msg');
+      msg.className = ''; msg.textContent = '';
+      if (!username || !password) {
+        msg.className = 'err'; msg.textContent = 'Informe usuario e senha.';
+        return;
+      }
+      $('loginBtn').disabled = true;
+      try {
+        const res = await fetch(base + '/api/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, tenantId })
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          msg.className = 'err'; msg.textContent = 'Login falhou: ' + (body.error || res.status);
+          return;
+        }
+        localStorage.setItem('npdev.shell.token', body.token); // read by every other page's own apiKey() and by shell.js
+        msg.className = 'ok'; msg.textContent = 'Login OK. Roles: ' + (body.roles || []).join(', ');
+        $('tokenDisplay').value = body.token;
+        $('tokenBox').style.display = 'block';
+        $('links').style.display = 'block';
+      } catch (e) {
+        msg.className = 'err'; msg.textContent = 'Falha ao conectar: ' + e.message;
+      } finally {
+        $('loginBtn').disabled = false;
+      }
+    }
+
+    $('loginBtn').addEventListener('click', login);
+    $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+  </script>
+</body>
+</html>

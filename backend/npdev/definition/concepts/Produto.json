@@ -1,0 +1,24 @@
+{
+  "name": "Produto",
+  "ui": { "label": "Produto" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    { "name": "nome", "type": "string", "required": true, "minLength": 1, "maxLength": 200, "ui": { "label": "Nome" } },
+    { "name": "codigo", "type": "string", "maxLength": 30, "ui": { "label": "Codigo" } },
+    { "name": "ncm", "type": "string", "maxLength": 10, "ui": { "label": "NCM" } },
+    { "name": "pesoGramas", "type": "integer", "ui": { "label": "Peso (g)" } },
+    { "name": "valorCentavos", "type": "long", "ui": { "label": "Valor (centavos)" } },
+    { "name": "qtdCaixasPorPallet", "type": "integer", "required": true, "ui": { "label": "Caixas por pallet" } },
+    { "name": "diasValidadePadrao", "type": "integer", "ui": { "label": "Dias de validade padrao" } },
+    {
+      "name": "perfilAlocacaoId", "type": "reference", "required": false,
+      "reference": { "target": "PerfilAlocacao", "onDelete": "restrict" },
+      "ui": { "label": "Perfil de Alocacao preferido" }
+    },
+    { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
+  ],
+  "invariants": [
+    { "name": "ProdutoNomeRequired", "type": "expression", "expr": "nome != null && nome != ''" },
+    { "name": "ProdutoQtdCaixasPorPalletPositive", "type": "expression", "expr": "qtdCaixasPorPallet > 0" }
+  ]
+}

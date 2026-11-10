@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Novo Estabelecimento</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #status { margin-left: auto; color: #6b7280; }
+    main { padding: 14px; max-width: 900px; margin: 0 auto; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; box-shadow: 0 1px 3px rgba(41,85,114,.1); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; }
+    .note { font-size: 11px; opacity: .55; margin-top: -4px; margin-bottom: 10px; }
+    .row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 8px; flex-wrap: wrap; }
+    .row label { display: flex; flex-direction: column; font-size: 11px; opacity: .8; gap: 3px; }
+    input[type=text] { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; min-width: 260px; }
+    button.action { background: #295572; color: #fff; border: 0; font-weight: 600; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
+    button.action:disabled { opacity: .5; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+    th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid #e5e5e5; }
+    th { background: #295572; color: #ffffff; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #f0f2f5; }
+    .progress-track { background: #dfe4e9; border-radius: 4px; height: 18px; overflow: hidden; margin: 10px 0; }
+    .progress-fill { background: #295572; height: 100%; width: 0%; transition: width .2s; }
+    #log { background: #f7f9fb; border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; font-size: 12px;
+      max-height: 260px; overflow: auto; white-space: pre-wrap; }
+    #log .ok { color: #008000; }
+    #log .err { color: #cc1f1f; }
+    #log .step { color: #295572; }
+    .hint { font-size: 11px; opacity: .6; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="http://localhost:8100" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <button id="reload">Recarregar</button>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section>
+      <h2>Novo Estabelecimento</h2>
+      <div class="note">
+        Equivalente ao botao "Novo Estabelecimento" do painel de login do WmsOffice original
+        (GeneXus): cria uma nova Entidade (tipo Estabelecimento) e monta a estrutura padrao de
+        armazem/areas/ruas/posicoes, um catalogo inicial de produtos e um perfil de alocacao
+        padrao com ranking de ruas -- para que um estabelecimento novo nao comece como uma casca
+        vazia. Escala reduzida em relacao ao sistema original (que criava milhares de posicoes),
+        mas com a mesma estrutura (5 areas, ruas de recebimento/expedicao/pre-picking/avarias,
+        corredores A/B/C/D de armazenagem com andares crescentes).
+      </div>
+      <div class="row">
+        <label>Nome do Estabelecimento
+          <input type="text" id="nomeEstab" value="Novo Armazem Demo" />
+        </label>
+      </div>
+      <div class="row">
+        <label>Usuario de acesso
+          <input type="text" id="novoUsername" placeholder="ex: gerente.novoarmazem" />
+        </label>
+        <label>Senha
+          <input type="text" id="novaSenha" placeholder="senha inicial" />
+        </label>
+        <button class="action" id="criarBtn">Criar Estabelecimento e Estrutura Padrao</button>
+      </div>
+      <div class="note">
+        O usuario/senha acima cria um login separado (mesmo tenant do usuario que esta criando o
+        estabelecimento) ja vinculado a este Estabelecimento -- ao final voce sera direcionado para
+        a tela de login para entrar com essas credenciais.
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div id="log"></div>
+    </section>
+    <section>
+      <h2>Estabelecimentos Existentes</h2>
+      <div id="estabList"></div>
+    </section>
+  </main>
+
+  <script>
+    // "Novo Estabelecimento" -- ported from the GeneXus original's login-webpanel button, which
+    // called ProcBacaCadastraDefault -> ProcDefaultCriaEntidades (create the tenant Entidade),
+    // ProcBacaDefaultEstruturaPos (armazem/areas/ruas/posicoes), ProcCriaProdutosDefault (default
+    // product catalog), ProcCriaPerfilPadraoAlocacao (default allocation profile + rua ranking).
+    // NPDev Flows/Procedures have no loop step type at all (confirmed by reading FlowStepDefinition/
+    // ProcedureStepType directly), so bulk-creating dozens/hundreds of records the way the legacy
+    // 4GL procedures did isn't expressible as a Flow -- the definitional data lives here as a plain
+    // JS constant and this page drives the actual persistence loop via the existing generic CRUD
+    // REST endpoints, one record at a time, exactly like every other hand-authored page in this app.
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () { var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved; });
+    const apiBase = () => $('base').value.replace(/\/$/, '');
+    const apiKey = () => $('key').value.trim();
+
+    function log(message, cls) {
+      const div = document.createElement('div');
+      div.className = cls || '';
+      div.textContent = message;
+      $('log').appendChild(div);
+      $('log').scrollTop = $('log').scrollHeight;
+    }
+    async function apiGet(path) {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + apiKey() } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+    async function apiPost(path, body) {
+      const res = await fetch(apiBase() + path, {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + apiKey(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const text = await res.text();
+      let parsed = null;
+      try { parsed = text ? JSON.parse(text) : null; } catch (e) { /* leave null */ }
+      if (!res.ok) {
+        const msg = (parsed && (parsed.error || parsed.message)) || text || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
+      return parsed;
+    }
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+    const short = (id) => id ? id.slice(0, 8) + '...' : '';
+    function decodeTenantFromToken(token) {
+      try {
+        const payload = token.split('.')[1];
+        const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+        return json.tenant_id || json.tenantId || null;
+      } catch (e) { return null; }
+    }
+
+    // ---- Static default-structure definitions (scaled down from the legacy system's real scale) ----
+    const AREAS = [
+      { funcao: 'Recebimento', nome: 'Area Recebimento' },
+      { funcao: 'Expedicao', nome: 'Area Expedicao' },
+      { funcao: 'Armazenagem', nome: 'Area Armazenagem' },
+      { funcao: 'PrePicking', nome: 'Pre-Picking' },
+      { funcao: 'Avarias', nome: 'Area de Avarias' }
+    ];
+    // Each rua: { funcaoArea, codigo, qtdPosicoes, qtdAndares }. A/B/C/D mirror the legacy
+    // storage-area aisle-naming scheme (increasing andares per letter); REC/EXP/PP/AVARIAS mirror
+    // the legacy dock/staging/pre-picking/damage areas.
+    const RUAS = [
+      { funcaoArea: 'Recebimento', codigo: 'REC01', qtdPosicoes: 10, qtdAndares: 1 },
+      { funcaoArea: 'Recebimento', codigo: 'REC02', qtdPosicoes: 10, qtdAndares: 1 },
+      { funcaoArea: 'Expedicao', codigo: 'EXP01', qtdPosicoes: 10, qtdAndares: 1 },
+      { funcaoArea: 'Expedicao', codigo: 'EXP02', qtdPosicoes: 10, qtdAndares: 1 },
+      { funcaoArea: 'PrePicking', codigo: 'PP', qtdPosicoes: 20, qtdAndares: 1 },
+      { funcaoArea: 'Avarias', codigo: 'AVARIAS', qtdPosicoes: 10, qtdAndares: 1 },
+      { funcaoArea: 'Armazenagem', codigo: 'A001', qtdPosicoes: 10, qtdAndares: 1 },
+      { funcaoArea: 'Armazenagem', codigo: 'B001', qtdPosicoes: 5, qtdAndares: 3 },
+      { funcaoArea: 'Armazenagem', codigo: 'B002', qtdPosicoes: 5, qtdAndares: 3 },
+      { funcaoArea: 'Armazenagem', codigo: 'C001', qtdPosicoes: 5, qtdAndares: 4 },
+      { funcaoArea: 'Armazenagem', codigo: 'C002', qtdPosicoes: 5, qtdAndares: 4 },
+      { funcaoArea: 'Armazenagem', codigo: 'D001', qtdPosicoes: 5, qtdAndares: 4 },
+      { funcaoArea: 'Armazenagem', codigo: 'D002', qtdPosicoes: 5, qtdAndares: 4 }
+    ];
+    const PRODUTOS = [
+      'Produto Demo 01', 'Produto Demo 02', 'Produto Demo 03', 'Produto Demo 04', 'Produto Demo 05',
+      'Produto Demo 06', 'Produto Demo 07', 'Produto Demo 08', 'Produto Demo 09', 'Produto Demo 10',
+      'Produto Demo 11', 'Produto Demo 12', 'Produto Demo 13', 'Produto Demo 14', 'Produto Demo 15'
+    ];
+
+    function totalSteps(criarUsuario) {
+      let n = 1 /* entidade */ + 1 /* armazem */ + AREAS.length + RUAS.length + PRODUTOS.length + 1 /* perfil */;
+      n += RUAS.filter(function (r) { return r.funcaoArea === 'Armazenagem'; }).length; // ranking rows
+      RUAS.forEach(function (r) { n += r.qtdPosicoes * r.qtdAndares; }); // local_armazenagems
+      if (criarUsuario) n += 1;
+      return n;
+    }
+
+    async function criarEstabelecimento() {
+      const nome = $('nomeEstab').value.trim();
+      if (!nome) { log('Informe um nome para o estabelecimento.', 'err'); return; }
+      const novoUsername = $('novoUsername').value.trim();
+      const novaSenha = $('novaSenha').value;
+      if ((novoUsername && !novaSenha) || (!novoUsername && novaSenha)) {
+        log('Informe usuario e senha juntos, ou deixe ambos em branco.', 'err');
+        return;
+      }
+      $('criarBtn').disabled = true;
+      $('log').innerHTML = '';
+      const total = totalSteps(!!(novoUsername && novaSenha));
+      let done = 0;
+      function tick(msg) {
+        done++;
+        $('progressFill').style.width = Math.min(100, Math.round(done / total * 100)) + '%';
+        if (msg) log(msg, 'ok');
+      }
+
+      try {
+        log('Criando Entidade (Estabelecimento)...', 'step');
+        const entidade = await apiPost('/api/entidades', { nome: nome, tipo: 'Estabelecimento', ativo: true });
+        tick('Entidade criada: ' + short(entidade.id) + ' (' + nome + ')');
+
+        log('Criando Armazem...', 'step');
+        const armazem = await apiPost('/api/armazems', { entidadeId: entidade.id, nome: 'Armazem Geral', ativo: true });
+        tick('Armazem criado: ' + short(armazem.id));
+
+        log('Criando ' + AREAS.length + ' Areas...', 'step');
+        const areaIdByFuncao = {};
+        for (const a of AREAS) {
+          const area = await apiPost('/api/areas', { armazemId: armazem.id, nome: a.nome, funcao: a.funcao, ativo: true });
+          areaIdByFuncao[a.funcao] = area.id;
+          tick();
+        }
+        log('Areas criadas.', 'ok');
+
+        log('Criando ' + RUAS.length + ' Ruas...', 'step');
+        const ruaResults = [];
+        for (const r of RUAS) {
+          const rua = await apiPost('/api/ruas', {
+            areaId: areaIdByFuncao[r.funcaoArea], codigo: r.codigo,
+            qtdPosicoes: r.qtdPosicoes, qtdAndares: r.qtdAndares, ativo: true
+          });
+          ruaResults.push(Object.assign({ id: rua.id }, r));
+          tick();
+        }
+        log('Ruas criadas.', 'ok');
+
+        let totalLocais = 0;
+        log('Criando posicoes de armazenagem (LocalArmazenagem)...', 'step');
+        for (const r of ruaResults) {
+          for (let andar = 1; andar <= r.qtdAndares; andar++) {
+            for (let posicao = 1; posicao <= r.qtdPosicoes; posicao++) {
+              await apiPost('/api/local_armazenagems', { ruaId: r.id, posicao: posicao, andar: andar, situacao: 'Disponivel' });
+              totalLocais++;
+              tick();
+            }
+          }
+        }
+        log(totalLocais + ' posicoes criadas.', 'ok');
+
+        log('Criando ' + PRODUTOS.length + ' Produtos...', 'step');
+        for (const nomeProduto of PRODUTOS) {
+          await apiPost('/api/produtos', { nome: nomeProduto, qtdCaixasPorPallet: 1, ativo: true });
+          tick();
+        }
+        log('Produtos criados.', 'ok');
+
+        log('Criando Perfil de Alocacao padrao...', 'step');
+        const perfil = await apiPost('/api/perfil_alocacaos', { nome: 'Perfil Padrao', ocupacaoIdealPercent: 75, ativo: true });
+        tick('Perfil criado: ' + short(perfil.id));
+
+        log('Criando ranking de ruas de armazenagem...', 'step');
+        const ruasArmazenagem = ruaResults.filter(function (r) { return r.funcaoArea === 'Armazenagem'; });
+        let prioridade = 1;
+        for (const r of ruasArmazenagem) {
+          await apiPost('/api/ranking_ruas', { perfilAlocacaoId: perfil.id, ruaId: r.id, prioridade: prioridade });
+          prioridade++;
+          tick();
+        }
+        log('Ranking de ruas criado (' + ruasArmazenagem.length + ' ruas).', 'ok');
+
+        if (novoUsername && novaSenha) {
+          log('Criando usuario de acesso "' + novoUsername + '"...', 'step');
+          await apiPost('/api/auth/create-user', {
+            username: novoUsername, displayName: nome, password: novaSenha, roleName: 'ADMIN',
+            primaryLinkId: entidade.id, secondaryLinkId: entidade.id
+          });
+          tick('Usuario de acesso criado: ' + novoUsername);
+        }
+
+        log('Concluido! Estabelecimento "' + nome + '" pronto para uso.', 'ok');
+        await loadEstabelecimentos();
+
+        if (novoUsername && novaSenha) {
+          const tenantId = decodeTenantFromToken(apiKey()) || 'trial';
+          log('Redirecionando para o login do novo estabelecimento...', 'step');
+          setTimeout(function () {
+            window.location.href = 'login.html?username=' + encodeURIComponent(novoUsername)
+              + '&tenant=' + encodeURIComponent(tenantId) + '&created=1';
+          }, 1500);
+        }
+      } catch (e) {
+        log('Falha: ' + e.message, 'err');
+      } finally {
+        $('criarBtn').disabled = false;
+      }
+    }
+
+    async function loadEstabelecimentos() {
+      $('status').textContent = 'carregando...';
+      try {
+        const entidades = list(await apiGet('/api/entidades'));
+        const estabs = entidades.filter(function (e) { return e.tipo === 'Estabelecimento'; });
+        const body = $('estabList');
+        body.innerHTML = '';
+        if (!estabs.length) {
+          const hint = document.createElement('div'); hint.className = 'hint';
+          hint.textContent = 'Nenhum estabelecimento criado ainda.';
+          body.appendChild(hint);
+        } else {
+          const table = document.createElement('table');
+          table.innerHTML = '<thead><tr><th>Nome</th><th>Ativo</th><th>ID</th></tr></thead>';
+          const tbody = document.createElement('tbody');
+          estabs.forEach(function (e) {
+            const tr = document.createElement('tr');
+            [e.nome, e.ativo ? 'Sim' : 'Nao', short(e.id)].forEach(function (v) {
+              const td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          body.appendChild(table);
+        }
+        $('status').textContent = 'ok';
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+      }
+    }
+
+    $('criarBtn').addEventListener('click', criarEstabelecimento);
+    $('reload').addEventListener('click', loadEstabelecimentos);
+    window.addEventListener('DOMContentLoaded', loadEstabelecimentos);
+  </script>
+</body>
+</html>

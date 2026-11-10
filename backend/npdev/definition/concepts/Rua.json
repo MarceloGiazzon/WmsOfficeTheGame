@@ -1,0 +1,24 @@
+{
+  "name": "Rua",
+  "ui": { "label": "Rua" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "areaId", "type": "reference", "required": true,
+      "reference": { "target": "Area", "onDelete": "cascade" },
+      "ui": { "label": "Area" }
+    },
+    { "name": "codigo", "type": "string", "required": true, "minLength": 1, "maxLength": 30, "ui": { "label": "Codigo" } },
+    { "name": "qtdPosicoes", "type": "integer", "required": true, "ui": { "label": "Qtd. posicoes" } },
+    { "name": "qtdAndares", "type": "integer", "required": true, "ui": { "label": "Qtd. andares" } },
+    { "name": "bloqueiaRecebimento", "type": "boolean", "required": true, "default": false, "ui": { "label": "Bloqueia recebimento" } },
+    { "name": "bloqueiaExpedicao", "type": "boolean", "required": true, "default": false, "ui": { "label": "Bloqueia expedicao" } },
+    { "name": "bloqueiaMovimento", "type": "boolean", "required": true, "default": false, "ui": { "label": "Bloqueia movimento" } },
+    { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
+  ],
+  "invariants": [
+    { "name": "RuaCodigoRequired", "type": "expression", "expr": "codigo != null && codigo != ''" },
+    { "name": "RuaQtdPosicoesPositive", "type": "expression", "expr": "qtdPosicoes > 0" },
+    { "name": "RuaQtdAndaresPositive", "type": "expression", "expr": "qtdAndares > 0" }
+  ]
+}

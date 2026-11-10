@@ -1,0 +1,21 @@
+{
+  "name": "RomaneioItem",
+  "ui": { "label": "Romaneio - Item" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "romaneioId", "type": "reference", "required": true,
+      "reference": { "target": "Romaneio", "onDelete": "cascade" },
+      "ui": { "label": "Romaneio" }
+    },
+    {
+      "name": "produtoId", "type": "reference", "required": true,
+      "reference": { "target": "Produto", "onDelete": "restrict" },
+      "ui": { "label": "Produto" }
+    },
+    { "name": "quantidade", "type": "long", "required": true, "ui": { "label": "Quantidade" } }
+  ],
+  "invariants": [
+    { "name": "RomaneioItemQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
+  ]
+}

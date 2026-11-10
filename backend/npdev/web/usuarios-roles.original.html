@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>WmsOffice - Usuarios e Papeis</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #f5f6f8; color: #1c2333; font-family: "Segoe UI", system-ui, sans-serif; }
+    #bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #d3d4d3; font-size: 13px; flex-wrap: wrap; }
+    #bar input { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 4px 6px; }
+    #bar input#base { width: 220px; }
+    #status { margin-left: auto; color: #6b7280; }
+    main { padding: 14px; max-width: 900px; margin: 0 auto; }
+    section { background: #ffffff; border: 1px solid #d3d4d3; box-shadow: 0 1px 3px rgba(41,85,114,.1); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    h2 { margin: 0 0 10px 0; font-size: 15px; color: #295572; }
+    .note { font-size: 11px; opacity: .55; margin-top: -4px; margin-bottom: 10px; }
+    .row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 8px; flex-wrap: wrap; }
+    .row label { display: flex; flex-direction: column; font-size: 11px; opacity: .8; gap: 3px; }
+    select { background: #fff; color: #1c2333; border: 1px solid #c8d0da; border-radius: 4px; padding: 6px; min-width: 220px; }
+    button.action { background: #295572; color: #fff; border: 0; font-weight: 600; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
+    button.action:disabled { opacity: .5; cursor: not-allowed; }
+    button.danger { background: #b42323; color: #fff; border: 0; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+    th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid #e5e5e5; }
+    th { background: #295572; color: #ffffff; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #f0f2f5; }
+    #log { background: #f7f9fb; border: 1px solid #d3d4d3; border-radius: 6px; padding: 10px; font-size: 12px;
+      max-height: 200px; overflow: auto; white-space: pre-wrap; }
+    #log .ok { color: #008000; }
+    #log .err { color: #cc1f1f; }
+    .hint { font-size: 11px; opacity: .6; }
+  </style>
+  <link rel="stylesheet" href="shell.css" />
+  <script src="shell.js" defer></script>
+</head>
+<body>
+  <div id="bar">
+    <label>API <input id="base" value="http://localhost:8100" /></label>
+    <label>Token <input id="key" value="" size="16" placeholder="faca login" /></label>
+    <button id="reload">Recarregar</button>
+    <span id="status">idle</span>
+  </div>
+  <main>
+    <section>
+      <h2>Papeis por Usuario</h2>
+      <div class="note">
+        Tela dedicada para atribuir/remover papeis (identity_roles) de um usuario (identity_users),
+        cobrindo o fluxo "aqui esta a Alice, aqui estao seus papeis" que a tela generica de CRUD do
+        UserRole nao oferece (ela so cria uma linha por vez, escolhendo IDs crus). Um papel so passa a
+        valer no proximo login desse usuario (os papeis sao lidos e gravados no JWT no momento do login).
+      </div>
+      <div class="row">
+        <label>Usuario
+          <select id="userSelect"></select>
+        </label>
+      </div>
+      <table>
+        <thead><tr><th>Papel atual</th><th></th></tr></thead>
+        <tbody id="currentRoles"></tbody>
+      </table>
+      <div class="row">
+        <label>Adicionar papel
+          <select id="roleSelect"></select>
+        </label>
+        <button class="action" id="addBtn">Adicionar</button>
+      </div>
+      <div id="log"></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    window.addEventListener("DOMContentLoaded", function () { var saved = localStorage.getItem("npdev.shell.token"); var el = document.getElementById("key"); if (saved && el) el.value = saved; });
+    const apiBase = () => $('base').value.replace(/\/$/, '');
+    const apiKey = () => $('key').value.trim();
+
+    function log(message, cls) {
+      const div = document.createElement('div');
+      div.className = cls || '';
+      div.textContent = message;
+      $('log').appendChild(div);
+      $('log').scrollTop = $('log').scrollHeight;
+    }
+    async function apiGet(path) {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + apiKey() } });
+      if (!res.ok) throw new Error(path + ' -> HTTP ' + res.status);
+      return res.json();
+    }
+    async function apiSend(method, path, body) {
+      const res = await fetch(apiBase() + path, {
+        method: method, headers: { 'Authorization': 'Bearer ' + apiKey(), 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const text = await res.text();
+      let parsed = null;
+      try { parsed = text ? JSON.parse(text) : null; } catch (e) { /* leave null */ }
+      if (!res.ok) {
+        const msg = (parsed && (parsed.error || parsed.message)) || text || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
+      return parsed;
+    }
+    const list = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.items) ? v.items : (v && Array.isArray(v.content) ? v.content : []));
+
+    let users = [];
+    let roles = [];
+    let userRoles = [];
+
+    function selectedUserId() {
+      return $('userSelect').value || null;
+    }
+
+    function renderUserSelect() {
+      const sel = $('userSelect');
+      const previous = sel.value;
+      sel.innerHTML = '';
+      users.forEach(function (u) {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = u.username + ' (' + u.displayName + ')' + (u.active ? '' : ' [inativo]');
+        sel.appendChild(opt);
+      });
+      if (previous && users.some(function (u) { return u.id === previous; })) { sel.value = previous; }
+    }
+
+    function roleName(roleId) {
+      const role = roles.find(function (r) { return r.id === roleId; });
+      return role ? role.name : roleId;
+    }
+
+    function renderCurrentRoles() {
+      const userId = selectedUserId();
+      const tbody = $('currentRoles');
+      tbody.innerHTML = '';
+      const assigned = userRoles.filter(function (ur) { return ur.userId === userId; });
+      if (!assigned.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 2;
+        td.className = 'hint';
+        td.textContent = 'Nenhum papel atribuido a este usuario.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      } else {
+        assigned.forEach(function (ur) {
+          const tr = document.createElement('tr');
+          const nameTd = document.createElement('td');
+          nameTd.textContent = roleName(ur.roleId);
+          tr.appendChild(nameTd);
+          const actionTd = document.createElement('td');
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'danger';
+          removeBtn.textContent = 'Remover';
+          removeBtn.addEventListener('click', function () { removeRole(ur.id); });
+          actionTd.appendChild(removeBtn);
+          tr.appendChild(actionTd);
+          tbody.appendChild(tr);
+        });
+      }
+      renderRoleSelect(assigned);
+    }
+
+    function renderRoleSelect(assigned) {
+      const assignedRoleIds = new Set(assigned.map(function (ur) { return ur.roleId; }));
+      const sel = $('roleSelect');
+      sel.innerHTML = '';
+      roles.filter(function (r) { return !assignedRoleIds.has(r.id); }).forEach(function (r) {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.name;
+        sel.appendChild(opt);
+      });
+      $('addBtn').disabled = !sel.options.length;
+    }
+
+    async function addRole() {
+      const userId = selectedUserId();
+      const roleId = $('roleSelect').value;
+      if (!userId || !roleId) { return; }
+      $('addBtn').disabled = true;
+      try {
+        await apiSend('POST', '/api/identity_user_roles', { userId: userId, roleId: roleId });
+        log('Papel "' + roleName(roleId) + '" atribuido. Vale a partir do proximo login do usuario.', 'ok');
+        await loadAll();
+      } catch (e) {
+        log('Falha ao atribuir papel: ' + e.message, 'err');
+      } finally {
+        $('addBtn').disabled = false;
+      }
+    }
+
+    async function removeRole(userRoleId) {
+      try {
+        await apiSend('DELETE', '/api/identity_user_roles/' + userRoleId);
+        log('Papel removido.', 'ok');
+        await loadAll();
+      } catch (e) {
+        log('Falha ao remover papel: ' + e.message, 'err');
+      }
+    }
+
+    async function loadAll() {
+      $('status').textContent = 'carregando...';
+      try {
+        users = list(await apiGet('/api/identity_users'));
+        roles = list(await apiGet('/api/identity_roles'));
+        userRoles = list(await apiGet('/api/identity_user_roles'));
+        renderUserSelect();
+        renderCurrentRoles();
+        $('status').textContent = 'ok';
+      } catch (e) {
+        $('status').textContent = 'erro: ' + e.message;
+      }
+    }
+
+    $('userSelect').addEventListener('change', renderCurrentRoles);
+    $('addBtn').addEventListener('click', addRole);
+    $('reload').addEventListener('click', loadAll);
+    window.addEventListener('DOMContentLoaded', loadAll);
+  </script>
+</body>
+</html>
