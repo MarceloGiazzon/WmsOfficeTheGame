@@ -54,6 +54,12 @@ export interface Evento {
   texto: string;
 }
 
+/** Uma entrada do histórico de políticas: a política que passou a valer em `seg` (a primeira é a inicial, no início do turno). */
+export interface TrocaPolitica {
+  seg: number;
+  politica: Politica;
+}
+
 /**
  * Visão SOMENTE LEITURA do estado atual (não é cópia: os tipos readonly impedem o render de alterar).
  * Vale até o próximo tick — quem precisar guardar valores entre frames copia o que usar.
@@ -65,6 +71,8 @@ export interface Snapshot {
   readonly fimTurnoSeg: number;
   readonly terminado: boolean;
   readonly politica: Politica;
+  /** Histórico de políticas do turno, da inicial (em `inicioTurnoSeg`) até a ativa. Muda só quando há troca. */
+  readonly trocasPolitica: readonly Readonly<TrocaPolitica>[];
   readonly layout: Readonly<Layout>;
   readonly locais: ReadonlyMap<string, Readonly<EstadoLocal>>;
   readonly equipamentos: readonly Readonly<Equipamento>[];
@@ -128,6 +136,8 @@ export class Simulacao {
   private readonly malha: Malha;
   private relogioSeg: number;
   private politica: Politica;
+  /** Substituído (nunca alterado no lugar) a cada troca: o Snapshot guarda a referência e ela fica estável entre frames. */
+  private trocas: readonly TrocaPolitica[];
   private readonly locais = new Map<string, EstadoLocal>();
   private readonly localLayout = new Map<string, Layout['locais'][number]>();
   private readonly ctxPolitica: ContextoPolitica;
@@ -166,6 +176,7 @@ export class Simulacao {
     this.malha = new Malha(this.layout);
     this.curva = calcularCurvaAbc(pacote);
     this.relogioSeg = pacote.cenario.inicioTurnoSeg;
+    this.trocas = [{ seg: this.relogioSeg, politica }];
 
     const situacaoInicial = new Map(pacote.locais.map(l => [l.id, l.situacao]));
     for (const l of this.layout.locais) {
@@ -218,9 +229,29 @@ export class Simulacao {
   }
 
   setPolitica(p: Politica): void {
-    if (p === this.politica) return;
+    if (this.terminado || p === this.politica) return; // depois do fim do turno nada mais é alocado: não vira "troca" no histórico
     this.politica = p;
+    this.registrarTroca(p);
     this.registrar(`Política alterada para ${p} (vale para as próximas alocações).`);
+  }
+
+  /** Histórico de políticas do turno (a inicial em `inicioTurnoSeg` + cada troca). Cópia: pode ser guardada. */
+  trocasPolitica(): TrocaPolitica[] {
+    return this.trocas.map(t => ({ ...t }));
+  }
+
+  /**
+   * Quem troca de política parado (várias vezes no mesmo segundo simulado) só "vale" pela última escolha: nenhuma
+   * alocação aconteceu entre elas. Então a troca do mesmo segundo substitui a anterior (até a inicial, que ainda não
+   * alocou nada), e voltar à política que já valia antes some do histórico: a linha do tempo só mostra mudanças
+   * que tiveram efeito possível.
+   */
+  private registrarTroca(p: Politica): void {
+    const seg = this.relogioSeg;
+    let historico = this.trocas;
+    if (historico[historico.length - 1].seg === seg) historico = historico.slice(0, -1);
+    if (historico.length === 0 || historico[historico.length - 1].politica !== p) historico = [...historico, { seg, politica: p }];
+    this.trocas = historico;
   }
 
   /** Métricas de agora, no formato do score. */
@@ -254,6 +285,7 @@ export class Simulacao {
       fimTurnoSeg: this.pacote.cenario.fimTurnoSeg,
       terminado: this.terminado,
       politica: this.politica,
+      trocasPolitica: this.trocas,
       layout: this.layout,
       locais: this.locais,
       equipamentos: this.equipamentos,
