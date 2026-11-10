@@ -115,7 +115,8 @@ export class ControladorSessao {
 
   /**
    * Retoma a sessão guardada pela aba (F5). `false` = não havia ou já venceu/estava corrompida (e foi esquecida).
-   * Não consulta o servidor: se ele já não aceitar o token, a primeira chamada devolve 401 e `aoExpirar` cuida.
+   * Não consulta o servidor (use `validarNoServidor`): se ele já não aceitar o token, a primeira chamada devolve 401 e
+   * `aoExpirar` cuida.
    */
   restaurar(): boolean {
     const guardada = lerSessaoGuardada(this.ler(this.session, CHAVE_SESSAO));
@@ -127,6 +128,23 @@ export class ControladorSessao {
     this.agendarExpiracao();
     this.notificar('restaurada');
     return true;
+  }
+
+  /**
+   * Pergunta ao servidor se a sessão restaurada ainda vale (`GET /auth/me`). Sem isso, o primeiro 401 só aparece na
+   * primeira chamada autenticada — por exemplo, ao iniciar uma partida — e o jogador descobre no meio do turno.
+   * Token recusado (401): o cliente derruba a sessão e `aoExpirar` avisa e vira convidado. Falha de rede ou de servidor
+   * NÃO derruba: jogar sem conexão é normal e o token pode estar ótimo.
+   * Devolve `true` (o servidor confirmou), `false` (convidado, ou a sessão caiu) ou `null` (não deu para saber).
+   */
+  async validarNoServidor(): Promise<boolean | null> {
+    if (this.atual.modo !== 'logado') return false;
+    try {
+      await this.cliente.me();
+    } catch {
+      return this.atual.modo === 'logado' ? null : false;
+    }
+    return this.atual.modo === 'logado';
   }
 
   /** Login no servidor. Lança `NpdevError` (`nao_autenticado`, `rede`, `servidor`…) — a UI mostra `mensagemDeErro`. */

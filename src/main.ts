@@ -328,7 +328,7 @@ class Jogo {
     const t = medirTela(this.canvas.parentElement!, window.devicePixelRatio);
     const antes = this.tela;
     if (mesmaTela(t, antes)) return;
-    if (antes.largura > 0) this.camera.mover((t.largura - antes.largura) / 2, (t.altura - antes.altura) / 2);
+    this.camera.aoRedimensionar(antes, t); // reenquadra se ninguém mexeu na vista; senão mantém o centro
     this.tela = t;
     aplicarTela(this.canvas, t); // só mexe em width/height se mudou (mexer limpa o canvas)
     this.renderer.dpr = t.dpr;

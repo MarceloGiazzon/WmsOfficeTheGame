@@ -693,7 +693,13 @@ sem erros — as 7 mensagens "Failed to load resource" são das requisições qu
   (Um item enfileirado offline leva a versão de quando foi jogado.)
 - [ ] Política **WmsReal online** (flow `SugerirDestinoJogo`, D2) continua só com a porta TS offline.
 - [x] ~~Desempate da curva ABC por `codigo` em vez de `id`~~ — feito em `297c8ef` (online e offline jogam o mesmo estoque inicial: 85,52 nos dois, conferido no navegador).
-- [ ] Pendências da UI: o aviso/retentativa não tem *backoff* (só `online` e o botão); a sessão não é validada no servidor ao restaurar (o 1º 401 derruba); item de outro usuário do mesmo aparelho fica invisível para quem está logado; o `index.html`/cabeçalho foram só encaixados por JS — se o layout mobile reorganizar o cabeçalho, ajustar os dois pontos de encaixe em `indicadorRede.ts`.
+- [x] ~~Retentativa sem *backoff*~~ — feito: quando uma rodada para por falha de rede/servidor com partida na fila, o `Sincronizador`
+  tenta de novo sozinho (5 s, 10 s, 20 s… até 5 min, ±20% de aleatoriedade); `online`, "Enviar agora", login e fim de partida
+  recomeçam a contagem; sair/expirar cancela; só a tentativa que envia ou rejeita algo avisa (as que falham de novo ficam em
+  silêncio; o título do chip diz quando é a próxima).
+- [x] ~~Sessão não validada ao restaurar~~ — feito: depois de `restaurar()`, `ControladorSessao.validarNoServidor()` faz `GET /auth/me`;
+  401 vira convidado na hora (com o aviso de sessão expirada), falha de rede/servidor não derruba (jogar offline é normal).
+- [ ] Pendências da UI: item de outro usuário do mesmo aparelho fica invisível para quem está logado; o `index.html`/cabeçalho foram só encaixados por JS — se o layout mobile reorganizar o cabeçalho, ajustar os dois pontos de encaixe em `indicadorRede.ts`.
 
 ### F6. Escala e polimento ✅ (2026-11-10)
 
@@ -818,9 +824,12 @@ hit-testing próprio, sem gargalo que o justifique. Reavaliar se (a) aparecer ce
 
 - [ ] Medir em aparelho real/APK com `?perf=1` (aqui só há headless: GPU Intel por ANGLE/Vulkan e compositor em software) — sobretudo o custo do dpr 3
   em GPU de celular; se pesar, baixar `PIXELS_MAX` em `render/tela.ts` (uma constante).
-- [ ] `Drawer.atualizarLog` ainda refaz 50 `li` por evento novo (5–8 ms com layout); agora ≤ 10×/s, mas é incremental por natureza (`src/ui`, fora do escopo).
-- [ ] Ao redimensionar, o enquadramento inicial pode ficar fora de escala (o centro é preservado, o zoom não): quem quiser reenquadrar ao girar o
-  celular chama `enquadrar()` no `ResizeObserver` (decisão de UX da F4/F7).
+- [x] ~~`Drawer.atualizarLog` refazia 50 `li` por evento novo~~ — feito: `app/logIncremental.ts` (puro, testado) decide entre "nada", "acrescentar
+  N no topo e podar a cauda" e "refazer" (partida nova, log zerado, ≥ 50 eventos de uma vez). Verificado no Chrome headless (WH-B, 5x):
+  50 itens, sem repetição, o mais novo no topo.
+- [x] ~~Ao redimensionar, o enquadramento ficava fora de escala~~ — feito (decisão de UX): `Camera.aoRedimensionar` reenquadra o armazém
+  inteiro se ninguém mexeu na vista (nenhum zoom, pan, pinça nem centralização desde o último `enquadrar`); quem já escolheu um zoom
+  mantém a escala e o centro acompanha a tela. Verificado ao girar 390×844 ↔ 844×390 (intocada reenquadra; com zoom, preserva).
 
 ### F7. Mobile (Capacitor)
 

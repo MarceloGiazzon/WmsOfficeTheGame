@@ -3,6 +3,7 @@
 // mapa: recolhido vira uma pílula, e a alça aceita toque e arrasto (para cima abre, para baixo recolhe).
 
 import { deslocamentoVisual, resultadoDoArraste } from '../app/gaveta';
+import { planejarLog } from '../app/logIncremental';
 import { ROTULO_DIFICULDADE } from '../app/fonteCenarios';
 import { TEXTO_POLITICA } from '../app/politicasTexto';
 import { POLITICAS, type Cenario, type Politica } from '../sim/model';
@@ -11,6 +12,16 @@ import { definirTexto, el } from './dom';
 
 /** Mesma consulta de mídia do layout compacto em mobile.css (celular em retrato ou paisagem, janela pequena). */
 const LAYOUT_COMPACTO = '(max-width: 900px), (max-height: 500px)';
+
+/** Quantos eventos o log mostra (a sim guarda mais; a lista de 50 já passa do que cabe na tela). */
+const MAX_ITENS_LOG = 50;
+
+function itemDoLog(e: Readonly<Evento>): HTMLLIElement {
+  const li = document.createElement('li');
+  li.textContent = `[${formatarHora(e.seg)}] ${e.texto}`;
+  if (e.texto.startsWith('Política alterada')) li.className = 'log-politica';
+  return li;
+}
 
 export class Drawer {
   private readonly politica = el<HTMLSelectElement>('select-policy');
@@ -133,15 +144,19 @@ export class Drawer {
     definirTexto(this.feedback, '');
   }
 
-  /** Redesenha o log só quando chega evento novo. */
+  /**
+   * Atualiza o log só quando chega evento novo, e só mexe no que mudou: os eventos novos entram no topo e a cauda é
+   * podada (refazer os 50 itens a cada evento custava 5–8 ms com layout). Partida nova ou log zerado refaz a lista.
+   */
   atualizarLog(eventos: readonly Readonly<Evento>[]): void {
-    if (eventos[0] === this.ultimoEvento) return;
+    const plano = planejarLog(this.ultimoEvento, eventos, MAX_ITENS_LOG);
+    if (plano.tipo === 'nada') return;
     this.ultimoEvento = eventos[0];
-    this.log.replaceChildren(...eventos.slice(0, 50).map(e => {
-      const li = document.createElement('li');
-      li.textContent = `[${formatarHora(e.seg)}] ${e.texto}`;
-      if (e.texto.startsWith('Política alterada')) li.className = 'log-politica';
-      return li;
-    }));
+    if (plano.tipo === 'refazer') {
+      this.log.replaceChildren(...eventos.slice(0, MAX_ITENS_LOG).map(itemDoLog));
+      return;
+    }
+    this.log.prepend(...eventos.slice(0, plano.novos).map(itemDoLog));
+    while (this.log.childElementCount > MAX_ITENS_LOG) this.log.lastElementChild?.remove();
   }
 }

@@ -173,6 +173,82 @@ describe('Camera: centralizar e limites', () => {
   });
 });
 
+describe('Camera: girar a tela (aoRedimensionar)', () => {
+  const RETRATO = { largura: 390, altura: 844 };
+  const PAISAGEM = { largura: 844, altura: 390 };
+  const larguraEmTela = (c: Camera) => 5000 * c.escala;
+
+  it('vista intocada: reenquadra o armazém inteiro na tela nova (o zoom acompanha o tamanho)', () => {
+    const c = new Camera();
+    c.enquadrar(5000, 2000, RETRATO.largura, RETRATO.altura);
+    const escalaRetrato = c.escala;
+    c.aoRedimensionar(RETRATO, PAISAGEM);
+    const igual = new Camera();
+    igual.enquadrar(5000, 2000, PAISAGEM.largura, PAISAGEM.altura);
+    expect(c.estado()).toEqual(igual.estado());
+    expect(c.escala).toBeGreaterThan(escalaRetrato); // 390 px → 844 px de largura: aproxima
+    expect(larguraEmTela(c)).toBeLessThanOrEqual(PAISAGEM.largura);
+    expect(c.escalaMinima()).toBeCloseTo(c.escala * Camera.AFASTAR_MAX); // limites de zoom seguem o novo enquadramento
+  });
+
+  it('reenquadrar não tira a câmera do estado "intocada": girar de novo reenquadra de novo', () => {
+    const c = new Camera();
+    c.enquadrar(5000, 2000, RETRATO.largura, RETRATO.altura);
+    c.aoRedimensionar(RETRATO, PAISAGEM);
+    c.aoRedimensionar(PAISAGEM, RETRATO);
+    const igual = new Camera();
+    igual.enquadrar(5000, 2000, RETRATO.largura, RETRATO.altura);
+    expect(c.estado()).toEqual(igual.estado());
+  });
+
+  it.each([
+    ['zoom', (c: Camera) => c.zoom(1.5, { x: 100, y: 100 })],
+    ['pan', (c: Camera) => c.mover(30, -20)],
+    ['pinça', (c: Camera) => c.pinca({ x: 100, y: 100 }, { x: 200, y: 100 }, { x: 90, y: 100 }, { x: 230, y: 100 })],
+    ['centralizar', (c: Camera) => c.centralizarEm({ x: 1000, y: 500 }, RETRATO.largura, RETRATO.altura, 0.2)],
+    ['animação (aplicar)', (c: Camera) => c.aplicar({ escala: 0.1, offsetX: 5, offsetY: 5 })],
+  ])('depois de %s a vista é do jogador: só o centro acompanha a tela, a escala fica', (_nome, mexer) => {
+    const c = new Camera();
+    c.enquadrar(5000, 2000, RETRATO.largura, RETRATO.altura);
+    mexer(c);
+    const antes = c.estado();
+    const centroAntes = c.paraMundo({ x: RETRATO.largura / 2, y: RETRATO.altura / 2 });
+    c.aoRedimensionar(RETRATO, PAISAGEM);
+    expect(c.escala).toBe(antes.escala);
+    const centroDepois = c.paraMundo({ x: PAISAGEM.largura / 2, y: PAISAGEM.altura / 2 });
+    expect(centroDepois.x).toBeCloseTo(centroAntes.x);
+    expect(centroDepois.y).toBeCloseTo(centroAntes.y);
+  });
+
+  it('"Centralizar/enquadrar" de novo devolve a câmera ao modo que reenquadra', () => {
+    const c = new Camera();
+    c.enquadrar(5000, 2000, RETRATO.largura, RETRATO.altura);
+    c.zoom(2, { x: 0, y: 0 });
+    c.enquadrar(5000, 2000, RETRATO.largura, RETRATO.altura); // botão de reenquadrar
+    c.aoRedimensionar(RETRATO, PAISAGEM);
+    const igual = new Camera();
+    igual.enquadrar(5000, 2000, PAISAGEM.largura, PAISAGEM.altura);
+    expect(c.estado()).toEqual(igual.estado());
+  });
+
+  it('antes de enquadrar (sem armazém conhecido) só preserva o centro, e a primeira medição (antes = 0) não mexe', () => {
+    const c = new Camera();
+    c.offsetX = 10;
+    c.aoRedimensionar({ largura: 0, altura: 0 }, PAISAGEM);
+    expect(c.offsetX).toBe(10);
+    c.aoRedimensionar(RETRATO, PAISAGEM);
+    expect(c.offsetX).toBe(10 + (PAISAGEM.largura - RETRATO.largura) / 2);
+  });
+
+  it('clonar leva o estado "intocada": o clone de uma vista intocada também reenquadra', () => {
+    const c = new Camera();
+    c.enquadrar(5000, 2000, RETRATO.largura, RETRATO.altura);
+    const k = c.clonar();
+    k.aoRedimensionar(RETRATO, PAISAGEM);
+    expect(k.escala).not.toBe(c.escala);
+  });
+});
+
 describe('agruparVaos', () => {
   it('WH-B: 4 andares viram um vão por posição', () => {
     const layout = construirLayout(whB as unknown as PacoteCenario);

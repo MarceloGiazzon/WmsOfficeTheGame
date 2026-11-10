@@ -113,6 +113,71 @@ describe('restaurar entre recargas', () => {
     expect(a.servidor.chamadas).toHaveLength(chamadasDoLogin);
   });
 
+  describe('validarNoServidor (depois de restaurar)', () => {
+    /** "Página nova" com o mesmo storage e servidor; `aoSessaoExpirar` ligado como no app. */
+    function paginaNova(a: ReturnType<typeof montar>) {
+      let c2!: ControladorSessao;
+      const cliente2 = new NpdevClient({ fetch: a.servidor.fetch, agora: () => a.relogio.t, aoSessaoExpirar: () => c2.aoExpirar() });
+      c2 = new ControladorSessao(cliente2, { sessionStorage: a.session, localStorage: a.local, agora: () => a.relogio.t, agendar: () => () => undefined });
+      const eventos: EventoSessao[] = [];
+      c2.observar((_e, ev) => eventos.push(ev));
+      return { c2, cliente2, eventos };
+    }
+    const chamadasMe = (a: ReturnType<typeof montar>) => a.servidor.contar(c => c.caminho === '/auth/me');
+
+    it('o servidor aceita o token: confirma e segue logado', async () => {
+      const a = montar();
+      await a.controlador.entrar('ana', 's');
+      const { c2, eventos } = paginaNova(a);
+      expect(c2.restaurar()).toBe(true);
+      expect(await c2.validarNoServidor()).toBe(true);
+      expect(c2.estado.modo).toBe('logado');
+      expect(chamadasMe(a)).toBe(1);
+      expect(eventos).toEqual(['restaurada']);
+    });
+
+    it('o servidor recusa o token (401): vira convidado AGORA, com o evento `expirou`, e esquece a sessão guardada', async () => {
+      const a = montar();
+      await a.controlador.entrar('ana', 's');
+      // o que ficou guardado na aba deixou de valer no servidor (chave trocada, usuário removido…)
+      (a.session as ReturnType<typeof storage>).dados.set('wmsgame:sessao', JSON.stringify({ token: 'lixo.lixo.lixo', username: 'ana', roles: [], expiraEmMs: null }));
+      const { c2, cliente2, eventos } = paginaNova(a);
+      expect(c2.restaurar()).toBe(true);
+      expect(await c2.validarNoServidor()).toBe(false);
+      expect(c2.estado).toEqual({ modo: 'convidado', usuario: null, escolheu: true });
+      expect(cliente2.logado).toBe(false);
+      expect(eventos).toEqual(['restaurada', 'expirou']);
+      expect((a.session as ReturnType<typeof storage>).dados.has('wmsgame:sessao')).toBe(false);
+    });
+
+    it('sem conexão não derruba a sessão: jogar offline é normal (resultado "não sei")', async () => {
+      const a = montar();
+      await a.controlador.entrar('ana', 's');
+      const { c2, cliente2 } = paginaNova(a);
+      c2.restaurar();
+      a.servidor.rede = false;
+      expect(await c2.validarNoServidor()).toBeNull();
+      expect(c2.estado.modo).toBe('logado');
+      expect(cliente2.logado).toBe(true);
+    });
+
+    it('servidor com erro 500 também não derruba', async () => {
+      const a = montar();
+      await a.controlador.entrar('ana', 's');
+      const { c2 } = paginaNova(a);
+      c2.restaurar();
+      a.servidor.falharProximas(1, { status: 500, corpo: { error: 'Internal Server Error' } }, c => c.caminho === '/auth/me');
+      expect(await c2.validarNoServidor()).toBeNull();
+      expect(c2.estado.modo).toBe('logado');
+    });
+
+    it('convidado: não chama o servidor', async () => {
+      const a = montar();
+      expect(await a.controlador.validarNoServidor()).toBe(false);
+      expect(chamadasMe(a)).toBe(0);
+    });
+  });
+
   it('token vencido na volta: não restaura e esquece o que estava guardado', async () => {
     const a = montar();
     await a.controlador.entrar('ana', 's');

@@ -17,6 +17,12 @@ export interface AcoesIndicador {
   aoEnviarAgora: () => void;
 }
 
+/** "10 s" / "2 min": a espera da retentativa, para o título do chip. */
+function tempoCurto(ms: number): string {
+  const seg = Math.max(1, Math.round(ms / 1000));
+  return seg < 90 ? `${seg} s` : `${Math.round(seg / 60)} min`;
+}
+
 export class IndicadorRede {
   private readonly usuario = h('div', { class: 'rede-usuario', id: 'rede-usuario', role: 'group', 'aria-label': 'Conta' });
   private readonly fila = h('div', { class: 'rede-fila', id: 'rede-fila', hidden: true, role: 'status' });
@@ -55,7 +61,9 @@ export class IndicadorRede {
     this.enviarAgora.hidden = e.pendentes === 0;
     const texto = e.sincronizando ? `Enviando ${plural(e.pendentes, 'partida', 'partidas')}…` : `${plural(e.pendentes, 'partida pendente', 'partidas pendentes')}`;
     this.chipPendentes.textContent = texto;
-    this.chipPendentes.title = e.ultimaMensagem ?? 'Partidas jogadas que ainda não foram aceitas pelo servidor';
+    const base = e.ultimaMensagem ?? 'Partidas jogadas que ainda não foram aceitas pelo servidor';
+    this.chipPendentes.title = e.proximaTentativaEmMs === null ? base
+      : `${base} Nova tentativa automática em cerca de ${tempoCurto(e.proximaTentativaEmMs)}.`;
     this.chipPendentes.dataset.falhou = e.ultimaFalhou ? 'sim' : 'nao';
     this.chipRejeitadas.textContent = `${plural(e.rejeitados, 'rejeitada', 'rejeitadas')} pelo servidor`;
     this.enviarAgora.textContent = logado ? 'Enviar agora' : 'Entrar para enviar';

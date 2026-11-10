@@ -112,7 +112,10 @@ export function ligarRede(opcoes: OpcoesAppRede): AppRede {
     async abrir(): Promise<void> {
       await sincronizador.iniciar();
       redesenhar();
-      if (sessao.restaurar()) return; // o observador já disparou o envio da fila
+      if (sessao.restaurar()) {
+        void sessao.validarNoServidor(); // token que o servidor já não aceita: avisa agora, não no meio do primeiro turno
+        return; // o observador já disparou o envio da fila
+      }
       if (!sessao.estado.escolheu) {
         const desfecho = await login.abrir({ primeiraVez: true, usuario: sessao.ultimoUsuario });
         if (desfecho !== 'entrou') sessao.escolherConvidado();

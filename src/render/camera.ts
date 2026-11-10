@@ -29,6 +29,8 @@ export class Camera {
   private mundoLargura = 0;
   private mundoAltura = 0;
   private escalaEnquadrada = 0;
+  /** A vista ainda é a do último `enquadrar`: nenhum zoom, pan, pinça nem centralização desde então. */
+  private enquadradaIntacta = false;
 
   paraTela(p: Ponto): Ponto {
     return { x: p.x * this.escala + this.offsetX, y: p.y * this.escala + this.offsetY };
@@ -56,10 +58,26 @@ export class Camera {
     this.mundoLargura = larguraMundo;
     this.mundoAltura = alturaMundo;
     this.escalaEnquadrada = this.escala;
+    this.enquadradaIntacta = true;
+  }
+
+  /**
+   * A tela mudou de tamanho (girar o celular, redimensionar a janela). Quem ainda está no enquadramento original
+   * (ninguém mexeu na vista) volta a ter o armazém inteiro enquadrado na tela nova — senão o zoom ficaria na escala da
+   * tela anterior, grande demais ou pequeno demais. Quem já deu zoom ou pan mantém o que escolheu: só o centro da vista
+   * acompanha o centro da tela.
+   */
+  aoRedimensionar(antes: { largura: number; altura: number }, depois: { largura: number; altura: number }): void {
+    if (this.enquadradaIntacta && this.mundoLargura > 0 && this.mundoAltura > 0) {
+      this.enquadrar(this.mundoLargura, this.mundoAltura, depois.largura, depois.altura);
+    } else if (antes.largura > 0) {
+      this.deslocar((depois.largura - antes.largura) / 2, (depois.altura - antes.altura) / 2);
+    }
   }
 
   /** Zoom multiplicativo mantendo fixo o ponto de tela `ancora`. */
   zoom(fator: number, ancora: Ponto): void {
+    this.enquadradaIntacta = false;
     const antes = this.paraMundo(ancora);
     this.escala = this.limitarEscala(this.escala * fator);
     this.offsetX = ancora.x - antes.x * this.escala;
@@ -67,6 +85,11 @@ export class Camera {
   }
 
   mover(dx: number, dy: number): void {
+    this.enquadradaIntacta = false;
+    this.deslocar(dx, dy);
+  }
+
+  private deslocar(dx: number, dy: number): void {
     this.offsetX += dx;
     this.offsetY += dy;
   }
@@ -76,6 +99,7 @@ export class Camera {
    * no meio dos dedos acompanha o meio dos dedos (pan) e a escala segue a razão das distâncias (zoom).
    */
   pinca(a0: Ponto, b0: Ponto, a1: Ponto, b1: Ponto): void {
+    this.enquadradaIntacta = false;
     const d0 = Math.hypot(b0.x - a0.x, b0.y - a0.y);
     const d1 = Math.hypot(b1.x - a1.x, b1.y - a1.y);
     const meio0 = { x: (a0.x + b0.x) / 2, y: (a0.y + b0.y) / 2 };
@@ -91,6 +115,7 @@ export class Camera {
    * quem já está mais perto fica onde está).
    */
   centralizarEm(ponto: Ponto, larguraTela: number, alturaTela: number, aproximarAte = 0): void {
+    this.enquadradaIntacta = false;
     this.escala = this.limitarEscala(Math.max(this.escala, aproximarAte));
     this.offsetX = larguraTela / 2 - ponto.x * this.escala;
     this.offsetY = alturaTela / 2 - ponto.y * this.escala;
@@ -120,6 +145,7 @@ export class Camera {
     c.mundoLargura = this.mundoLargura;
     c.mundoAltura = this.mundoAltura;
     c.escalaEnquadrada = this.escalaEnquadrada;
+    c.enquadradaIntacta = this.enquadradaIntacta;
     return c;
   }
 
@@ -128,6 +154,7 @@ export class Camera {
   }
 
   aplicar(e: EstadoCamera): void {
+    this.enquadradaIntacta = false;
     this.escala = e.escala;
     this.offsetX = e.offsetX;
     this.offsetY = e.offsetY;
