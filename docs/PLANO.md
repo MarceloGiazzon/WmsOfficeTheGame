@@ -42,7 +42,7 @@ header `Authorization: Bearer <jwt>`.
 - `NPDevClient` aponta para `:8080` (errado) e devolve sucesso falso quando offline.
 - `node_modules/` commitado, sem `.gitignore`; `setup.sh`/`setup_frontend.py` duplicam `src/`.
 - README §5 propõe "criar" `Armazem`/`Rua`/… — **já existem**; usa campos `decimal` (não suportados);
-  §6.2 tem erro aritmético (Estratégia B dá 102,45, não 98,4) e o score pode passar de 100.
+  §6.2 tem erro aritmético (Estratégia B dá 102,45, não 98,4) e o score pode passar de 100. *(Corrigido: ver §2.)*
 
 ---
 
@@ -92,14 +92,15 @@ header `Authorization: Bearer <jwt>`.
 
 ---
 
-## 2. Correções no documento do jogo (README)
+## 2. Correções no documento do jogo (README) ✅ (2026-11-10)
 
-- §5: trocar "criar `Armazem.json`…" por "reaproveita os concepts do WmsOffice"; renomear novos concepts para `Sim*`;
-  trocar `decimal` por inteiros escalados (D6).
-- ~~§6~~ ✅ (2026-11-10): score final = `min(100, max(0, 100 − (P_dist + P_atraso + P_conflito)) + B_ocup)`;
+- ~~§5~~ ✅: reescrita com os concepts reais — reaproveita `Armazem/Area/Rua/LocalArmazenagem/Produto`, concepts novos
+  `Sim*` (`SimCenario`, `SimOrdem`, `SimPartida`, `SimScore`), inteiros escalados (D6) no lugar de `decimal`, e uma
+  subseção (§5.4) sobre até onde vai a validação do servidor.
+- ~~§6~~ ✅: score final = `min(100, max(0, 100 − (P_dist + P_atraso + P_conflito)) + B_ocup)`;
   tabela 6.2 com Estratégia B → 100,0 (números de exemplo mantidos).
-- §2: app NPDev próprio na porta 8200 (D4/D5), JWT, motor no cliente (D1/D2).
-- §7: substituir o roadmap pelo deste plano.
+- ~~§2~~ ✅: app NPDev próprio na porta 8200 (D4/D5), JWT, motor no cliente (D1/D2).
+- ~~§7~~ ✅: roadmap com o estado de cada etapa, apontando para este plano.
 
 ---
 
@@ -144,6 +145,8 @@ Decisões tomadas na implementação (não estavam na tabela abaixo):
 | `velocidadeEquipamentoCmS` | integer | ex. 220 |
 | `tempoDescargaSeg` | integer | ex. 300 |
 | `inicioTurnoSeg` / `fimTurnoSeg` | integer | 28800 / 64800 |
+| `qtdOrdens` | integer, opcional | **anti-fraude:** nº de `SimOrdem` do cenário; o `ConcluirPartida` recusa outro `ordensTotal`. Gerado pelo seed |
+| `distanciaTeoricaCm` | long, opcional | **anti-fraude:** denominador da penalidade de distância, fixo por cenário (calculado pelo motor TS no seed). O `ConcluirPartida` recusa outro valor |
 | `ativo` | boolean | |
 
 **`SimOrdem`** (ordens canônicas do cenário — mesmas para todos os jogadores)
@@ -177,6 +180,7 @@ Decisões tomadas na implementação (não estavam na tabela abaixo):
 | `ocupacaoFinalCentesimos` | integer |
 | `scoreCentesimos` | integer (0–10000) |
 | `validadoServidor` | boolean |
+| `versaoMotor` | string, opcional — copiada da partida pelo `ConcluirPartida`; o ranking só compara a mesma versão |
 
 Invariants: faixas (0–10000, `> 0`), `ordensAtrasadas <= ordensTotal`, `fimTurnoSeg > inicioTurnoSeg`.
 
@@ -211,8 +215,21 @@ Como ficou (decisões e limitações descobertas):
 - **`gerarOrdens`** usa mulberry32 (testado bit a bit contra JS) — o mesmo PRNG de `src/sim/rng.ts`.
   Os pesos de frequência por produto vêm na entrada (`produtos: [{produtoId, peso}]`); `Produto` não tem esse campo.
 - **`ConcluirPartidaProcedure` sem estado parcial**: procedures do NPDev **não são transacionais** (verificado ao vivo).
-  Ordem: valida métricas → lê a partida e exige `EmAndamento` → grava o `SimScore` → conclui a partida.
+  Ordem: valida métricas → lê a partida e exige `EmAndamento` → lê o cenário e confere as referências (abaixo) → grava
+  o `SimScore` (com a `versaoMotor` da partida) → conclui a partida.
   Erros de negócio voltam como `{sucesso:false, motivo}` (HTTP 200); sucesso devolve o envelope do `SimScore`.
+- **Anti-fraude (2026-11-10).** O servidor deixou de aceitar do cliente as referências do cenário: após ler a partida, lê o
+  `SimCenario` e **recusa**, sem gravar nada, se `ordensTotal ≠ qtdOrdens`, se `distanciaTeoricaCm ≠` a do cenário ou se
+  `distanciaRealCm × 2 < distanciaTeoricaCm`. Como as referências conferem, recalcular sobre as métricas do cliente dá o
+  mesmo que recalcular sobre as do servidor. Cenário sem `qtdOrdens`/`distanciaTeoricaCm` recusa tudo (comparar com nulo
+  é falso). `qtdOrdens` e a teórica são gravados no seed por `tools/gerar_seeds_cenarios.py` (a teórica vem do próprio
+  motor do front via `tools/teorica_cenarios.ts`; o teste `src/sim/teoricaSeeds.test.ts` falha se seed e motor
+  divergirem) e `tools/semear_cenarios.py` os grava nos cenários já semeados.
+  **O que isso NÃO faz:** distância real, atrasos, conflitos e ocupação continuam vindo do cliente; quem mandar
+  `real = teórica`, 0 atrasos e 0 conflitos entra no ranking com ~100. O piso é **metade** da teórica, e não a teórica,
+  porque `teorica.ts` define a teórica como "piso razoável, não limite" (encadear tarefas pode andar menos) — e um piso
+  igual a ela não barraria ninguém (o atacante manda exatamente a teórica). Só o replay no servidor fecha isso (§7, item 5).
+  Medido nesta data: as 5 políticas terminam a 1,09–1,14 × a teórica no WH-A e a 1,38–1,55 × no WH-B.
 - **Pendente para a N3**: o procedure não confere se a partida é do usuário logado (entra com a role `JOGADOR`).
 
 ### N3. Queries, seeds e role ✅ (2026-11-10)
@@ -220,8 +237,9 @@ Como ficou (decisões e limitações descobertas):
 Teste ao vivo: [`n3_jogador.py`](../backend/npdev/tests/n3_jogador.py) (46 checks, dois jogadores de teste).
 
 - Queries (`GET /api/queries/<nome>`): `CenariosAtivos`; `OrdensPorCenario?cenarioId=` (parâmetro obrigatório —
-  sem ele, 400; ordenada por liberação, até 5000 linhas numa chamada); `RankingPorCenario?cenarioId=` (top 50, só
-  `validadoServidor`, desempate pela menor distância).
+  sem ele, 400; ordenada por liberação, até 5000 linhas numa chamada); `RankingPorCenario?cenarioId=&versaoMotor=` (top 50, só
+  `validadoServidor`, **só a versão do motor pedida** — scores de versões diferentes não se misturam; os dois parâmetros
+  são obrigatórios; linhas antigas sem `versaoMotor` ficam fora; desempate pela menor distância).
 - Role **`Jogador`** (o nome da role no NPDev; usuários criados pelo admin via `POST /api/auth/create-user` com
   `roleNames: ["Jogador"]`): lê topologia, cenários e ordens; cria `SimPartida`; lê `SimScore`. Todo o resto do WMS → 403.
 - Seeds: `definition/seeds/cenario-wh-a-pequeno.json` (4×12×1 + 2+2 docas = 52 locais, 12 produtos, 60 ordens) e
@@ -670,7 +688,9 @@ sem erros — as 7 mensagens "Failed to load resource" são das requisições qu
   admin no fim. Achados e corrigidos ali: o aviso temporário cobria o rodapé dos modais no celular (agora no topo e sem capturar
   cliques) e a frase da queda de rede repetia a causa.
 
-- [ ] `VERSAO_MOTOR` (`partidas.ts`) é manual: subir quando uma regra do motor mudar.
+- [ ] `VERSAO_MOTOR` (`partidas.ts`) é manual: subir quando uma regra do motor mudar. **Agora tem consequência:** o ranking
+  só compara a mesma versão, então esquecer de subir mistura scores de regras diferentes, e subir zera o ranking visível.
+  (Um item enfileirado offline leva a versão de quando foi jogado.)
 - [ ] Política **WmsReal online** (flow `SugerirDestinoJogo`, D2) continua só com a porta TS offline.
 - [x] ~~Desempate da curva ABC por `codigo` em vez de `id`~~ — feito em `297c8ef` (online e offline jogam o mesmo estoque inicial: 85,52 nos dois, conferido no navegador).
 - [ ] Pendências da UI: o aviso/retentativa não tem *backoff* (só `online` e o botão); a sessão não é validada no servidor ao restaurar (o 1º 401 derruba); item de outro usuário do mesmo aparelho fica invisível para quem está logado; o `index.html`/cabeçalho foram só encaixados por JS — se o layout mobile reorganizar o cabeçalho, ajustar os dois pontos de encaixe em `indicadorRede.ts`.
@@ -867,7 +887,7 @@ Marcos:
 | Build do NPDev não roda no Linux (paths `D:\`, file locks, pwsh) | Bloqueia M2 | N0 primeiro; trilha front segue com mock |
 | Divergência TS × Java nas regras de alocação | Score "WmsReal" inconsistente | Fixtures compartilhadas + testes de paridade |
 | Limites de procedures (sem filtro) | Pacote do cenário lento | Opção A (várias chamadas) + cache |
-| Score falsificável no cliente | Ranking não confiável | `validarScore` recalcula a partir das métricas; replay completo (seed + log de decisões) fica para depois |
+| Score falsificável no cliente | Ranking não confiável | O servidor recalcula o score e confere ordens e distância teórica contra o cenário (N2, anti-fraude); distância real, atrasos e conflitos ainda vêm do cliente — replay completo (seed + log de decisões) fica para depois |
 | Fork diverge do WmsOffice | Correções do produto não chegam ao jogo | Snapshot documentado em `backend/npdev/README.md`; sincronizar só quando necessário |
 | Performance no cenário mega em celulares | UX ruim | Medir na F6; canvas em camadas / PixiJS |
 
@@ -881,3 +901,4 @@ Marcos:
 4. ~~Correção no manifesto do produto WmsOffice (N0)~~: decidido em 2026-11-10 — **mantida** (o produto passa a gerar
    no NPDev atual; backup do estado anterior em `AppGen/apps/_backups/WmsOffice-2026-11-10-pre-n0.tar.gz`).
 5. Haverá validação por replay (o servidor reexecuta a partida)? Isso exige o motor em Java também — fora de escopo por ora.
+   Sem ela, o ranking só é confiável contra erro e adulteração ingênua, não contra métricas forjadas com cuidado (N2, anti-fraude).

@@ -15,32 +15,36 @@ A proposta central é converter regras reais e complexas de gestão de depósito
 
 ## 2. Tech stack e arquitetura
 
-O projeto adota uma arquitetura desacoplada, utilizando o ecossistema NPDev para sustentação de regras e persistência, e um cliente web leve focado em performance gráfica e futura portabilidade móvel.
+O projeto adota uma arquitetura desacoplada: o **motor da simulação roda no cliente** (TypeScript determinístico, por seed), o que dá 60 FPS sem rede, velocidade 5x e modo offline; o **NPDev é a fonte de dados, das regras canônicas e do placar**. O backend é um app NPDev próprio, `WmsOfficeTheGame` (porta 8200, definição em [`backend/npdev/`](backend/npdev/)), independente do produto WmsOffice e servindo o jogo na mesma origem da API (sem CORS).
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
 │                   CAMADA DE APRESENTAÇÃO                 │
 │        Frontend Web / Mobile-First (Vite + TypeScript)   │
+│  - Motor da simulação (src/sim): ticks, rotas, SLA, score│
 │  - Engine 2D em HTML5 Canvas (Racks, Heatmap, Frotas)    │
 │  - HUD Tático (Telemetria, Controle de Tempo, Drawer)    │
 └───────────────────────────┬──────────────────────────────┘
-                            │ REST / JSON API
+                            │ REST / JSON API (JWT, mesma origem)
 ┌───────────────────────────┴──────────────────────────────┐
-│                    MOTOR DO JOGO / BACKEND               │
-│                  NPDev Engine (Spring Boot)              │
-│  - Capabilities: AllocationCapability (Roteamento / ABC) │
-│  - Concepts: Armazem, LocalArmazenagem, Movimento        │
-│  - Simulação: OrdemFicticia, CenarioSimulacao, Score     │
+│              BACKEND WmsOfficeTheGame (NPDev, :8200)     │
+│  - Cenários e ordens canônicas; partidas e placar        │
+│  - Capability simulacao: calcularScore / validarScore /  │
+│    gerarOrdens (Java; recalcula o score oficial)         │
+│  - Capability alocacao: regras de alocação do WmsOffice  │
+│  - Concepts Sim* + topologia Armazem/Area/Rua/Local      │
 └──────────────────────────────────────────────────────────┘
 ```
 
 | Camada | Tecnologia | Papel no projeto |
 | --- | --- | --- |
-| Backend / regras | NPDev (Java / Spring Boot) | Execução desacoplada de capacidades logísticas (AllocationCapability), evolução de schema orientada a modelos JSON e persistência transacional de ordens fictícias e scores. |
+| Backend / regras | NPDev (Java / Spring Boot) | Entrega os cenários, recalcula o score pela fórmula oficial, confere as métricas contra o cenário e mantém o ranking; evolução de schema orientada a modelos JSON. Regras de alocação ficam em Java (`AllocationCapability`) e têm porta em TS com testes de paridade. |
 | Frontend core | HTML5 Canvas 2D + TypeScript | Renderização vetorial direta sem sobrecarga de frameworks visuais pesados; alta taxa de quadros (60 FPS) em dispositivos móveis e desktops. |
 | Ferramenta de build | Vite | Empacotamento de baixo overhead, Hot Module Replacement (HMR) e compilação rápida para assets estáticos. |
 | Interface e estilo | CSS3 moderno (variáveis + Flex/Grid) | HUD escuro de temática industrial com controles táticos, painel deslizante (drawer) de estratégias e adaptação responsiva para toque. |
-| Portabilidade futura | Capacitor 6 (Android) | Encapsulamento da aplicação web compilada dentro de um contêiner nativo para geração de `.apk` sem reescrita de interface. |
+| Portabilidade | Capacitor 6 (Android) | Encapsulamento da aplicação web compilada dentro de um contêiner nativo para geração de `.apk` sem reescrita de interface. |
+
+Detalhes das decisões (D1–D6), das fases e do que ficou pendente: [docs/PLANO.md](docs/PLANO.md).
 
 ## 3. Dinâmica de jogabilidade (gameplay loop)
 
@@ -76,74 +80,45 @@ O jogador altera as decisões de gestão por meio de políticas que impactam dir
 
 ## 5. Modelagem de dados no NPDev
 
-O backend estende os conceitos transacionais já existentes no WmsOffice (`Armazem.json`, `Rua.json`, `LocalArmazenagem.json`, `Produto.json`, `Movimento.json`), incorporando novas entidades específicas de simulação.
+O backend **reaproveita** os concepts de topologia do WmsOffice (`Armazem`, `Area`, `Rua`, `LocalArmazenagem`, `Produto`) — cada cenário tem o seu `Armazem` — e acrescenta quatro concepts de simulação com prefixo `Sim*`. Não há campos `decimal`: toda grandeza é um **inteiro escalado** (distância em centímetros, tempo em segundos desde 00:00, percentuais e score em centésimos, 0–10000). Definições completas: [`backend/npdev/definition/concepts/`](backend/npdev/definition/concepts/).
 
-### 5.1. Conceito: `CenarioSimulacao.json`
+### 5.1. Conceito: `SimCenario`
 
-Define os parâmetros de infraestrutura e restrições físicas de cada fase.
+Parâmetros de infraestrutura de cada fase, mais as referências que o servidor usa para conferir as métricas de uma partida.
 
-```json
-{
-  "name": "CenarioSimulacao",
-  "tableName": "cenario_simulacao",
-  "properties": {
-    "codigo": { "type": "string", "required": true },
-    "nome": { "type": "string", "required": true },
-    "dificuldade": { "type": "string", "enum": ["FACIL", "MEDIO", "DIFICIL", "EXTREMO"] },
-    "capacidadeTotalPaletes": { "type": "integer", "required": true },
-    "quantidadeDocasInbound": { "type": "integer", "defaultValue": 2 },
-    "quantidadeDocasOutbound": { "type": "integer", "defaultValue": 2 },
-    "quantidadeEquipamentos": { "type": "integer", "defaultValue": 3 },
-    "velocidadePadraoVeiculo": { "type": "decimal", "defaultValue": 2.2 },
-    "tempoPadraoDescargaMinutos": { "type": "integer", "defaultValue": 5 }
-  }
-}
-```
+| Campo | Tipo | Nota |
+| --- | --- | --- |
+| `codigo` (único), `nome`, `dificuldade` | string, string, enum `Facil/Medio/Dificil/Extremo` | ex. `WH-A-PEQUENO` |
+| `armazemId` | referência → `Armazem` | topologia do cenário |
+| `seed` | long | gera as ordens e o estoque inicial |
+| `qtdDocasInbound`, `qtdDocasOutbound`, `qtdEquipamentos` | integer | padrão 2 / 2 / 3 |
+| `velocidadeEquipamentoCmS`, `tempoDescargaSeg` | integer | ex. 220 cm/s, 300 s |
+| `inicioTurnoSeg`, `fimTurnoSeg` | integer | 28800 (08:00) / 64800 (18:00) |
+| `qtdOrdens`, `distanciaTeoricaCm` | integer, long | referências do servidor (calculadas por `tools/gerar_seeds_cenarios.py`); sem elas o cenário não aceita partidas |
+| `ativo` | boolean | |
 
-### 5.2. Conceito: `OrdemFicticia.json`
+### 5.2. Conceito: `SimOrdem`
 
-Modela a carga de trabalho dinâmica e a janela de atendimento.
+Carga de trabalho canônica do cenário — as mesmas ordens para todos os jogadores.
 
-```json
-{
-  "name": "OrdemFicticia",
-  "tableName": "ordem_ficticia",
-  "properties": {
-    "numero": { "type": "string", "required": true },
-    "cenarioId": { "type": "reference", "target": "CenarioSimulacao", "required": true },
-    "tipo": { "type": "string", "enum": ["INBOUND_RECEBIMENTO", "OUTBOUND_EXPEDICAO"] },
-    "tickLiberacao": { "type": "integer", "description": "Minuto simulado em que a ordem é disparada" },
-    "slaLimiteMinutos": { "type": "integer", "description": "Prazo máximo para conclusão do ciclo" },
-    "produtoId": { "type": "reference", "target": "Produto", "required": true },
-    "quantidadePaletes": { "type": "integer", "required": true },
-    "localOrigemId": { "type": "reference", "target": "LocalArmazenagem" },
-    "localDestinoId": { "type": "reference", "target": "LocalArmazenagem" },
-    "status": { "type": "string", "enum": ["PENDENTE", "EM_TRANSITO", "CONCLUIDO", "VIOLADO"] }
-  }
-}
-```
+| Campo | Tipo |
+| --- | --- |
+| `cenarioId` | referência → `SimCenario` |
+| `numero` | string (`IN-0001`, `OUT-0001`…) |
+| `tipo` | enum `Inbound/Outbound` |
+| `liberacaoSeg`, `slaSeg` | integer |
+| `produtoId` | referência → `Produto` |
+| `quantidadePaletes` | integer |
 
-### 5.3. Conceito: `ScoreSimulacao.json`
+### 5.3. Conceitos: `SimPartida` e `SimScore`
 
-Registra a avaliação consolidada para histórico e placar de líderes.
+`SimPartida` é uma jogada: `cenarioId`, `jogador` (username), `politica` (`AbcProximidade`, `FifoPrimeiraLivre`, `Consolidacao`, `CrossDocking`, `WmsReal`), `versaoMotor`, `iniciadaEm`/`concluidaEm` e `situacao` (lifecycle `EmAndamento → Concluida | Abandonada`).
 
-```json
-{
-  "name": "ScoreSimulacao",
-  "tableName": "score_simulacao",
-  "properties": {
-    "cenarioId": { "type": "reference", "target": "CenarioSimulacao", "required": true },
-    "estrategiaAplicada": { "type": "string", "required": true },
-    "distanciaPercorridaMetros": { "type": "decimal", "required": true },
-    "distanciaTeoricaMinima": { "type": "decimal", "required": true },
-    "totalOrdensProcessadas": { "type": "integer", "required": true },
-    "totalOrdensAtrasadas": { "type": "integer", "required": true },
-    "conflitosCorredor": { "type": "integer", "defaultValue": 0 },
-    "taxaOcupacaoFinal": { "type": "decimal", "required": true },
-    "scoreFinal": { "type": "decimal", "required": true }
-  }
-}
-```
+`SimScore` é o resultado, 1:1 com a partida concluída, **gravado só pelo servidor** (flow `ConcluirPartida`): `distanciaRealCm`, `distanciaTeoricaCm`, `ordensTotal`, `ordensAtrasadas`, `eventosConflito`, `ocupacaoFinalCentesimos`, `scoreCentesimos`, `validadoServidor` e `versaoMotor` (copiada da partida). O ranking (`RankingPorCenario`) lista só scores validados, **da mesma versão do motor**, do melhor para o pior.
+
+### 5.4. Até onde vai a validação do servidor
+
+O servidor recalcula o score pela fórmula oficial e **recusa** a partida cujas métricas de referência não batem com o cenário: `ordensTotal` diferente de `SimCenario.qtdOrdens`, `distanciaTeoricaCm` diferente da do cenário ou distância real abaixo de metade da teórica (piso de plausibilidade — a teórica é um piso razoável, não um limite). Isso barra métricas incoerentes e o atalho mais óbvio, **mas não prova que distância real, atrasos, conflitos e ocupação são verdadeiros**: quem enviar métricas "perfeitas" sob medida entra no ranking. Só um replay no servidor (reexecutar a partida a partir do seed e das decisões) fecharia isso; ele exigiria o motor em Java e está fora de escopo por ora.
 
 ## 6. Formulação matemática do score de eficiência
 
@@ -191,7 +166,10 @@ Implementação oficial: `SimulacaoCapability.calcularScore` (backend, inteiros 
 
 ## 7. Roadmap de entrega
 
-1. **Etapa 1 — Frontend Web Funcional:** validação visual do galpão em Canvas 2D, manipulação de câmera tátil, inspeção de nichos e simulação autônoma com mock de dados.
-2. **Etapa 2 — Acoplamento com NPDev:** criação dos conceitos de simulação (`CenarioSimulacao`, `OrdemFicticia`, `ScoreSimulacao`) e integração dos endpoints REST via `NPDevClient`.
-3. **Etapa 3 — Expansão das Regras Logísticas:** migração das regras contidas em `AllocationCapability.java` para comportamentos dinâmicos orientados a turnos com persistência de rotas.
-4. **Etapa 4 — Portabilidade Mobile:** adição dos plugins de tela cheia do Capacitor para geração do instalador `.apk` Android com suporte a toque e modo offline.
+Estado em 2026-11-10; o acompanhamento detalhado (fases N0–N5 e F0–F7, decisões e pendências) está em [docs/PLANO.md](docs/PLANO.md).
+
+1. **Etapa 1 — Frontend Web Funcional** ✅: galpão em Canvas 2D, câmera tátil (arraste e pinça), inspeção de nichos e simulação determinística por seed (`src/sim`), com cenários embutidos para jogar sem rede.
+2. **Etapa 2 — Acoplamento com NPDev** ✅: concepts `Sim*`, capability `simulacao`, role `Jogador`, cenários semeados, ranking por cenário e versão do motor; o jogo é servido em `http://localhost:8200/jogo/` e joga offline com fila de envio ao religar.
+3. **Etapa 3 — Expansão das Regras Logísticas** ◐: as quatro políticas do §4 estão no motor, com testes de paridade TS × Java para as regras de alocação. Falta a política **WmsOffice Real** online (hoje só existe a porta TS offline).
+4. **Etapa 4 — Portabilidade Mobile** ◐: Capacitor 6 + projeto Android, `.apk` de debug, layout de toque e fontes locais. Faltam testar em aparelho ou emulador, apontar o APK para a URL do backend (com CORS) e o build de release.
+5. **Integridade do ranking** ◻: validação por replay no servidor (§5.4).

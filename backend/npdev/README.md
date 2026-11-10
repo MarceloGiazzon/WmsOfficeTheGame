@@ -43,8 +43,20 @@ Concepts `Sim*`, capability `simulacao`, role `JOGADOR` e seeds de cenários —
 | N3 | Role `Jogador` + regras por linha (`access`) em `SimPartida`/`SimScore`/WMS; queries `CenariosAtivos`, `OrdensPorCenario`, `RankingPorCenario`; flow `AbandonarPartida`; seeds `cenario-wh-a-pequeno` e `cenario-wh-b-mega` (`tools/gerar_seeds_cenarios.py`, `tools/semear_cenarios.py`) | `n3_jogador.py` (ao vivo) |
 | N5 | O front do jogo é servido pelo próprio app em `web/jogo/` (mesma origem que `/api`, sem CORS); `npm run deploy:npdev` compila para lá e o `rebuild.sh` leva o jogo junto | `curl -I http://localhost:8200/jogo/index.html` (200) |
 
-Ao mudar os seeds dos cenários: `python3 backend/npdev/tools/gerar_seeds_cenarios.py` (seeds) e
-`python3 backend/npdev/tools/gerar_pacotes_front.py` (pacotes offline do front em `src/data/cenarios/`).
+Ao mudar os seeds dos cenários, o layout, as ordens ou `src/sim/teorica.ts`, na raiz do repo:
+
+```sh
+python3 backend/npdev/tools/gerar_seeds_cenarios.py   # seeds (grava SimCenario.qtdOrdens e distanciaTeoricaCm; precisa de node_modules)
+python3 backend/npdev/tools/gerar_pacotes_front.py    # pacotes offline do front em src/data/cenarios/
+python3 backend/npdev/tools/semear_cenarios.py        # app de pé: semeia o que falta e atualiza as referências dos cenários já semeados
+npx vitest run src/sim/teoricaSeeds.test.ts           # seed × motor do front
+```
+
+**Anti-fraude do ranking.** `ConcluirPartida` não aceita do cliente as referências do cenário: confere `ordensTotal`
+contra `SimCenario.qtdOrdens`, `distanciaTeoricaCm` contra `SimCenario.distanciaTeoricaCm` e exige distância real ≥ metade
+da teórica; recusa (sem gravar nada) o que não bate, e cenário sem esses campos não aceita partidas. O ranking só junta
+scores da mesma `versaoMotor` (`RankingPorCenario?cenarioId=&versaoMotor=`). Isso **não prova** distância real, atrasos,
+conflitos nem ocupação — só um replay no servidor provaria; ver [docs/PLANO.md](../../docs/PLANO.md) (N2, anti-fraude).
 
 Regenerar + compilar + subir (preserva as chaves JWT): `backend/npdev/rebuild.sh` (`--reset-db` para banco novo
 com admin e cenários; `--sem-jogo` para não recompilar o front).
