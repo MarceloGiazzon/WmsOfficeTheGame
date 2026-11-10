@@ -6,71 +6,16 @@ Cria as próprias fixtures e apaga tudo no final, inclusive em caso de falha.
 
 Uso:  python3 backend/npdev/tests/n1_sim_concepts.py [--base http://localhost:8200] [--user admin] [--password ...]
 """
-import argparse
-import json
+import os
 import sys
-import urllib.error
-import urllib.request
 
-args = argparse.ArgumentParser()
-args.add_argument("--base", default="http://localhost:8200")
-args.add_argument("--user", default="admin")
-args.add_argument("--password", default="Teste123!")
-args = args.parse_args()
-
-TOKEN = None
-failures = []
-created = []  # (endpoint, id) para limpeza, em ordem de criação
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from npdev_api import Api  # noqa: E402
 
 
-def call(method, path, body=None):
-    data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(args.base + "/api/" + path, data=data, method=method)
-    req.add_header("Content-Type", "application/json")
-    if TOKEN:
-        req.add_header("Authorization", "Bearer " + TOKEN)
-    try:
-        with urllib.request.urlopen(req) as r:
-            raw = r.read()
-            return r.status, (json.loads(raw) if raw else None)
-    except urllib.error.HTTPError as e:
-        raw = e.read()
-        try:
-            return e.code, json.loads(raw)
-        except ValueError:
-            return e.code, raw.decode(errors="replace")
-
-
-def check(name, cond, detail=""):
-    print(("  ok   " if cond else "  FAIL ") + name + ("" if cond else f"  -> {detail}"))
-    if not cond:
-        failures.append(name)
-
-
-def create(endpoint, body):
-    st, res = call("POST", endpoint, body)
-    if st not in (200, 201):
-        raise SystemExit(f"fixture {endpoint} falhou: {st} {res}")
-    created.append((endpoint, res["id"]))
-    return res
-
-
-def expect_reject(name, method, path, body=None, why=None):
-    """Exige 4xx e, se `why` for dado, que ele apareça no corpo (nome do invariant / código do erro)."""
-    st, res = call(method, path, body)
-    check(name, 400 <= st < 500 and (why is None or why in str(res)), f"{st} {str(res)[:200]}")
-    if method == "POST" and st in (200, 201) and isinstance(res, dict):
-        created.append((path, res["id"]))
-    return st
-
-
-def run():
-    global TOKEN
-    st, res = call("POST", "auth/login", {"username": args.user, "password": args.password})
-    if st != 200:
-        raise SystemExit(f"login falhou: {st} {res}")
-    TOKEN = res["token"]
-    _, me = call("GET", "auth/me")
+def run(api):
+    call, check, create, expect_reject = api.call, api.check, api.create, api.expect_reject
+    me = api.me
 
     print("fixtures")
     ent = create("entidades", {"nome": "N1 Teste", "tipo": "Estabelecimento"})
@@ -159,19 +104,6 @@ def run():
     check("SimOrdem removida em cascata com o cenario", st == 404, st)
 
 
-def cleanup():
-    for endpoint, id_ in reversed(created):
-        call("DELETE", f"{endpoint}/{id_}")
-    leftovers = [(e, i) for e, i in created if call("GET", f"{e}/{i}")[0] != 404]
-    if leftovers:
-        print(f"ATENCAO: registros nao removidos: {leftovers}")
 
-
-try:
-    run()
-finally:
-    if TOKEN:
-        cleanup()
-
-print(f"\n{'FALHOU' if failures else 'OK'}: {len(failures)} falha(s)")
-sys.exit(1 if failures else 0)
+if __name__ == "__main__":
+    Api.from_argv().run(run)

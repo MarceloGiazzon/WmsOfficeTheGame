@@ -607,6 +607,15 @@
         "importarContagem",
         "analisarArquivoRecebimento"
       ]
+    },
+    {
+      "name": "simulacao",
+      "type": "SimulacaoCapability",
+      "operations": [
+        "calcularScore",
+        "validarScore",
+        "gerarOrdens"
+      ]
     }
   ],
   "bindings": [
@@ -628,6 +637,10 @@
     },
     {
       "capability": "inventoryFile",
+      "adapter": "plugin:java-source"
+    },
+    {
+      "capability": "simulacao",
       "adapter": "plugin:java-source"
     }
   ],
@@ -951,6 +964,84 @@
           ],
           "capability": "alocacao",
           "operation": "alocarRecebimento",
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "CalcularScoreSimulacao",
+      "concept": "SimScore",
+      "steps": [
+        {
+          "name": "calcular",
+          "type": "capabilityCall",
+          "capability": "simulacao",
+          "operation": "calcularScore",
+          "args": [
+            "$input"
+          ],
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "ConcluirPartida",
+      "concept": "SimPartida",
+      "steps": [
+        {
+          "name": "concluir",
+          "type": "callProcedure",
+          "procedure": "ConcluirPartidaProcedure",
+          "input": "$input",
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "GerarOrdensSimulacao",
+      "concept": "SimOrdem",
+      "steps": [
+        {
+          "name": "gerar",
+          "type": "capabilityCall",
+          "capability": "simulacao",
+          "operation": "gerarOrdens",
+          "args": [
+            "$input"
+          ],
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "SugerirDestinoJogo",
+      "concept": "LocalArmazenagem",
+      "steps": [
+        {
+          "name": "sugerir-destino",
+          "type": "callProcedure",
+          "procedure": "SugerirDestinoProcedure",
+          "input": "$input",
           "output": "$resultado"
         },
         {
@@ -3250,6 +3341,96 @@
       "metadata": {
         "untrustedExtensionEntrypoint": "trusted-source/procedure/RegistrarProdutoTrustedProcedure.java"
       }
+    },
+    {
+      "name": "ConcluirPartidaProcedure",
+      "description": "N2 (docs/PLANO.md): fecha uma SimPartida. Entrada {partidaId, <metricas>, scoreCentesimos (do cliente)}. SimulacaoCapability.validarScore recalcula o score pela formula oficial; vale sempre o recalculado, e validadoServidor = (score do cliente == recalculado). Procedures NAO sao transacionais (verificado ao vivo: um passo que falha nao desfaz os anteriores), entao a ordem evita estado parcial: (1) valida metricas -- invalidas: devolve {sucesso:false, motivo} sem escrever; (2) le a partida e exige situacao EmAndamento -- senao devolve {sucesso:false, motivo} (patch Concluida->Concluida nao conta como transicao e seria aceito); (3) cria o SimScore primeiro -- se falhar (ex.: unique em partidaId), nada mudou; (4) so entao SimPartida -> Concluida com concluidaEm = horario do servidor. O readConcept vem DEPOIS do capabilityCall de proposito: o runtime serializa todo o estado do procedure para o processo do plugin e falha com ConceptRecord que tem datetime (Jackson sem JSR310). Resposta de sucesso: o envelope do SimScore gravado {conceptName, id, data}. O return so resolve referencias de primeiro nivel.",
+      "steps": [
+        {
+          "name": "validar-score",
+          "type": "capabilityCall",
+          "capability": "simulacao",
+          "operation": "validarScore",
+          "args": {
+            "input": "$input"
+          },
+          "target": "validacao"
+        },
+        {
+          "name": "se-metricas-validas",
+          "type": "if",
+          "condition": "$validacao.sucesso",
+          "then": [
+            {
+              "name": "ler-partida",
+              "type": "readConcept",
+              "concept": "SimPartida",
+              "id": "$input.partidaId",
+              "target": "partida"
+            },
+            {
+              "name": "se-em-andamento",
+              "type": "if",
+              "condition": "$partida.situacao == 'EmAndamento'",
+              "then": [
+                {
+                  "name": "criar-score",
+                  "type": "patchConcept",
+                  "concept": "SimScore",
+                  "id": "$novoScoreId",
+                  "createIfMissing": true,
+                  "set": {
+                    "partidaId": "$input.partidaId",
+                    "distanciaRealCm": "$input.distanciaRealCm",
+                    "distanciaTeoricaCm": "$input.distanciaTeoricaCm",
+                    "ordensTotal": "$input.ordensTotal",
+                    "ordensAtrasadas": "$input.ordensAtrasadas",
+                    "eventosConflito": "$input.eventosConflito",
+                    "ocupacaoFinalCentesimos": "$input.ocupacaoFinalCentesimos",
+                    "scoreCentesimos": "$validacao.scoreRecalculado",
+                    "validadoServidor": "$validacao.valido"
+                  },
+                  "target": "score"
+                },
+                {
+                  "name": "concluir-partida",
+                  "type": "patchConcept",
+                  "concept": "SimPartida",
+                  "id": "$input.partidaId",
+                  "set": {
+                    "situacao": "Concluida",
+                    "concluidaEm": "$validacao.avaliadoEm"
+                  },
+                  "target": "partidaConcluida"
+                },
+                {
+                  "name": "return-score",
+                  "type": "return",
+                  "value": "$score"
+                }
+              ],
+              "else": [
+                {
+                  "name": "return-nao-em-andamento",
+                  "type": "return",
+                  "value": {
+                    "sucesso": false,
+                    "valido": false,
+                    "motivo": "Partida nao esta EmAndamento"
+                  }
+                }
+              ]
+            }
+          ],
+          "else": [
+            {
+              "name": "return-metricas-invalidas",
+              "type": "return",
+              "value": "$validacao"
+            }
+          ]
+        }
+      ]
     }
   ],
   "panels": [

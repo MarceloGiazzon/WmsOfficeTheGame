@@ -1,0 +1,38 @@
+{
+  "$schema": "npdev/capability-plugin.schema.json",
+  "packageFormatVersion": "1.0",
+  "packageId": "wmsofficethegame-simulacao-java-source-package",
+  "pluginId": "wmsofficethegame-simulacao-java-source-plugin",
+  "displayName": "WmsOffice: The Game - Simulacao Capability",
+  "version": "1.0.0",
+  "description": "Regras canonicas do jogo em Java puro: calcularScore/validarScore (formula oficial, inteiros escalados) e gerarOrdens (deterministico por seed, PRNG mulberry32 igual ao cliente TS).",
+  "capability": "simulacao",
+  "capabilityType": "SimulacaoCapability",
+  "adapterId": "plugin:java-source",
+  "runtimeRef": "simulacaoJavaSourceHandler",
+  "implementation": {
+    "kind": "javaSource",
+    "sourceRoot": "capabilities/simulacao/src/main/java",
+    "mainClass": "com.wmsofficethegame.capabilities.simulacao.SimulacaoCapability",
+    "factory": { "kind": "defaultConstructor" }
+  },
+  "operationBindings": [
+    {
+      "operation": "calcularScore", "method": "calcularScore",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "validarScore", "method": "validarScore",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    },
+    {
+      "operation": "gerarOrdens", "method": "gerarOrdens",
+      "input": { "mode": "firstArgument", "expectedType": "java.util.Map" },
+      "output": { "mode": "returnValue", "expectedType": "java.util.Map" }
+    }
+  ],
+  "trust": { "mode": "artifact-local-source", "source": "external-artifact-bundle", "level": "developer-supplied" },
+  "generation": { "mount": "compileIntoGeneratedApp", "emitManifestContribution": true, "emitPackageDescriptor": true, "emitBinding": true }
+}

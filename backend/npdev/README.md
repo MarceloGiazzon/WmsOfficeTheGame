@@ -39,3 +39,6 @@ Concepts `Sim*`, capability `simulacao`, role `JOGADOR` e seeds de cenários —
 | Fase | O que entrou | Verificação |
 | --- | --- | --- |
 | N1 | `SimCenario`, `SimOrdem`, `SimPartida` (lifecycle), `SimScore` — REST em `/api/sim_cenarios`, `/api/sim_ordems`, `/api/sim_partidas`, `/api/sim_scores` | `python3 backend/npdev/tests/n1_sim_concepts.py` (app de pé na 8200) |
+| N2 | Capability `simulacao` (`calcularScore`, `validarScore`, `gerarOrdens`); flows `CalcularScoreSimulacao`, `ConcluirPartida`, `GerarOrdensSimulacao`, `SugerirDestinoJogo` | `python3 backend/npdev/tests/n2_simulacao_capability.py` (offline) e `n2_simulacao_flows.py` (ao vivo) |
+
+Regenerar + compilar + subir (preserva as chaves JWT): `backend/npdev/rebuild.sh`.

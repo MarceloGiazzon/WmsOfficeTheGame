@@ -1,0 +1,87 @@
+{
+  "descricao": "Casos de referencia da formula oficial do score (README §6, teto de 100). Valores esperados calculados a mao. Usados pelo Java (SimulacaoCapability.calcularScore) e pelo TS (src/sim/score.ts). Unidades: cm, centesimos.",
+  "casos": [
+    {
+      "nome": "README 6.2 Estrategia A (FIFO): +106% dist, 14% atraso, 6 conflitos, ocupacao 62%",
+      "metricas": { "distanciaRealCm": 824000, "distanciaTeoricaCm": 400000, "ordensTotal": 100, "ordensAtrasadas": 14, "eventosConflito": 6, "ocupacaoFinalCentesimos": 6200 },
+      "esperado": { "scoreCentesimos": 5040, "penalidades": { "distancia": 3500, "atraso": 560, "conflito": 900, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "README 6.2 Estrategia B (ABC): +3% dist, 0 atraso, 1 conflito, ocupacao 81% -> 102,45 limitado a 100",
+      "metricas": { "distanciaRealCm": 412000, "distanciaTeoricaCm": 400000, "ordensTotal": 100, "ordensAtrasadas": 0, "eventosConflito": 1, "ocupacaoFinalCentesimos": 8100 },
+      "esperado": { "scoreCentesimos": 10000, "penalidades": { "distancia": 105, "atraso": 0, "conflito": 150, "bonusOcupacao": 500 } }
+    },
+    {
+      "nome": "operacao perfeita sem bonus",
+      "metricas": { "distanciaRealCm": 100000, "distanciaTeoricaCm": 100000, "ordensTotal": 50, "ordensAtrasadas": 0, "eventosConflito": 0, "ocupacaoFinalCentesimos": 5000 },
+      "esperado": { "scoreCentesimos": 10000, "penalidades": { "distancia": 0, "atraso": 0, "conflito": 0, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "todas as penalidades no maximo (soma 90) + bonus",
+      "metricas": { "distanciaRealCm": 1000000, "distanciaTeoricaCm": 100000, "ordensTotal": 10, "ordensAtrasadas": 10, "eventosConflito": 20, "ocupacaoFinalCentesimos": 8000 },
+      "esperado": { "scoreCentesimos": 1500, "penalidades": { "distancia": 3500, "atraso": 4000, "conflito": 1500, "bonusOcupacao": 500 } }
+    },
+    {
+      "nome": "distancia teorica 0 e real 0 -> sem penalidade",
+      "metricas": { "distanciaRealCm": 0, "distanciaTeoricaCm": 0, "ordensTotal": 1, "ordensAtrasadas": 0, "eventosConflito": 0, "ocupacaoFinalCentesimos": 0 },
+      "esperado": { "scoreCentesimos": 10000, "penalidades": { "distancia": 0, "atraso": 0, "conflito": 0, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "distancia teorica 0 e real > 0 -> penalidade maxima",
+      "metricas": { "distanciaRealCm": 10, "distanciaTeoricaCm": 0, "ordensTotal": 1, "ordensAtrasadas": 0, "eventosConflito": 0, "ocupacaoFinalCentesimos": 0 },
+      "esperado": { "scoreCentesimos": 6500, "penalidades": { "distancia": 3500, "atraso": 0, "conflito": 0, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "distancia real menor que a teorica -> sem penalidade (nao vira bonus)",
+      "metricas": { "distanciaRealCm": 90000, "distanciaTeoricaCm": 100000, "ordensTotal": 1, "ordensAtrasadas": 0, "eventosConflito": 0, "ocupacaoFinalCentesimos": 0 },
+      "esperado": { "scoreCentesimos": 10000, "penalidades": { "distancia": 0, "atraso": 0, "conflito": 0, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "arredondamento: dist 0,5 -> 1 (meio para cima); atraso 1/3 de 40 = 13,333 -> 1333",
+      "metricas": { "distanciaRealCm": 7001, "distanciaTeoricaCm": 7000, "ordensTotal": 3, "ordensAtrasadas": 1, "eventosConflito": 0, "ocupacaoFinalCentesimos": 0 },
+      "esperado": { "scoreCentesimos": 8666, "penalidades": { "distancia": 1, "atraso": 1333, "conflito": 0, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "arredondamento: atraso 1/6 de 40 = 6,667 -> 667",
+      "metricas": { "distanciaRealCm": 100, "distanciaTeoricaCm": 100, "ordensTotal": 6, "ordensAtrasadas": 1, "eventosConflito": 0, "ocupacaoFinalCentesimos": 0 },
+      "esperado": { "scoreCentesimos": 9333, "penalidades": { "distancia": 0, "atraso": 667, "conflito": 0, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "ocupacao 75,00% (limite inferior) ganha bonus",
+      "metricas": { "distanciaRealCm": 100, "distanciaTeoricaCm": 100, "ordensTotal": 100, "ordensAtrasadas": 25, "eventosConflito": 0, "ocupacaoFinalCentesimos": 7500 },
+      "esperado": { "scoreCentesimos": 9500, "penalidades": { "distancia": 0, "atraso": 1000, "conflito": 0, "bonusOcupacao": 500 } }
+    },
+    {
+      "nome": "ocupacao 88,00% (limite superior) ganha bonus",
+      "metricas": { "distanciaRealCm": 100, "distanciaTeoricaCm": 100, "ordensTotal": 100, "ordensAtrasadas": 25, "eventosConflito": 0, "ocupacaoFinalCentesimos": 8800 },
+      "esperado": { "scoreCentesimos": 9500, "penalidades": { "distancia": 0, "atraso": 1000, "conflito": 0, "bonusOcupacao": 500 } }
+    },
+    {
+      "nome": "ocupacao 74,99% sem bonus",
+      "metricas": { "distanciaRealCm": 100, "distanciaTeoricaCm": 100, "ordensTotal": 100, "ordensAtrasadas": 25, "eventosConflito": 0, "ocupacaoFinalCentesimos": 7499 },
+      "esperado": { "scoreCentesimos": 9000, "penalidades": { "distancia": 0, "atraso": 1000, "conflito": 0, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "ocupacao 88,01% sem bonus",
+      "metricas": { "distanciaRealCm": 100, "distanciaTeoricaCm": 100, "ordensTotal": 100, "ordensAtrasadas": 25, "eventosConflito": 0, "ocupacaoFinalCentesimos": 8801 },
+      "esperado": { "scoreCentesimos": 9000, "penalidades": { "distancia": 0, "atraso": 1000, "conflito": 0, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "9 conflitos = 13,5",
+      "metricas": { "distanciaRealCm": 100, "distanciaTeoricaCm": 100, "ordensTotal": 1, "ordensAtrasadas": 0, "eventosConflito": 9, "ocupacaoFinalCentesimos": 0 },
+      "esperado": { "scoreCentesimos": 8650, "penalidades": { "distancia": 0, "atraso": 0, "conflito": 1350, "bonusOcupacao": 0 } }
+    },
+    {
+      "nome": "11 conflitos limitados a 15",
+      "metricas": { "distanciaRealCm": 100, "distanciaTeoricaCm": 100, "ordensTotal": 1, "ordensAtrasadas": 0, "eventosConflito": 11, "ocupacaoFinalCentesimos": 0 },
+      "esperado": { "scoreCentesimos": 8500, "penalidades": { "distancia": 0, "atraso": 0, "conflito": 1500, "bonusOcupacao": 0 } }
+    }
+  ],
+  "invalidos": [
+    { "nome": "atrasadas > total", "metricas": { "distanciaRealCm": 1, "distanciaTeoricaCm": 1, "ordensTotal": 5, "ordensAtrasadas": 6, "eventosConflito": 0, "ocupacaoFinalCentesimos": 0 } },
+    { "nome": "total 0", "metricas": { "distanciaRealCm": 1, "distanciaTeoricaCm": 1, "ordensTotal": 0, "ordensAtrasadas": 0, "eventosConflito": 0, "ocupacaoFinalCentesimos": 0 } },
+    { "nome": "distancia negativa", "metricas": { "distanciaRealCm": -1, "distanciaTeoricaCm": 1, "ordensTotal": 1, "ordensAtrasadas": 0, "eventosConflito": 0, "ocupacaoFinalCentesimos": 0 } },
+    { "nome": "ocupacao > 100%", "metricas": { "distanciaRealCm": 1, "distanciaTeoricaCm": 1, "ordensTotal": 1, "ordensAtrasadas": 0, "eventosConflito": 0, "ocupacaoFinalCentesimos": 10001 } },
+    { "nome": "metrica ausente", "metricas": { "distanciaRealCm": 1, "distanciaTeoricaCm": 1, "ordensTotal": 1, "ordensAtrasadas": 0, "eventosConflito": 0 } }
+  ]
+}

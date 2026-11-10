@@ -34,6 +34,9 @@ pwsh -NoProfile -File AppGen/generator-runtime/prepare-npdev-generator-runtime.p
 
 ## Gerar → compilar → subir (jogo)
 
+Atalho para tudo abaixo (valida, para o app, salva/restaura as chaves JWT, gera, compila e sobe):
+`backend/npdev/rebuild.sh` (a partir da raiz deste repo). Passo a passo:
+
 ```sh
 cd ~/repos/NPDev/NPDev_General
 ./npdev validate model ~/repos/WmsOfficeTheGame/backend/npdev/definition/model.json   # 0 erros esperados
@@ -52,7 +55,8 @@ sh _ops/stop-app.sh
 > A geração **sempre** recria `App/` e apaga `wmsoffice-keys/`: copie a pasta para fora antes e de volta depois
 > (ou gere novas — abaixo). O banco em `App/data/` sobrevive à regeneração.
 
-Testes ao vivo do jogo (app de pé): `python3 ~/repos/WmsOfficeTheGame/backend/npdev/tests/n1_sim_concepts.py`.
+Testes do jogo, em `backend/npdev/tests/`: `n2_simulacao_capability.py` (offline) e, com o app de pé,
+`n1_sim_concepts.py` e `n2_simulacao_flows.py`.
 
 Chaves JWT novas (dentro de `App/`):
 
@@ -84,6 +88,20 @@ Chamadas: `Authorization: Bearer <token>`. Tenant: `dev`.
 4. **Manifesto de extensões**: o generator atual exige `untrusted-extension-manifest.json` com todas as entradas
    referenciadas pelo modelo. (O produto WmsOffice tinha um manifesto parcial e não gerava — ver abaixo.)
 
+## Limitações do NPDev encontradas ao escrever capabilities/procedures (N2)
+
+Todas verificadas ao vivo em 2026-11-10; as soluções adotadas estão nos comentários do `model.json` e da capability.
+
+| Limitação | Sintoma | Como contornar |
+| --- | --- | --- |
+| Gate de bytecode nas capabilities Java | App não sobe: `B30:plugin_bytecode_violation ... LambdaMetafactory` | Sem lambdas/method references (classes anônimas); sem `java.io`, `java.net`, reflection, threads. O teste offline roda o inspector real do kernel |
+| Procedures **não são transacionais** | Um passo que falha não desfaz os anteriores | Validar tudo antes e ordenar as escritas para que a que pode falhar venha primeiro |
+| Estado do procedure é serializado para o processo do plugin a cada `capabilityCall` | `PLUGIN_EXECUTION_FAILED: Java 8 date/time type OffsetDateTime not supported` se houver no estado um registro com `datetime` | Fazer `capabilityCall` antes de `readConcept`/`patchConcept` de concepts com `datetime` |
+| `return` só resolve referência de primeiro nível | `{"a": "$x"}` volta com a string literal `"$x"` | Devolver um único `$ref` (ou um objeto todo literal) |
+| Referência a registro lido | Validador recusa `$registro.data.campo` | Usar `$registro.campo` |
+| Patch para o mesmo estado do lifecycle | `Concluida → Concluida` é aceito (não conta como transição) | Conferir o estado antes de escrever |
+| Saída de procedure que devolve registro | Vem como envelope `{conceptName, id, tenantId, data}` | O cliente lê `output.data` |
+
 ## Nota sobre o produto WmsOffice
 
 Durante a N0 (antes da decisão de separar os apps), o WmsOffice foi gerado e testado nesta máquina em
@@ -91,6 +109,7 @@ Durante a N0 (antes da decisão de separar os apps), o WmsOffice foi gerado e te
 alterado**: o `untrusted-extension-manifest.json` foi completado com as entradas do antigo
 `trusted-source-manifest.json`, que foi removido — sem isso o produto não gera com o NPDev atual.
 Backup do estado anterior: `~/repos/NPDev/AppGen/apps/_backups/WmsOffice-2026-11-10-pre-n0.tar.gz`.
+**Decisão (2026-11-10): a correção fica no produto.**
 
 ## Verificação (2026-11-10)
 

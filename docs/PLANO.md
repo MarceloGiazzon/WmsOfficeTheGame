@@ -96,8 +96,8 @@ header `Authorization: Bearer <jwt>`.
 
 - §5: trocar "criar `Armazem.json`…" por "reaproveita os concepts do WmsOffice"; renomear novos concepts para `Sim*`;
   trocar `decimal` por inteiros escalados (D6).
-- §6: score final = `min(100, max(0, 100 − (P_dist + P_atraso + P_conflito)) + B_ocup)`; recalcular a tabela 6.2
-  (Estratégia B → 100,0 com o teto, ou ajustar os números de exemplo).
+- ~~§6~~ ✅ (2026-11-10): score final = `min(100, max(0, 100 − (P_dist + P_atraso + P_conflito)) + B_ocup)`;
+  tabela 6.2 com Estratégia B → 100,0 (números de exemplo mantidos).
 - §2: app NPDev próprio na porta 8200 (D4/D5), JWT, motor no cliente (D1/D2).
 - §7: substituir o roadmap pelo deste plano.
 
@@ -182,9 +182,11 @@ Invariants: faixas (0–10000, `> 0`), `ordensAtrasadas <= ordensTotal`, `fimTur
 
 **Pronto quando:** CRUD REST dos 4 concepts funciona com os bonds e o lifecycle validados ao vivo. ✅
 
-### N2. Capability `simulacao` (Java puro)
+### N2. Capability `simulacao` (Java puro) ✅ (2026-11-10)
 
-Nova pasta `definition/capabilities/simulacao/`, mesmo padrão de `alocacao`:
+Nova pasta `definition/capabilities/simulacao/`, mesmo padrão de `alocacao`. Testes:
+[`n2_simulacao_capability.py`](../backend/npdev/tests/n2_simulacao_capability.py) (offline: javac + fixtures + PRNG × JS +
+gate de bytecode do NPDev) e [`n2_simulacao_flows.py`](../backend/npdev/tests/n2_simulacao_flows.py) (ao vivo).
 
 | Operação | Entrada → Saída |
 | --- | --- |
@@ -194,10 +196,24 @@ Nova pasta `definition/capabilities/simulacao/`, mesmo padrão de `alocacao`:
 
 Flows (cada um declarando `concept`):
 - `CalcularScoreSimulacao` — chamado pelo cliente ao fim da partida.
-- `ConcluirPartida` — `capabilityCall validarScore` → `branch` → `createConcept SimScore` + `updateConcept SimPartida → Concluida`.
+- `ConcluirPartida` — `callProcedure ConcluirPartidaProcedure` (ver abaixo).
+- `GerarOrdensSimulacao` — expõe `gerarOrdens` (prévia, sem gravar; o seeding usa na N3).
 - `SugerirDestinoJogo` — reaproveita `AllocationCapability.sugerirDestino` (política `WmsReal`).
 
-**Pronto quando:** os testes unitários da capability batem com os exemplos do README (após a correção do §2).
+**Pronto quando:** os testes unitários da capability batem com os exemplos do README (após a correção do §2). ✅
+
+Como ficou (decisões e limitações descobertas):
+- **Score**: teto de 100 (decidido em 2026-11-10); cada termo em centésimos com arredondamento meio para cima;
+  `D_teorico = 0` → `P_dist` 0 se `D_real = 0`, senão 35. Vale sempre o score **recalculado** no servidor;
+  `validadoServidor` = o score do cliente bateu com o recalculado.
+- **Fixtures compartilhadas** em `backend/npdev/tests/fixtures/score-cases.json` — o `src/sim/score.ts` (F2) deve
+  passar nos mesmos casos.
+- **`gerarOrdens`** usa mulberry32 (testado bit a bit contra JS) — o mesmo PRNG de `src/sim/rng.ts`.
+  Os pesos de frequência por produto vêm na entrada (`produtos: [{produtoId, peso}]`); `Produto` não tem esse campo.
+- **`ConcluirPartidaProcedure` sem estado parcial**: procedures do NPDev **não são transacionais** (verificado ao vivo).
+  Ordem: valida métricas → lê a partida e exige `EmAndamento` → grava o `SimScore` → conclui a partida.
+  Erros de negócio voltam como `{sucesso:false, motivo}` (HTTP 200); sucesso devolve o envelope do `SimScore`.
+- **Pendente para a N3**: o procedure não confere se a partida é do usuário logado (entra com a role `JOGADOR`).
 
 ### N3. Queries, seeds e role
 
@@ -355,4 +371,6 @@ Marcos:
 1. ~~**D4**~~: decidido — app NPDev próprio (`backend/npdev/`), WmsOffice intocado.
 2. O NPDev será mantido nas duas máquinas (Windows e Linux)? Se sim, `config.json` por máquina vai para fora do git.
 3. O ranking é global ou por usuário/tenant?
-4. Haverá validação por replay (o servidor reexecuta a partida)? Isso exige o motor em Java também — fora de escopo por ora.
+4. ~~Correção no manifesto do produto WmsOffice (N0)~~: decidido em 2026-11-10 — **mantida** (o produto passa a gerar
+   no NPDev atual; backup do estado anterior em `AppGen/apps/_backups/WmsOffice-2026-11-10-pre-n0.tar.gz`).
+5. Haverá validação por replay (o servidor reexecuta a partida)? Isso exige o motor em Java também — fora de escopo por ora.

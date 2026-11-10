@@ -147,11 +147,13 @@ Registra a avaliação consolidada para histórico e placar de líderes.
 
 ## 6. Formulação matemática do score de eficiência
 
-A pontuação operacional ($E$) é avaliada em uma escala de $0$ a $100$ pontos percentuais, penalizando ineficiências de deslocamento, violações de prazo e gargalos mecânicos:
+A pontuação operacional ($E$) é avaliada em uma escala de $0$ a $100$ pontos percentuais, penalizando ineficiências de deslocamento, violações de prazo e gargalos mecânicos. O bônus de ocupação nunca leva o score acima de $100$:
 
 $$
-E = \max\left(0,\; 100 - (P_{dist} + P_{atraso} + P_{conflito})\right) + B_{ocup}
+E = \min\left(100,\; \max\left(0,\; 100 - (P_{dist} + P_{atraso} + P_{conflito})\right) + B_{ocup}\right)
 $$
+
+Implementação oficial: `SimulacaoCapability.calcularScore` (backend, inteiros em centésimos, arredondamento meio para cima em cada termo). Casos de referência: [`backend/npdev/tests/fixtures/score-cases.json`](backend/npdev/tests/fixtures/score-cases.json).
 
 ### 6.1. Componentes da fórmula
 
@@ -185,7 +187,7 @@ $$
 | Conflitos de tráfego | 6 eventos | 1 evento |
 | Penalidades totais | $-35{,}0$ (dist), $-5{,}6$ (SLA), $-9{,}0$ (conflito) | $-1{,}05$ (dist), $-0{,}0$ (SLA), $-1{,}5$ (conflito) |
 | Bônus de ocupação | $0$ (ocupação dispersa: $62\%$) | $+5{,}0$ (ocupação concentrada: $81\%$) |
-| Score final ($E$) | $50{,}4\%$ (Operação Crítica) | $98{,}4\%$ (Classe Mundial) |
+| Score final ($E$) | $50{,}4\%$ (Operação Crítica) | $100{,}0\%$ (Classe Mundial; $97{,}45 + 5 = 102{,}45$, limitado a $100$) |
 
 ## 7. Roadmap de entrega
 
