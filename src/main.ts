@@ -12,9 +12,11 @@ import { FonteEmbutida } from './app/fonteEmbutida';
 import { Relogio, type Velocidade } from './app/relogio';
 import { resultadoDaPartida, type ExtrasResultado, type ResultadoPartida } from './app/resultado';
 import { Camera } from './render/camera';
+import { Cadencia, INTERVALO_UI_MS } from './render/cadencia';
 import { ligarEntrada } from './render/input';
+import { Perfil } from './render/perf';
 import { Renderer } from './render/renderer';
-import type { PacoteCenario, Politica } from './sim/model';
+import { POLITICAS, type PacoteCenario, type Politica } from './sim/model';
 import { Simulacao, type Snapshot } from './sim/simulation';
 import { Drawer } from './ui/drawer';
 import { Hud } from './ui/hud';
@@ -61,6 +63,10 @@ class Jogo {
   private heatmap = false;
   private vaoSelecionado: string | null = null;
   private ultimoFrame = 0;
+  // DOM (HUD, log) a ~10 Hz e só quando o relógio andou; o canvas continua a cada quadro (F6)
+  private readonly cadenciaHud = new Cadencia(INTERVALO_UI_MS);
+  private readonly cadenciaLog = new Cadencia(INTERVALO_UI_MS);
+  private readonly perf = Perfil.daUrl(); // só com ?perf=1
 
   private readonly hud = new Hud(
     v => this.escolherVelocidade(v),
@@ -85,9 +91,12 @@ class Jogo {
 
   async iniciar(): Promise<void> {
     this.redimensionar();
-    // Observa o contêiner (não a janela): recolher/abrir a gaveta também muda a altura do mapa.
+    // o canvas acompanha o tamanho do container (janela, drawer, fonte que chega e muda o cabeçalho), não só a janela
     new ResizeObserver(() => this.redimensionar()).observe(this.canvas.parentElement!);
-    ligarEntrada(this.canvas, this.camera, p => this.clicar(p.x, p.y));
+    ligarEntrada(this.canvas, this.camera, {
+      aoClicar: p => this.clicar(p.x, p.y),
+      alvoDuploClique: p => this.centroDoVao(p),
+    });
     const centro = () => ({ x: this.canvas.width / 2, y: this.canvas.height / 2 });
     document.getElementById('btn-zoom-in')!.addEventListener('click', () => this.camera.zoom(1.25, centro()));
     document.getElementById('btn-zoom-out')!.addEventListener('click', () => this.camera.zoom(1 / 1.25, centro()));
@@ -172,16 +181,27 @@ class Jogo {
     const dt = this.ultimoFrame ? agora - this.ultimoFrame : 0;
     this.ultimoFrame = agora;
     const sim = this.sim;
+    const perf = this.perf;
+    perf?.inicio(agora);
+    let ticks = 0;
     if (sim) {
-      const ticks = this.relogio.avancar(dt); // 0 com a sim pausada (pré-partida, resultado e pausa)
+      ticks = this.relogio.avancar(dt); // 0 com a sim pausada (pré-partida, resultado e pausa)
       for (let i = 0; i < ticks && !sim.terminado; i++) sim.tick();
+      perf?.fase('sim');
       const s = sim.snapshot();
       this.renderer.desenhar(s, this.camera, { heatmap: this.heatmap, vaoSelecionado: this.vaoSelecionado });
-      this.hud.atualizar(s);
-      this.drawer.atualizar(s, this.fase === 'jogando');
-      this.drawer.atualizarLog(s.eventos);
+      perf?.fase('desenho');
+      // O HUD/gaveta só refazem o DOM a ~10 Hz e quando algo mudou; a política entra na versão porque ela pode
+      // mudar com o relógio pausado (e a fase decide se o seletor fica habilitado).
+      if (this.cadenciaHud.pronto(agora, s.layout, s.relogioSeg * 16 + POLITICAS.indexOf(s.politica) * 2 + (this.fase === 'jogando' ? 1 : 0))) {
+        this.hud.atualizar(s);
+        this.drawer.atualizar(s, this.fase === 'jogando');
+      }
+      if (this.cadenciaLog.pronto(agora)) this.drawer.atualizarLog(s.eventos); // ela mesma só refaz o DOM se há evento novo
       if (s.terminado && this.fase === 'jogando') this.encerrarPartida(s);
+      perf?.fase('ui');
     }
+    perf?.fim(ticks);
     requestAnimationFrame(this.frame);
   };
 
@@ -251,14 +271,21 @@ class Jogo {
     else this.inspector.esconder();
   }
 
+  /** Alvo do duplo clique: o centro do vão sob o ponto (ou o próprio ponto, no chão). */
+  private centroDoVao(p: { x: number; y: number }): { x: number; y: number } {
+    const vao = this.sim ? this.renderer.vaoEm(this.sim.layout, p.x, p.y) : null;
+    return vao ? { x: vao.rect.x + vao.rect.largura / 2, y: vao.rect.y + vao.rect.altura / 2 } : p;
+  }
+
   /** Ajusta o bitmap do canvas ao contêiner (senão o mapa estica) e mantém o que estava no centro da tela no centro. */
   private redimensionar(): void {
     const pai = this.canvas.parentElement!;
-    const { width: antesL, height: antesA } = this.canvas;
-    if (pai.clientWidth === antesL && pai.clientHeight === antesA) return;
-    this.canvas.width = pai.clientWidth;
-    this.canvas.height = pai.clientHeight;
-    if (antesL > 0 && antesA > 0) this.camera.mover((pai.clientWidth - antesL) / 2, (pai.clientHeight - antesA) / 2);
+    const { clientWidth: w, clientHeight: h } = pai;
+    if (w === this.canvas.width && h === this.canvas.height) return; // mexer em width/height limpa o canvas
+    // o centro da vista fica onde está (celular girando, drawer abrindo/fechando)
+    if (this.canvas.width > 0) this.camera.mover((w - this.canvas.width) / 2, (h - this.canvas.height) / 2);
+    this.canvas.width = w;
+    this.canvas.height = h;
   }
 
   private enquadrar(sim: Simulacao | null): void {
