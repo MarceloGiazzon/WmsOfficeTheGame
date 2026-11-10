@@ -125,17 +125,19 @@ describe('o que muda com UUIDs (documentado, esperado e verificado)', () => {
 
   it('por isso o WmsReal deixa de coincidir com o FifoPrimeiraLivre num pacote com UUIDs (nos aliases do seed eram idênticos)', () => {
     expect(rodar(embutidoA, 'WmsReal')).toEqual(rodar(embutidoA, 'FifoPrimeiraLivre'));
-    const { pacote } = remapearIds(embutidoA, 11);
-    expect(rodar(pacote, 'WmsReal')).not.toEqual(rodar(pacote, 'FifoPrimeiraLivre'));
+    // O desempate é por id em texto dentro da rua: numa semente de UUIDs a ordem pode coincidir com a do FIFO por acaso
+    // (a 11 coincide), então olho várias e exijo que a maioria divirja.
+    const divergem = [11, 12, 13, 14].filter(semente => {
+      const { pacote } = remapearIds(embutidoA, semente);
+      return JSON.stringify(rodar(pacote, 'WmsReal')) !== JSON.stringify(rodar(pacote, 'FifoPrimeiraLivre'));
+    });
+    expect(divergem.length).toBeGreaterThanOrEqual(3);
   });
 
-  // ACHADO: as outras quatro políticas deveriam dar EXATAMENTE o mesmo resultado com UUIDs, e não dão.
-  // Causa: `calcularCurvaAbc` (src/sim/estoque.ts, linha do `.sort`) desempata produtos de mesmo giro por
-  // `id.localeCompare`. Com aliases a ordem do id acompanha a do código; com UUIDs é aleatória, o que muda a ordem da
-  // curva → o produto sorteado para cada palete do estoque inicial → o turno inteiro (score do WH-A: 83,79 → 86,09
-  // no FIFO). Desempatar por `produto.codigo` (2 linhas) mantém os goldens atuais e torna o resultado independente do id.
-  // `it.fails` passa enquanto isso é verdade e quebra no dia em que for corrigido — aí trocar por `it`.
-  it.fails('AbcProximidade, Fifo, Consolidacao e CrossDocking dão as MESMAS métricas com UUIDs (hoje não: desempate da curva ABC por id)', () => {
+  // Regressão: calcularCurvaAbc (e a distância teórica) desempatavam produtos de mesmo giro por id. Com aliases a
+  // ordem do id acompanha a do código; com UUIDs é aleatória, o que mudava o estoque inicial e o turno todo (WH-A,
+  // Fifo: 83,79 → 86,09). Agora o desempate é pelo código do produto.
+  it('AbcProximidade, Fifo, Consolidacao e CrossDocking dão as MESMAS métricas com UUIDs (a curva ABC desempata por código)', () => {
     const { pacote } = remapearIds(embutidoA, 11);
     for (const politica of ['AbcProximidade', 'FifoPrimeiraLivre', 'Consolidacao', 'CrossDocking'] as const) {
       expect(rodar(pacote, politica)).toEqual(rodar(embutidoA, politica));

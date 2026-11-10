@@ -21,7 +21,10 @@ export function calcularDistanciaTeorica(p: PacoteCenario, layout: Layout, malha
   const movimentos: string[] = [];
   for (const o of p.ordens) for (let i = 0; i < o.quantidadePaletes; i++) movimentos.push(o.produtoId);
   if (movimentos.length === 0 || layout.locais.length === 0) return 0;
-  movimentos.sort((a, b) => (posicaoNaCurva.get(a) ?? Infinity) - (posicaoNaCurva.get(b) ?? Infinity) || a.localeCompare(b));
+  const codigo = new Map(p.produtos.map(x => [x.id, x.codigo]));
+  const porCodigo = (id: string) => codigo.get(id) ?? id; // não ordenar por id: alias no embutido, UUID no backend
+  movimentos.sort((a, b) => (posicaoNaCurva.get(a) ?? Infinity) - (posicaoNaCurva.get(b) ?? Infinity)
+    || porCodigo(a).localeCompare(porCodigo(b)) || a.localeCompare(b));
 
   const maisPerto = (l: Layout['locais'][number], tipo: 'Inbound' | 'Outbound'): number | null => {
     const docas = layout.docas.filter(d => d.tipo === tipo);

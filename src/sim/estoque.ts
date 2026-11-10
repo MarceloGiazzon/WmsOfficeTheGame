@@ -26,7 +26,11 @@ const LIMITE_B = 0.95;
 export function calcularCurvaAbc(p: PacoteCenario): CurvaAbc {
   const peso = new Map<string, number>();
   for (const o of p.ordens) if (o.tipo === 'Outbound') peso.set(o.produtoId, (peso.get(o.produtoId) ?? 0) + o.quantidadePaletes);
-  const ordem = [...peso.keys()].sort((a, b) => peso.get(b)! - peso.get(a)! || a.localeCompare(b));
+  // Empate de giro: pelo CÓDIGO do produto, não pelo id. O id é um alias no pacote embutido e um UUID no pacote do
+  // backend; desempatar por ele fazia a mesma partida render estoques (e scores) diferentes online e offline.
+  const codigo = new Map(p.produtos.map(x => [x.id, x.codigo]));
+  const porCodigo = (id: string) => codigo.get(id) ?? id;
+  const ordem = [...peso.keys()].sort((a, b) => peso.get(b)! - peso.get(a)! || porCodigo(a).localeCompare(porCodigo(b)) || a.localeCompare(b));
   const total = ordem.reduce((n, id) => n + peso.get(id)!, 0);
   const classe = new Map<string, ClasseAbc>();
   let acumulado = 0;
