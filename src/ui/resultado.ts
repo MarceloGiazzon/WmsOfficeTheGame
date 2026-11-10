@@ -17,6 +17,7 @@ import {
 import type { Politica } from '../sim/model';
 import { el, h } from './dom';
 import { Modal } from './modal';
+import './rede.css';
 
 export interface AcoesResultado {
   aoJogarDeNovo: () => void;
@@ -81,6 +82,7 @@ export class TelaResultado {
         h('p', { class: 'score-rotulo' }, 'Score de eficiência'),
         h('p', { class: `aviso-envio envio-${envio.tipo}`, role: 'status' }, envio.texto),
         extras?.mensagem ? h('p', { class: 'aviso-mensagem' }, extras.mensagem) : null,
+        extras?.acao ? h('button', { class: 'btn-secundario aviso-acao', type: 'button', onclick: extras.acao.aoClicar }, extras.acao.rotulo) : null,
         origem ? h('p', { class: 'aviso-origem' }, h('span', { class: 'selo selo-origem' }, `Cenário: ${origem}`)) : null),
     );
   }
@@ -143,14 +145,29 @@ export class TelaResultado {
   private blocoRanking(extras?: ExtrasResultado): HTMLElement | null {
     const ranking = extras?.ranking;
     if (!ranking || ranking.length === 0) return null;
+    const total = extras?.rankingTotal;
+    // Top 10 + a posição da partida: as linhas trazem a posição real (sem ela, vale a ordem da lista) e, quando há
+    // salto entre elas, uma linha "…" mostra que o ranking continua entre uma e outra.
+    const linhas: HTMLElement[] = [];
+    let anterior = 0;
+    ranking.forEach((l, i) => {
+      const posicao = l.posicao ?? i + 1;
+      if (anterior > 0 && posicao > anterior + 1) {
+        linhas.push(h('tr', { class: 'separador', 'aria-hidden': 'true' }, h('td', { colspan: 4 }, '⋮')));
+      }
+      anterior = posicao;
+      const destaque = l.destaque ?? extras?.posicaoRanking === posicao;
+      linhas.push(h('tr', { class: destaque ? 'voce' : l.souEu ? 'meu' : null, 'data-posicao': posicao },
+        h('td', null, String(posicao)), h('td', null, l.jogador),
+        h('td', { class: 'font-mono' }, formatarScore(l.scoreCentesimos)), h('td', { class: 'font-mono' }, formatarKm(l.distanciaCm))));
+    });
     return h('section', { class: 'bloco' },
       h('h3', null, 'Ranking do cenário'),
+      total !== undefined ? h('p', { class: 'bloco-intro' }, `${plural(total, 'partida validada', 'partidas validadas')} no ranking deste cenário.`) : null,
       h('div', { class: 'tabela-rolavel' },
         h('table', { class: 'tabela-ranking' },
           h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Jogador'), h('th', null, 'Score'), h('th', null, 'Distância'))),
-          h('tbody', null, ...ranking.map((l, i) => h('tr', { class: extras?.posicaoRanking === i + 1 ? 'voce' : null },
-            h('td', null, String(i + 1)), h('td', null, l.jogador),
-            h('td', { class: 'font-mono' }, formatarScore(l.scoreCentesimos)), h('td', { class: 'font-mono' }, formatarKm(l.distanciaCm))))))),
+          h('tbody', null, ...linhas))),
     );
   }
 }

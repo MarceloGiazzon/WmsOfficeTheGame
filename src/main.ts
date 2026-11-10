@@ -7,8 +7,9 @@
 //                    ─► fim do turno: resultado (sim parada no estado final) ─► jogar de novo / trocar cenário.
 
 import { acaoDoAtalho } from './app/atalhos';
+import { ligarRede } from './app/appRede';
 import type { FonteCenarios, OrigemCenario } from './app/fonteCenarios';
-import { FonteEmbutida } from './app/fonteEmbutida';
+import type { PartidaOnline } from './app/partidaOnline';
 import { Relogio, type Velocidade } from './app/relogio';
 import { resultadoDaPartida, type ExtrasResultado, type ResultadoPartida } from './app/resultado';
 import { Camera } from './render/camera';
@@ -33,17 +34,21 @@ class Jogo {
   private readonly camera = new Camera();
   private readonly relogio = new Relogio();
 
-  /**
-   * De onde vêm os cenários. A F5 troca por uma fonte que tenta a rede, cai para o cache e por fim para o embutido
-   * (ver `FonteCenarios`); o resto do jogo não muda.
-   */
-  private readonly fonte: FonteCenarios = new FonteEmbutida();
+  /** F5: login/convidado, fila de envio e indicadores (src/app/appRede.ts). A partida em curso é consultada ao "Sair". */
+  private readonly rede = ligarRede({ partidaAtual: () => this.partidaOnline });
+  /** De onde vêm os cenários: servidor → cache → embutido (convidado: só cache/embutido). */
+  private readonly fonte: FonteCenarios = this.rede.fonte;
+  /** A partida do turno atual no servidor (criar ao iniciar, concluir ao fim, abandonar ao desistir). */
+  private partidaOnline: PartidaOnline | null = null;
+  /** Aviso de quando o cenário NÃO veio do servidor (rede caiu e o jogo usou cache/embutido): vai para a tela de resultado. */
+  private avisoCenario: string | undefined;
   /**
    * Gancho da F5: recebe o resultado do turno (métricas + política + trocas) e devolve o que o servidor respondeu
    * (validação, posição, ranking). A tela de resultado abre na hora e se atualiza quando a promessa resolve. Sem
-   * gancho = partida local.
+   * partida online (convidado) devolve só a mensagem de partida local.
    */
-  publicarResultado: ((r: ResultadoPartida) => Promise<ExtrasResultado | undefined>) | null = null;
+  publicarResultado: ((r: ResultadoPartida) => Promise<ExtrasResultado | undefined>) | null =
+    r => this.partidaOnline?.concluir(r) ?? Promise.resolve(undefined);
 
   private fase: Fase = 'semPartida';
   private sim: Simulacao | null = null;
@@ -103,6 +108,7 @@ class Jogo {
 
     this.definirVelocidade(0); // relógio parado até "Iniciar turno"
     requestAnimationFrame(this.frame);
+    await this.rede.abrir(); // restaura a sessão da aba ou oferece login/convidado (sem bloquear o jogo)
     await this.abrirPreJogo();
   }
 
@@ -124,7 +130,10 @@ class Jogo {
       if (cenarios.length === 0) throw new Error('nenhum cenário disponível');
       const marcado = this.pacote?.cenario.codigo;
       const cenario = cenarios.some(c => c.codigo === marcado) ? marcado! : cenarios[0].codigo;
-      this.preJogo.abrir({ cenarios, cenario, politica: this.politicaEscolhida, podeCancelar, avisoDescarte: this.fase === 'jogando' });
+      this.preJogo.abrir({
+        cenarios, cenario, politica: this.politicaEscolhida, podeCancelar, avisoDescarte: this.fase === 'jogando',
+        aviso: this.fonte.avisoDaLista?.() ?? null,
+      });
     } catch (e) {
       this.preJogo.mostrarErro(textoDoErro(e), () => void this.listarEAbrirPreJogo(), podeCancelar);
     }
@@ -147,6 +156,10 @@ class Jogo {
       return;
     }
     const sim = new Simulacao(carregado.pacote, politica);
+    // F5: trocar de cenário/reiniciar no meio do turno abandona a partida do servidor; a nova nasce para este turno
+    void this.partidaOnline?.desistir();
+    this.partidaOnline = this.rede.novaPartida(carregado, politica);
+    this.avisoCenario = carregado.aviso;
     this.sim = sim;
     this.pacote = carregado.pacote;
     this.origem = carregado.origem;
@@ -192,8 +205,10 @@ class Jogo {
     const resultado = this.pacote ? resultadoDaPartida(s, this.pacote.cenario) : null;
     if (!resultado) return; // sem ordens no cenário não há score: o log e o HUD já mostram "—"
     this.ultimoResultado = resultado;
-    this.ultimosExtras = { origem: this.origem };
+    this.ultimosExtras = this.extrasCom({ ...this.partidaOnline?.extrasIniciais() });
     this.resultadoUi.mostrarResultado(resultado, this.ultimosExtras);
+    // extras que chegam depois por outro caminho (convidado que entrou e enviou a partida)
+    if (this.partidaOnline) this.partidaOnline.aoNovosExtras = e => this.atualizarExtras(resultado, e);
     this.publicarResultado?.(resultado).then(
       extras => this.atualizarExtras(resultado, extras),
       e => this.atualizarExtras(resultado, { mensagem: `Não foi possível enviar a partida: ${textoDoErro(e)}` }),
@@ -202,8 +217,14 @@ class Jogo {
 
   private atualizarExtras(resultado: ResultadoPartida, extras: ExtrasResultado | undefined): void {
     if (this.ultimoResultado !== resultado || !extras) return; // o jogador já começou outra partida
-    this.ultimosExtras = { origem: this.origem, ...extras };
+    this.ultimosExtras = this.extrasCom(extras);
     if (this.resultadoUi.aberto) this.resultadoUi.mostrarResultado(resultado, this.ultimosExtras);
+  }
+
+  /** Extras do servidor + origem real do cenário + o aviso de queda de rede do carregamento (se houve). */
+  private extrasCom(extras: ExtrasResultado): ExtrasResultado {
+    const mensagem = [this.avisoCenario, extras.mensagem].filter(Boolean).join(' ');
+    return { ...extras, origem: this.origem, ...(mensagem ? { mensagem } : {}) };
   }
 
   private mudarPolitica(p: Politica): void {
