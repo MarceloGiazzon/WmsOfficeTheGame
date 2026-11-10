@@ -255,17 +255,47 @@ Pendências que aparecem depois:
   sim gera a ocupação inicial a partir do seed do cenário (resolvido na F2).
 - Remover usuários de teste: o NPDev não expõe delete de usuário; `teste-jogador-1/2` ficam no banco de dev.
 
-### N4. Endpoint de "pacote do cenário"
+### N4. Endpoint de "pacote do cenário" — opção A ✅ (2026-11-10)
 
-O cliente precisa de **uma chamada** que traga tudo para jogar offline:
+O cliente precisa trazer tudo para jogar offline:
 
 ```
 GET cenário → { cenario, armazem, areas[], ruas[], locais[], produtos[], ordens[], rankingRuas[] }
 ```
 
-- Opção A: várias chamadas REST montadas no cliente (funciona já, sem mudar o NPDev).
-- Opção B: procedure/flow `PacoteCenario` (depende do limite 0.2-2).
-- **Começar com A**; migrar para B se a latência incomodar.
+- **Opção A (feita)**: várias chamadas REST montadas no cliente, sem mudar o NPDev — [`src/net/pacote.ts`](../src/net/pacote.ts)
+  (`carregarPacote(http, codigo)`). Só chamadas que a role `Jogador` faz.
+- Opção B: procedure/flow `PacoteCenario`. **Adiada**: o WH-B inteiro (1448 locais) carrega em ~1,5 s com 36 chamadas
+  (WH-A: 20 chamadas, ~1,4 s, medido ao vivo); só vale se a latência em celular incomodar (F7).
+
+Como ficou (o que o NPDev realmente oferece — descoberto ao vivo, não estava no plano):
+- **A lista REST `GET /api/<concept>` não serve**: ignora qualquer filtro/`offset` e corta em **1000 linhas** (cabeçalho
+  `X-List-Truncated: true`). Os cenários semeados têm 1500 locais — a lista perderia locais em silêncio.
+- Serve: **`GET /api/concepts/<Concept>/page`** (filtro de igualdade por qualquer campo, `sort`, `offset`, `limit` até 1000;
+  `{items, total, hasMore}`) e as queries nomeadas (`/api/queries/<Nome>`, também com `offset`/`limit`, cortados em 1000
+  mesmo que o model.json diga `limit: 5000`). O pacote usa `/page` por rua/área (os `LocalArmazenagem` só apontam para a
+  rua) e as queries `CenariosAtivos` e `OrdensPorCenario`. **Pegadinha:** `/page` num concept que a role não lê devolve
+  200 com lista **vazia** (não 403) — por isso `validarPacote` recusa pacote sem locais/ordens em vez de entregar um
+  armazém vazio.
+- **Produtos não são do cenário**: vêm os do `PerfilAlocacao` das ruas (via `RankingRua`) mais os das ordens. O WH-A tem 4
+  produtos sem nenhuma ordem; só o perfil os traz.
+- **Equivalência com o embutido** ([`live.test.ts`](../src/net/live.test.ts), `NPDEV_LIVE=1`): WH-A-PEQUENO e WH-B-MEGA lidos
+  como `teste-jogador-1` batem campo a campo com `src/data/cenarios/*.json` depois de trocar os ids por chaves naturais
+  (código da rua, rua/posição/andar, código do produto, número da ordem): mesmas quantidades, topologia, ordens, campos e
+  tipos. Só os campos do modelo entram (`version`, `tenantId`, `ativo`… ficam de fora). Os ids são **UUIDs do banco**.
+- **Ordem canônica**: o banco devolve por id (aleatório); o pacote sai ordenado por rua/posição/andar, código e
+  liberação — independente do servidor.
+- **Aliases × UUIDs na sim** ([`uuid.test.ts`](../src/net/uuid.test.ts)): a sim roda as 5 políticas nos dois cenários com
+  todos os ids trocados por UUIDs (e por ids hostis com `:`, `/` e acentos) cumprindo os invariantes — nada interpreta o
+  formato do id. **Mas o resultado muda**: (1) `WmsReal` desempata por id em texto (`String.compareTo`, como o Java), então
+  deixa de coincidir com o `FifoPrimeiraLivre` (aliases: ordem de varredura; UUIDs: ordem aleatória) — esperado e testado;
+  (2) as outras quatro também mudam (WH-A: Fifo 83,79 → 86,09 com uma semente), por um desempate que **não** é do WmsReal:
+  `calcularCurvaAbc` (`src/sim/estoque.ts`) ordena produtos de mesmo giro por `id.localeCompare`, o que muda a curva, o
+  produto sorteado para cada palete do estoque inicial e o turno todo. Online (UUIDs) e offline (aliases embutidos) jogam,
+  na prática, estoques iniciais diferentes. **Correção de 2 linhas, ainda NÃO aplicada** (fora do escopo desta fase):
+  desempatar por `produto.codigo`; verificado que os goldens atuais continuam passando e que as 4 políticas passam a dar
+  métricas idênticas com UUIDs (hoje o teste `it.fails` de `uuid.test.ts` documenta isso e vai quebrar quando for
+  corrigido, para virar `it`).
 
 ### N5. Mount do jogo e CORS ✅ (2026-11-10)
 
@@ -524,13 +554,73 @@ Pendências visíveis (fora do escopo da F4): o canvas não usa `devicePixelRati
 densidade — F6); a pré-partida mostra só o cartão, sem pré-visualização do armazém (montar a `Simulacao` do WH-B leva
 ~0,2 s, e o modal cobre o mapa).
 
-### F5. Integração com o NPDev
+### F5. Integração com o NPDev — camada de rede ✅, UI pendente (2026-11-10)
 
-- [ ] `NPDevClient` reescrito: base `/api` (proxy/mesma origem), JWT, erros explícitos (sem sucesso falso).
-- [ ] Login (reaproveitar `/api/auth/login`); modo convidado = offline.
-- [ ] Carregar o pacote do cenário (N4) → cache em IndexedDB para offline.
-- [ ] Fim de partida: `ConcluirPartida` → mostrar `validadoServidor` e a posição no ranking.
-- [ ] Fila de envio offline: partidas jogadas offline enviadas quando a rede voltar.
+A camada de rede está pronta e testada em `src/net/` (módulos puros: sem DOM, `fetch`/relógio/armazenamento injetados).
+**Nada disso está ligado à UI ainda** — `main.ts`, `src/ui/*` e `index.html` não foram tocados. `npm test`: 295 passam
+(+12 ao vivo, pulados sem `NPDEV_LIVE=1`); verificado ao vivo contra a 8200.
+
+```
+src/net/  erros.ts (NpdevError + classificação) · npdevClient.ts (login, JWT em memória, get/post) · leitura.ts (paginação)
+          pacote.ts (N4) · cache.ts (IndexedDB/memória + obterPacote) · partidas.ts (iniciar/concluir/abandonar/ranking)
+          filaEnvio.ts (outbox) · rede.ts (criarRede: monta tudo) · index.ts (API pública; o topo do arquivo traz o esboço de uso)
+          servidorFalso.ts · idsUuid.ts · pacoteEquivalencia.ts (só testes) · live.test.ts (NPDEV_LIVE=1)
+```
+
+- [x] **`NpdevClient`** reescrito ([`npdevClient.ts`](../src/net/npdevClient.ts)): base `/api` (proxy do Vite em dev, mesma origem em
+  produção), `login()` guarda o JWT **só em memória** (`sessao()`/`restaurarSessao()`/`limparSessao()` deixam a UI decidir
+  se persiste — o token vale 8 h). O `username` canônico vem do `sub` do JWT (a regra por linha compara com ele, não com o
+  que foi digitado). Timeout de 20 s por chamada.
+- [x] **Erros explícitos** ([`erros.ts`](../src/net/erros.ts)): todo erro é `NpdevError` com `tipo` (`offline`, `rede`, `timeout`,
+  `nao_autenticado`, `proibido`, `nao_encontrado`, `requisicao_invalida`, `servidor`, `resposta_invalida`, `recusado`,
+  `indisponivel`), `status`, `codigo` e `recuperavel` (vale tentar de novo). 401 com sessão derruba a sessão e chama
+  `aoSessaoExpirar`; resposta 2xx que não é JSON ou não tem o formato esperado é `resposta_invalida` — cada campo é
+  validado. Nunca há "sucesso falso". Descoberto ao vivo: o 1º flow depois de o app subir pode estourar o timeout de 5 s do
+  plugin (`422 PLUGIN_EXECUTION_TIMEOUT`); o cliente o classifica como `servidor` (recuperável), não como recusa.
+- [x] **Modo convidado = offline**: sem `login()`, toda chamada falha na hora com `offline`, sem tocar na rede.
+- [x] **Pacote do cenário** (N4) → **cache** ([`cache.ts`](../src/net/cache.ts)): `obterPacote(codigo, {http, cache, embutido})`
+  tenta a rede (se logado) e atualiza o cache; se a rede falhar (qualquer `NpdevError`), usa o cache; sem cache, o
+  embutido (recebido por parâmetro, pode ser assíncrono). Devolve a **origem** (`'rede'|'cache'|'embutido'`), a data do
+  cache e, se a rede falhou, o motivo (`falhaRede`). O cache guarda formato, data, assinatura do conteúdo e o pacote;
+  cache corrompido/de formato antigo vira "sem cache". `ArmazenamentoIndexedDb` (verificado também contra `fake-indexeddb`
+  real, fora do repo) e `ArmazenamentoMemoria`.
+- [x] **Partidas** ([`partidas.ts`](../src/net/partidas.ts)): `iniciarPartida` (`POST /api/sim_partidas`; dono = username da sessão),
+  `concluirPartida` (flow `ConcluirPartida`), `abandonarPartida` (flow `AbandonarPartida`), `ranking(cenarioId, {partidaId})`
+  (query `RankingPorCenario`, com a posição do jogador e da partida; `truncado` quando há mais gente que o limite).
+  **Score adulterado não é "recusado" pelo servidor**: ele grava o score RECALCULADO com `validadoServidor=false` (fora do
+  ranking) e responde 200 — `concluirPartida` devolve `validadoServidor:false` + o score do servidor (a UI mostra a
+  divergência). Recusa de verdade (`recusado`): métricas inválidas (`codigo: 'metricas_invalidas'`) e partida que já não
+  está em andamento (`'partida_encerrada'`).
+- [x] **Fila de envio offline** ([`filaEnvio.ts`](../src/net/filaEnvio.ts)): padrão *outbox* — `registrar()` guarda o resultado
+  `{cenarioCodigo, politica, metricas, scoreCentesimos, iniciadaEm, concluidaEm, versaoMotor}` ANTES de tentar enviar;
+  `sincronizar()` cria a `SimPartida` e conclui, um item por vez, na ordem em que foram jogados, parando no primeiro erro
+  recuperável. Só sai da fila o que o servidor aceitou **e validou**. Idempotência: o `partidaId` é gravado no item antes de
+  concluir; se a criação chegou mas a resposta se perdeu, acha a partida `EmAndamento` com o mesmo `iniciadaEm`; se a
+  conclusão chegou e a resposta se perdeu, o servidor diz "não está EmAndamento" e a fila consulta o `SimScore` da partida
+  e trata como aceito. Rejeição definitiva (métrica inválida, cenário que não existe mais, 403, score que o servidor não
+  validou, 5 respostas ilegíveis) marca o item `rejeitado` com o motivo e **não reenvia sozinho** (`reenviar(id)` /
+  `descartar(id)`). Rede, servidor, plugin e login vencido só adiam. Um item é enviado só pelo jogador que o jogou.
+  Convidado não guarda nada.
+- [x] Testes: 28 do cliente (401/403/404/422/5xx, rede caída, timeout, corpo malformado, expiração), 22 do pacote
+  (equivalência, paginação, falhas), 22 do cache (rede → cache → embutido), 21 das partidas, 26 da fila (offline → online,
+  queda no meio, rejeição definitiva, concorrência), 19 de ids/UUID, 11 do comparador; tudo com `ServidorFalso`, um
+  `fetch` que reproduz os formatos reais do NPDev e injeta falhas. 12 ao vivo (`NPDEV_LIVE=1 npx vitest run
+  src/net/live.test.ts`): login, 403, pacotes WH-A/WH-B × embutido, cache com rede caída, partida → ranking, fila com
+  resposta perdida; cria um cenário `F5-LIVE-<hora>` e o admin apaga tudo no fim.
+
+**Depende da UI / ainda não feito:**
+- [ ] Tela de login (`criarRede()` → `cliente.login`) e persistência opcional da sessão; chamar `fila.sincronizar()` logo após
+  o login e no evento `online`. Passar `aoSessaoExpirar` para voltar ao login/offline.
+- [ ] Seleção de cenário: `listarCenarios` quando logado; mostrar a origem do pacote (`obterPacote().origem`/`salvoEm`).
+- [ ] Início da partida: `iniciarPartida` é opcional (a fila cria a partida depois se faltar); se a UI chamar, passar o
+  mesmo `partidaId` **e** o mesmo `iniciadaEm` no `registrar`, e chamar `abandonarPartida` ao desistir (partida em
+  andamento esquecida fica `EmAndamento` para sempre — o Jogador não pode apagar).
+- [ ] Fim da partida / tela de resultado (F4): `fila.registrar(...)` → `estado` (`enviado`/`pendente`/`rejeitado`/`convidado`)
+  e `ranking(cenarioId, {partidaId})` para a posição; mostrar `validadoServidor` e a divergência, se houver.
+- [ ] Indicador "N partidas pendentes de envio": `fila.observar()` / `fila.resumo()`; tela para ver/descartar/reenviar rejeitadas.
+- [ ] `VERSAO_MOTOR` (`partidas.ts`) é manual: subir quando uma regra do motor mudar.
+- [ ] Política **WmsReal online** (flow `SugerirDestinoJogo`, D2) continua só com a porta TS offline.
+- [ ] Decisão em aberto (ver N4): desempate da curva ABC por `codigo` em vez de `id` (2 linhas em `src/sim/estoque.ts`).
 
 ### F6. Escala e polimento
 
