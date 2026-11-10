@@ -34,10 +34,13 @@ pwsh -NoProfile -File AppGen/generator-runtime/prepare-npdev-generator-runtime.p
 
 ## Gerar → compilar → subir (jogo)
 
-Atalho para tudo abaixo (valida, para o app, salva/restaura as chaves JWT, gera, compila e sobe):
+Atalho para tudo abaixo (valida, compila o jogo, para o app, salva/restaura as chaves JWT, gera, compila e sobe):
 `backend/npdev/rebuild.sh` (a partir da raiz deste repo). Passo a passo:
 
 ```sh
+# 0. Front do jogo → backend/npdev/web/jogo/ (a geração copia web/ para os estáticos; ver "Jogo em :8200/jogo/")
+cd ~/repos/WmsOfficeTheGame && npm run deploy:npdev
+
 cd ~/repos/NPDev/NPDev_General
 ./npdev validate model ~/repos/WmsOfficeTheGame/backend/npdev/definition/model.json   # 0 erros esperados
 
@@ -54,6 +57,30 @@ sh _ops/stop-app.sh
 
 > A geração **sempre** recria `App/` e apaga `wmsoffice-keys/`: copie a pasta para fora antes e de volta depois
 > (ou gere novas — abaixo). O banco em `App/data/` sobrevive à regeneração.
+> Do mesmo jeito, ela apaga os estáticos que não vêm de `backend/npdev/web/`: o jogo compilado tem de estar em
+> `web/jogo/` **antes** de gerar (passo 0).
+
+## Jogo em :8200/jogo/ (N5)
+
+O jogo (front Vite) é servido pelo próprio app NPDev, na **mesma origem** que `/api` — sem CORS:
+
+```sh
+cd ~/repos/WmsOfficeTheGame
+npm run deploy:npdev          # tsc + vite build --base=/jogo/ → backend/npdev/web/jogo/ (a pasta é esvaziada antes)
+backend/npdev/rebuild.sh      # (já roda o deploy acima) gera, compila e sobe o app
+# → http://localhost:8200/jogo/index.html
+```
+
+- `web/jogo/` é **artefato gerado** (`.gitignore`), não é versionado. Quem clona o repo precisa rodar o deploy; o
+  `rebuild.sh` faz isso sozinho (`--sem-jogo` pula o front e usa o que já estiver na pasta).
+- Para mexer só no front, o ciclo rápido continua sendo `npm run dev` (porta 3000, proxy `/api → :8200`); o deploy +
+  rebuild é para conferir o resultado servido pelo NPDev.
+- O generator copia `web/` recursivamente para os estáticos (`src/main/resources/static`), sem registro em manifesto,
+  menu ou `pages.json`. Os arquivos estáticos não pedem login (como as outras páginas); o login é o `POST /api/auth/login`
+  que o próprio jogo faz.
+- **A URL leva `index.html`**: `GET /jogo/` e `/jogo` dão **404** (limitação abaixo). Assets: `/jogo/assets/<nome>-<hash>.js|css`.
+- Conferir: `curl -I http://localhost:8200/jogo/index.html` (200, `text/html`) e o JS/CSS referenciados nele
+  (`text/javascript`, `text/css`).
 
 Testes do jogo, em `backend/npdev/tests/`: `n2_simulacao_capability.py` (offline) e, com o app de pé,
 `n1_sim_concepts.py`, `n2_simulacao_flows.py` e `n3_jogador.py`.
@@ -112,6 +139,8 @@ Todas verificadas ao vivo em 2026-11-10; as soluções adotadas estão nos comen
 | Listar um concept em `roles[].concepts` fecha o concept para quem não está listado | Outras roles perdem acesso | Listar todas as roles que precisam |
 | Campo novo `required` de referência numa tabela existente | Boot recusado ("tables with existing data"), **mesmo com a tabela vazia** | Em dev: `rebuild.sh --reset-db` |
 | Seeds não são transacionais nem idempotentes | Rodar de novo duplica a topologia e falha no primeiro `unique` | `tools/semear_cenarios.py` (pula cenário existente) |
+| Estático em subpasta não tem `index.html` implícito (N5) | `GET /jogo/` e `/jogo` → **404** (JSON de erro); `GET /jogo/index.html` → 200. O Spring só serve o welcome page na raiz, e o `UiRedirectController` gerado (`/` → `/npdev-ui/index.html`) é um template fixo, sem opção de rota extra | A URL oficial é `/jogo/index.html`. O generator não tem como registrar `/jogo/` |
+| A geração recria `App/` e só repõe o que vem de `web/` (N5) | Jogo some do app depois de um `rebuild.sh` se `web/jogo/` não existir | `rebuild.sh` roda `npm run deploy:npdev` antes de gerar (e confere `/jogo/index.html` → 200 ao final) |
 
 ## Nota sobre o produto WmsOffice
 

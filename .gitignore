@@ -4,3 +4,6 @@ dist/
 *.log
 .DS_Store
 __pycache__/
+
+# Jogo compilado para o NPDev servir em :8200/jogo/ (artefato de `npm run deploy:npdev`)
+backend/npdev/web/jogo/

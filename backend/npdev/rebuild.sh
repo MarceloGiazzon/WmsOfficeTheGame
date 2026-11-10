@@ -1,9 +1,14 @@
 #!/usr/bin/env sh
-# Valida, regenera, compila e sobe o backend do jogo (WmsOfficeTheGame, porta 8200) no Linux.
+# Valida, compila o jogo, regenera, compila e sobe o backend (WmsOfficeTheGame, porta 8200) no Linux.
 # Preserva as chaves JWT (a geração recria App/ e apaga wmsoffice-keys/). O banco em App/data/ sobrevive.
 #
-# Uso: backend/npdev/rebuild.sh              # tudo
+# O front do jogo (Vite) é compilado para web/jogo/ por `npm run deploy:npdev` — a geração copia web/ para os
+# estáticos do app e apaga tudo o que não vem de lá, então o jogo precisa estar em web/jogo/ ANTES de gerar. Por isso
+# este script roda o deploy sempre (≈5 s) e o jogo fica em http://localhost:8200/jogo/ (N5).
+#
+# Uso: backend/npdev/rebuild.sh              # tudo (inclui o deploy do jogo)
 #      backend/npdev/rebuild.sh --no-start    # não sobe o app no final
+#      backend/npdev/rebuild.sh --sem-jogo    # não recompila o front (usa o web/jogo/ que já existir; sem ele o app sobe sem o jogo)
 #      backend/npdev/rebuild.sh --reset-db    # apaga o banco (backup em Build/generated-finalapps-linux/wmsofficethegame-data-backups/),
 #                                             # recria o admin e semeia os cenários (tools/semear_cenarios.py).
 #        Necessário quando a migração recusa a mudança de schema (ex.: novo campo `required` de referência
@@ -13,9 +18,11 @@ set -eu
 
 START=1
 RESET_DB=0
+SEM_JOGO=0
 for arg in "$@"; do
   case "$arg" in
     --no-start) START=0 ;;
+    --sem-jogo) SEM_JOGO=1 ;;
     --reset-db) RESET_DB=1 ;;
     *) echo "opção desconhecida: $arg"; exit 2 ;;
   esac
@@ -24,6 +31,7 @@ ADMIN_USER=${ADMIN_USER:-admin}
 ADMIN_PASSWORD=${ADMIN_PASSWORD:-Teste123!}
 
 HERE=$(cd "$(dirname "$0")" && pwd)
+REPO_ROOT=$(cd "$HERE/../.." && pwd)
 NPDEV_ROOT=${NPDEV_ROOT:-$HOME/repos/NPDev}
 BUILD_ROOT="$NPDEV_ROOT/Build/generated-finalapps-linux"
 APP="$BUILD_ROOT/wmsofficethegame/App"
@@ -35,6 +43,17 @@ echo "== validate"
 if ! grep -q '"errors": 0' "$KEYS_BAK/validate.json"; then
   grep -A3 '"severity": "error"' "$KEYS_BAK/validate.json" | head -40
   echo "validate: há erros — abortado"; exit 1
+fi
+
+# Antes do stop: se o front não compilar, o app que está rodando não é derrubado à toa.
+if [ "$SEM_JOGO" = 1 ]; then
+  [ -f "$HERE/web/jogo/index.html" ] || echo "AVISO: --sem-jogo e não há web/jogo/ — o app sobe sem o jogo (rode 'npm run deploy:npdev')."
+else
+  echo "== jogo (npm run deploy:npdev)"
+  [ -d "$REPO_ROOT/node_modules" ] || { echo "node_modules ausente em $REPO_ROOT — rode 'npm install' (ou use --sem-jogo)"; exit 1; }
+  (cd "$REPO_ROOT" && npm run deploy:npdev) > "$KEYS_BAK/jogo.log" 2>&1 \
+    || { tail -30 "$KEYS_BAK/jogo.log"; echo "deploy do jogo falhou (use --sem-jogo para subir só o backend)"; exit 1; }
+  [ -f "$HERE/web/jogo/index.html" ] || { echo "deploy do jogo não gerou web/jogo/index.html"; exit 1; }
 fi
 
 if [ -d "$APP" ]; then
@@ -84,4 +103,10 @@ if [ "$RESET_DB" = 1 ]; then
   echo "== cenários do jogo"
   python3 "$HERE/tools/semear_cenarios.py" --user "$ADMIN_USER" --password "$ADMIN_PASSWORD"
 fi
-echo "OK: http://localhost:8200"
+if [ -f "$HERE/web/jogo/index.html" ]; then
+  JOGO_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8200/jogo/index.html || true)
+  [ "$JOGO_STATUS" = 200 ] || { echo "o jogo não está sendo servido: /jogo/index.html → HTTP $JOGO_STATUS"; exit 1; }
+  echo "OK: http://localhost:8200 — jogo em http://localhost:8200/jogo/"
+else
+  echo "OK: http://localhost:8200 (sem o jogo)"
+fi

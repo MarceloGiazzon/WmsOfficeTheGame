@@ -267,10 +267,47 @@ GET cenário → { cenario, armazem, areas[], ruas[], locais[], produtos[], orde
 - Opção B: procedure/flow `PacoteCenario` (depende do limite 0.2-2).
 - **Começar com A**; migrar para B se a latência incomodar.
 
-### N5. Mount do jogo e CORS
+### N5. Mount do jogo e CORS ✅ (2026-11-10)
 
-- Script `npm run deploy:npdev` → `vite build` → copia `dist/` para `backend/npdev/web/jogo/`.
-- Validar `http://localhost:8200/jogo/` com login via `/api/auth/login`.
+Como ficou — **o jogo abre em `http://localhost:8200/jogo/index.html`** (mesma origem que `/api`, sem CORS):
+
+- [x] **`npm run deploy:npdev`** = `tsc` + `vite build --base=/jogo/ --outDir backend/npdev/web/jogo --emptyOutDir`. O Vite escreve
+  direto em `web/jogo/` (sem passar por `dist/`) e esvazia a pasta antes, então assets antigos com hash não se acumulam
+  (conferido com um arquivo-isca). `npm run build` e `npm run dev` não mudaram (base `/`; dev com proxy `/api → :8200`);
+  o `vite.config.ts` ficou intacto — o base vai só na linha de comando do deploy.
+- [x] **Mount sem registro manual.** O generator copia `web/` **recursivamente** para os estáticos do app
+  (`FinalAppAssembler.mountWebAssets`): subpastas e nomes com hash servem, sem manifesto, menu nem `pages.json`. Só são
+  ignorados diretórios `build`/`libs`/`out`/`target`/`node_modules`/… e arquivos `.log`/`.tmp`/`.bak`/`.iml`, e a geração
+  falha se algo colidir com nomes reservados da plataforma (`shell.js`, `info.html`, `npdev-ui/`…) — a saída do Vite não colide.
+- [x] **Sem login para o estático**: `/jogo/**` responde 200 sem token, como as demais páginas. O login é feito pelo próprio
+  jogo, em `fetch('/api/auth/login')` (F5).
+- [x] **`web/jogo/` não é versionado** (`.gitignore`): é artefato gerado. Em contrapartida, a geração recria `App/` e apaga
+  o que não vem de `web/`, então o jogo tem de estar em `web/jogo/` **antes** de gerar. O **`rebuild.sh` roda o
+  `deploy:npdev` sozinho** — logo após validar o modelo e antes de parar o app, para um erro de TypeScript não derrubar o
+  backend que está de pé —, confere que `web/jogo/index.html` saiu e, no fim, que `/jogo/index.html` responde 200.
+  `rebuild.sh --sem-jogo` pula o front (usa o que já estiver em `web/jogo/`; sem ele, o app sobe sem o jogo).
+- [x] Passo a passo em [NPDEV_LINUX.md](NPDEV_LINUX.md#jogo-em-8200jogo-n5) e em `backend/npdev/README.md`.
+
+**Validação ao vivo** (rebuild sem `--reset-db`, app novo em `:8200`):
+- `curl`: `/jogo/index.html` 200 `text/html`; `assets/*.js` 200 `text/javascript` (inclui os chunks dos cenários, carregados
+  por `import()` dinâmico sob `/jogo/`); `assets/*.css` 200 `text/css`; asset inexistente 404.
+- Chrome headless: console **sem nenhuma mensagem** e nenhuma requisição falha; o relógio simulado avança (08:00:52 → 08:02:23
+  em 3 s), a 1ª ordem é liberada, o canvas desenha o armazém, a troca para `WH-B-MEGA` carrega (400 ordens).
+- Da própria página, `fetch('/api/auth/login')`: **200** com `admin`/`Teste123!` (token JWT) e **401** `invalid_credentials` com senha errada.
+- Páginas originais intactas: `/mapa-armazem.html`, `/login.html`, `/theme.css` → 200. `n2_simulacao_flows.py` e
+  `n3_jogador.py` → 0 falhas.
+
+**Limitação do NPDev:** `GET /jogo/` (e `/jogo`) devolve **404** — o Spring só serve `index.html` na raiz (e `/` é um
+redirect do `UiRedirectController` gerado para `/npdev-ui/index.html`), não em subdiretórios, e o NPDev não tem como declarar
+uma rota/redirect extra: o controller é um template fixo do generator, sem opção em `config.json`. Por isso a URL oficial leva
+`index.html`. Descartado: um `jogo.html` solto na raiz só moveria o problema (`/jogo/` seguiria 404); *panels*/*widgets* de
+extensão exigem login e papel; um proxy reverso só existiria fora do NPDev. (O marco M3 e a D5 dizem `:8200/jogo/` por
+brevidade: leia `:8200/jogo/index.html`.)
+
+Pendências:
+- Se o jogo virar app Capacitor (F7), a origem passa a ser `capacitor://localhost` e aí o CORS do NPDev precisa ser conferido
+  (as respostas já trazem `Vary: Origin`; não foi testado). Na web, mesma origem: não há CORS a configurar.
+- Link para o jogo no menu do workspace do NPDev (`definition/menu.json`): opcional, não feito.
 
 ---
 
