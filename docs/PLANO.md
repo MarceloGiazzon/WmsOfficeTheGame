@@ -456,9 +456,33 @@ Resultado de referência (score oficial):
 
 ### F7. Mobile (Capacitor)
 
-- [ ] Capacitor 6 + Android; tela cheia; layout de toque do HUD/drawer.
-- [ ] Teste offline completo (cenário em cache → jogar → sincronizar depois).
-- [ ] Geração de `.apk` debug.
+Detalhes, comandos e decisões em [`MOBILE.md`](MOBILE.md). Estado em 2026-11-10: **empacotamento feito e verificado na
+máquina de desenvolvimento; nada foi executado em aparelho ou emulador.**
+
+- [x] **Capacitor 6.2.3 + Android** (`@capacitor/core|android|cli`, versão fixa — a 6.x mais recente; Node 18/JDK 17 desta
+  máquina atendem ao 6, a 8.x `latest` exigiria Node 20+/JDK 21), `capacitor.config.ts` (`appId br.com.wmsoffice.thegame`,
+  `appName "WmsOffice: The Game"`, `webDir dist`, `androidScheme https`, **sem** `server.url`) e projeto `android/`
+  versionado sem builds. Scripts `cap:sync`, `cap:abrir`, `apk:debug`, `apk:instalar`.
+- [x] **Ajustes de jogo**: tela cheia imersiva, tela sempre ligada, conteúdo sob o notch, orientação livre
+  (`user` — paisagem é melhor, mas não há motivo para travar), ícone/splash do próprio favicon do jogo. `cleartext`
+  só no build debug (NPDev em http na LAN); release continua bloqueando. Conferido nos manifestos mesclados.
+- [x] **Geração do `.apk` debug**: SDK instalado sem sudo em `~/Android/Sdk` (cmdline-tools + platform 34 + build-tools
+  34.0.0); `npm run apk:debug` → `BUILD SUCCESSFUL`, `android/app/build/outputs/apk/debug/app-debug.apk`, 3,4 MiB
+  (não versionado). Inspecionado com `aapt`/`apksigner`: pacote, `minSdk 22`/`targetSdk 34`, só `INTERNET`, assets
+  idênticos ao `dist/`.
+- [x] **Pacote web offline** (o que vai dentro do APK), em Chrome headless servindo `assets/public` em `https://localhost`
+  com toda a rede bloqueada: sem erro de JS, sem `/api`, sim anda (1x/5x), `WH-B-MEGA` carrega. Ressalva: as **fontes
+  do Google** (`<link>` no `index.html`) são a única requisição externa — falham offline (fallback do sistema); self-host
+  pendente.
+- [ ] **Teste em aparelho/emulador**: instalar o APK, modo avião, imersivo, rotação, toque, FPS no `WH-B-MEGA`,
+  segundo plano (lista em `MOBILE.md`).
+- [ ] **Layout de toque do HUD/drawer** — depende do merge da UI/render em andamento. Achado: em paisagem de celular
+  (800×360) o canvas fica com altura 0 (HUD + drawer aberto ocupam tudo). Lista de mudanças em `MOBILE.md`
+  (`viewport-fit=cover`/safe-area, `100dvh`, HUD compacto, drawer fechado/sobreposto, alvos ≥ 44 px, pinça, fontes locais).
+- [ ] Teste offline completo da F5 (cenário em cache → jogar → sincronizar depois) — depende da F5.
+- [ ] Base do `NPDevClient` no APK por URL absoluta (`VITE_NPDEV_URL`, com troca em tempo de execução) e CORS de
+  `https://localhost` no NPDev (N5) — **documentado** em `MOBILE.md`, não implementado (F5/N5).
+- [ ] Build **release** (assinatura/keystore, AAB, minificação) — fora do escopo desta fase.
 
 ---
 
