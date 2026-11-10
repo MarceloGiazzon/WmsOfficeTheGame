@@ -678,7 +678,7 @@ sem erros — as 7 mensagens "Failed to load resource" são das requisições qu
 
 ### F6. Escala e polimento ✅ (2026-11-10, exceto o tutorial — entra depois da F4)
 
-Como ficou (`npm test`: 185 testes; verificado no Chrome headless em desktop 1280×800 e celular 390×844 com toque e pinça).
+Como ficou (`npm test`: 480 testes no repo todo, 57 do `render/`; verificado no Chrome headless em desktop 1280×800 e celular 390×844 com toque e pinça, dpr 1/2/3).
 
 **Como medir (reaproveitável)** — [`tools/perf/`](../tools/perf/), com `puppeteer-core@22` instalado FORA do repo (instruções no
 topo de [`comum.mjs`](../tools/perf/comum.mjs); não entra no `package.json`) e o app rodando com `npx vite --port 3200 --no-open`:
@@ -723,7 +723,9 @@ em software). Os absolutos são pessimistas e ruidosos; vale a razão B/A. O `WH
   por JS (já havia).
 - **Achado de passagem**: o bitmap do canvas só era redimensionado no `resize` da janela; quando o layout mudava sem `resize` (fonte web que
   chega, drawer) o bitmap ficava esticado em relação ao CSS (1280×517 num elemento de 1280×529 no desktop) e os cliques erravam. Agora
-  `ResizeObserver` no container, e o `input` converte ponto de tela → canvas pela razão bitmap/CSS.
+  `ResizeObserver` no container (agora também com o dpr, ver abaixo).
+- **Achado do merge com a F4**: o HUD é refeito por `Cadencia` com uma "versão" do estado; ela não incluía a velocidade, então pausar sem
+  nenhum tick pendente deixava a faixa "Em andamento · 1x" velha até o próximo tick (que, pausado, não vem). A versão agora inclui a velocidade.
 
 **Antes → depois** (ms por quadro; software, mediana de 3 rodadas alternadas antes/depois em máquina quase ociosa; "thread" = ocupação da
 thread principal; os dois seguraram 60 fps com a máquina ociosa — o ganho é folga):
@@ -752,17 +754,40 @@ sempre as bordas verticais de 1 px entre vãos). Causa: as bordas agora são pin
 pintava a sua e o próximo vão cobria metade dela), então a coluna à direita de cada divisória ficou um pouco mais escura. O resto é idêntico,
 inclusive os rótulos pela camada.
 
+**Alta densidade (`devicePixelRatio`) ✅ (2026-11-10)** — o mapa não fica mais borrado em celular/retina.
+
+- **Regra única**: mundo, câmera, gestos e inspector continuam em **px de CSS**; só o *bitmap* do canvas tem `CSS × dpr` px (CSS do canvas segue
+  100% do contêiner). O `Renderer` multiplica a transformação por `Renderer.dpr` (escala × dpr, offset × dpr; o fundo e a camada de bordas/rótulos
+  têm o tamanho do bitmap; culling usa bitmap ÷ dpr), então bordas de 1 px, fontes de 9 px e limiares de rótulo mantêm o MESMO tamanho visual — o
+  dpr só dá nitidez. O dpr entra na chave do cache da camada e do "quadro idêntico".
+- `render/tela.ts` (testado): `dprEfetivo` (nunca < 1, teto 3, lixo → 1), `dprParaOrcamento` (cai o dpr para o bitmap caber em **4,2 MP**: celular
+  390×450 a dpr 3 = 1,6 MP passa inteiro; notebook retina 1440×700 a dpr 2 = 4,0 MP também; monitor largo ou 1280×529 a dpr 3 reduzem),
+  `tamanhoBitmap`, `medirTela`/`aplicarTela` (só mexe em `width/height` se mudou: mexer limpa o canvas) e `observarTela` (`ResizeObserver` no
+  contêiner + `matchMedia('(resolution: Ndppx)')` reassinado a cada mudança: zoom do navegador e arrastar a janela para outro monitor).
+- `input.ts` passou a usar o tamanho de CSS do canvas (`clientWidth/Height`) em vez de `canvas.width/height`. `main.ts`: campo `tela` (CSS + dpr),
+  `redimensionar`, `centro()` e `enquadrar` em px de CSS; `renderer.dpr = tela.dpr`.
+- **Custo** (WH-B, mesma máquina; o JS não muda: 0,2–0,8 ms/quadro em qualquer dpr — só o raster cresce com os pixels do bitmap).
+  `ab.mjs` (JS + descarga do raster, canvas 1280×640 de CSS): dpr 1 → 2 → 3 em GPU: enquadrado 2,2 → 4,8 → 8,8 ms; zoom com rótulos 2,6 → 9,8 → 21 ms
+  (~2,5 ms por megapixel de bitmap); em software: 2,3 → 5,9 → 15 ms e 3,6 → 13 → 35 ms. **Por isso o orçamento de 4,2 MP**: em 7 MP (dpr 3 num
+  contêiner desktop) o pior quadro passa de 16,7 ms nesta GPU integrada. No app real a 5x (canvas 1280×469 de CSS; bitmaps 1280×469, 2560×938 e
+  3386×1241 com o orçamento): software 60 fps nos três, thread 42% → 63–65% → 73–76%; GPU sem limite de 60 Hz 130 → 113–125 → 84–90 fps; pausado 3–4% nos
+  três (o quadro idêntico segue pulado). **A dpr 1 o render é idêntico ao anterior** (A/B contra o commit 6023cae: 0,95–1,05× em todas as cenas).
+- Verificado no Chrome headless com `deviceScaleFactor` 1, 2 e 3 (desktop 1280×800 e celular 390×844 com toque): o clique selecionou o mesmo vão
+  (R04-11 no desktop, R03-27 no toque) nos três; duplo clique/toque centraliza igual; capturas do canvas reduzidas para 1x diferem das de 1x só no
+  texto e nas bordas (≤ 2% dos pixels acima de 32/255, geometria idêntica) — e os recortes a 2x/3x estão visivelmente mais nítidos.
+- Harness: `--dpr N` em `medir.mjs` (e2e), `ab.mjs` (`--dpr-a/--dpr-b`) e `capturas.mjs` (`estado`, `telas`; `comparar --reduzir`). Como o app
+  agora abre com login e pré-partida, `comum.mjs` ganhou `iniciarPartida` (convidado → cenário → "Iniciar turno") e `pausar`.
+
 **Decisão sobre PixiJS (no papel): não adotar agora.** O cenário é ~720 retângulos, 8 círculos e rótulos; o `desenhar` custa 0,2–1,5 ms de JS e a
 thread passa de 45% a 5x. PixiJS acrescentaria dependência (~100+ KB gz), perda de contexto WebGL no WebView, texto por BitmapText/SDF e
 hit-testing próprio, sem gargalo que o justifique. Reavaliar se (a) aparecer cenário com ≫ 10 000 locais, ou (b) a medição em celular real/APK
-(`?perf=1`) mostrar JS ≥ 8 ms por quadro a 5x. Degraus antes dele: camada de ocupação como textura de baixa resolução e `devicePixelRatio` correto.
+(`?perf=1`) mostrar JS ≥ 8 ms por quadro a 5x. Degrau antes dele: camada de ocupação como textura de baixa resolução.
 
 **Pendências**
 
 - [ ] **Tutorial curto do primeiro cenário** (depois da F4).
-- [ ] **`devicePixelRatio`**: o canvas é 1 px de bitmap por px de CSS; em celular (DPR 2–3) fica borrado. Pede `width = CSS × DPR` com a câmera
-  e o `input` em px de CSS e o `Renderer` aplicando o DPR — mexe nos três, fica para o F7 (e aumenta o custo de raster 4–9×: medir de novo).
-- [ ] Medir em aparelho real/APK com `?perf=1` (aqui só há headless: GPU Intel por ANGLE/Vulkan e compositor em software).
+- [ ] Medir em aparelho real/APK com `?perf=1` (aqui só há headless: GPU Intel por ANGLE/Vulkan e compositor em software) — sobretudo o custo do dpr 3
+  em GPU de celular; se pesar, baixar `PIXELS_MAX` em `render/tela.ts` (uma constante).
 - [ ] `Drawer.atualizarLog` ainda refaz 50 `li` por evento novo (5–8 ms com layout); agora ≤ 10×/s, mas é incremental por natureza (`src/ui`, fora do escopo).
 - [ ] Ao redimensionar, o enquadramento inicial pode ficar fora de escala (o centro é preservado, o zoom não): quem quiser reenquadrar ao girar o
   celular chama `enquadrar()` no `ResizeObserver` (decisão de UX da F4/F7).

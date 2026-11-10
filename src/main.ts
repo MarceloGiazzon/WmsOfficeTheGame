@@ -10,13 +10,14 @@ import { acaoDoAtalho } from './app/atalhos';
 import { ligarRede } from './app/appRede';
 import type { FonteCenarios, OrigemCenario } from './app/fonteCenarios';
 import type { PartidaOnline } from './app/partidaOnline';
-import { Relogio, type Velocidade } from './app/relogio';
+import { Relogio, VELOCIDADES, type Velocidade } from './app/relogio';
 import { resultadoDaPartida, type ExtrasResultado, type ResultadoPartida } from './app/resultado';
 import { Camera } from './render/camera';
 import { Cadencia, INTERVALO_UI_MS } from './render/cadencia';
 import { ligarEntrada } from './render/input';
 import { Perfil } from './render/perf';
 import { Renderer } from './render/renderer';
+import { aplicarTela, medirTela, mesmaTela, observarTela, type Tela } from './render/tela';
 import { POLITICAS, type PacoteCenario, type Politica } from './sim/model';
 import { Simulacao, type Snapshot } from './sim/simulation';
 import { Drawer } from './ui/drawer';
@@ -34,6 +35,8 @@ class Jogo {
   private readonly canvas = document.getElementById('warehouse-canvas') as HTMLCanvasElement;
   private readonly renderer = new Renderer(this.canvas.getContext('2d')!);
   private readonly camera = new Camera();
+  /** Área do canvas em px de CSS e dpr (o bitmap tem `CSS × dpr`; câmera e gestos usam px de CSS — ver render/tela.ts). */
+  private tela: Tela = { largura: 0, altura: 0, dpr: 1 };
   private readonly relogio = new Relogio();
 
   /** F5: login/convidado, fila de envio e indicadores (src/app/appRede.ts). A partida em curso é consultada ao "Sair". */
@@ -96,13 +99,13 @@ class Jogo {
 
   async iniciar(): Promise<void> {
     this.redimensionar();
-    // o canvas acompanha o tamanho do container (janela, drawer, fonte que chega e muda o cabeçalho), não só a janela
-    new ResizeObserver(() => this.redimensionar()).observe(this.canvas.parentElement!);
+    // o canvas acompanha o contêiner (janela, drawer, fonte que chega) e a densidade de pixels (zoom do navegador, outro monitor)
+    observarTela(this.canvas.parentElement!, () => this.redimensionar());
     ligarEntrada(this.canvas, this.camera, {
       aoClicar: p => this.clicar(p.x, p.y),
       alvoDuploClique: p => this.centroDoVao(p),
     });
-    const centro = () => ({ x: this.canvas.width / 2, y: this.canvas.height / 2 });
+    const centro = () => ({ x: this.tela.largura / 2, y: this.tela.altura / 2 });
     document.getElementById('btn-zoom-in')!.addEventListener('click', () => this.camera.zoom(1.25, centro()));
     document.getElementById('btn-zoom-out')!.addEventListener('click', () => this.camera.zoom(1 / 1.25, centro()));
     document.getElementById('btn-reset-cam')!.addEventListener('click', () => this.enquadrar(this.sim));
@@ -204,9 +207,11 @@ class Jogo {
       const s = sim.snapshot();
       this.renderer.desenhar(s, this.camera, { heatmap: this.heatmap, vaoSelecionado: this.vaoSelecionado });
       perf?.fase('desenho');
-      // O HUD/gaveta só refazem o DOM a ~10 Hz e quando algo mudou; a política entra na versão porque ela pode
-      // mudar com o relógio pausado (e a fase decide se o seletor fica habilitado).
-      if (this.cadenciaHud.pronto(agora, s.layout, s.relogioSeg * 16 + POLITICAS.indexOf(s.politica) * 2 + (this.fase === 'jogando' ? 1 : 0))) {
+      // O HUD/gaveta só refazem o DOM a ~10 Hz e quando algo mudou; política, fase e velocidade entram na versão
+      // porque mudam com o relógio parado (a faixa "Pausado"/"Em andamento · 5x" é escrita pelo `hud.atualizar`).
+      const versaoHud = s.relogioSeg * 128 + POLITICAS.indexOf(s.politica) * 16 + (this.fase === 'jogando' ? 8 : 0)
+        + VELOCIDADES.indexOf(this.relogio.velocidade);
+      if (this.cadenciaHud.pronto(agora, s.layout, versaoHud)) {
         this.hud.atualizar(s);
         this.drawer.atualizar(s, this.fase === 'jogando');
       }
@@ -298,20 +303,23 @@ class Jogo {
     return vao ? { x: vao.rect.x + vao.rect.largura / 2, y: vao.rect.y + vao.rect.altura / 2 } : p;
   }
 
-  /** Ajusta o bitmap do canvas ao contêiner (senão o mapa estica) e mantém o que estava no centro da tela no centro. */
+  /**
+   * Ajusta o canvas ao contêiner (senão o mapa estica) e à densidade de pixels: bitmap = CSS × dpr, e o centro da vista
+   * continua no centro. Câmera e gestos ficam em px de CSS.
+   */
   private redimensionar(): void {
-    const pai = this.canvas.parentElement!;
-    const { clientWidth: w, clientHeight: h } = pai;
-    if (w === this.canvas.width && h === this.canvas.height) return; // mexer em width/height limpa o canvas
-    // o centro da vista fica onde está (celular girando, drawer abrindo/fechando)
-    if (this.canvas.width > 0) this.camera.mover((w - this.canvas.width) / 2, (h - this.canvas.height) / 2);
-    this.canvas.width = w;
-    this.canvas.height = h;
+    const t = medirTela(this.canvas.parentElement!, window.devicePixelRatio);
+    const antes = this.tela;
+    if (mesmaTela(t, antes)) return;
+    if (antes.largura > 0) this.camera.mover((t.largura - antes.largura) / 2, (t.altura - antes.altura) / 2);
+    this.tela = t;
+    aplicarTela(this.canvas, t); // só mexe em width/height se mudou (mexer limpa o canvas)
+    this.renderer.dpr = t.dpr;
   }
 
   private enquadrar(sim: Simulacao | null): void {
     if (!sim) return;
-    this.camera.enquadrar(sim.layout.largura, sim.layout.altura, this.canvas.width, this.canvas.height);
+    this.camera.enquadrar(sim.layout.largura, sim.layout.altura, this.tela.largura, this.tela.altura);
   }
 }
 
