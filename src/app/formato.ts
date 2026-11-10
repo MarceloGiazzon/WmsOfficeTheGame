@@ -44,6 +44,13 @@ export function formatarDuracao(seg: number): string {
   return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }
 
+/** Instante ISO → "09/11 14:02" no fuso do aparelho (a data em que o cache foi baixado, uma partida na fila…). */
+export function formatarDataHora(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${doisDigitos(d.getDate())}/${doisDigitos(d.getMonth() + 1)} ${doisDigitos(d.getHours())}:${doisDigitos(d.getMinutes())}`;
+}
+
 /** "1 ordem" / "3 ordens". */
 export function plural(n: number, singular: string, pluralTexto: string): string {
   return `${n} ${n === 1 ? singular : pluralTexto}`;

@@ -179,7 +179,16 @@ export interface LinhaRanking {
   jogador: string;
   scoreCentesimos: number;
   distanciaCm: number;
+  /** Posição no ranking (1 = primeiro). Sem ela vale a ordem da lista — mas com "top 10 + a sua posição" ela é obrigatória. */
+  posicao?: number;
+  /** É a linha DESTA partida. */
+  destaque?: boolean;
+  /** É de outra partida do próprio jogador logado. */
+  souEu?: boolean;
 }
+
+/** O que está acontecendo com o envio quando ainda não há veredito do servidor. */
+export type SituacaoEnvio = 'enviando' | 'pendente' | 'recusada' | 'falhou';
 
 /**
  * O que a F5 acrescenta ao resultado depois de enviar a partida. Tudo opcional: sem extras (ou sem
@@ -191,19 +200,33 @@ export interface ExtrasResultado {
   /** 1 = primeiro lugar. */
   posicaoRanking?: number;
   ranking?: LinhaRanking[];
+  /** Quantas partidas validadas o ranking do cenário tem (pode ser mais que as linhas mostradas). */
+  rankingTotal?: number;
   /** Texto livre do servidor/cliente (ex.: "Enviada ao ranking", "Sem rede: partida na fila de envio"). */
   mensagem?: string;
   /** Origem do cenário ('embutido' | 'cache' | 'rede') ou texto livre. */
   origem?: string;
+  /** Sem `validadoServidor`: enviando agora, guardada na fila, recusada pelo servidor ou perdida (nem enviou nem guardou). */
+  envio?: SituacaoEnvio;
+  /** Botão ao lado do aviso (ex.: "Entrar e enviar esta partida", para quem jogou como convidado). */
+  acao?: { rotulo: string; aoClicar: () => void };
 }
 
 export interface EstadoEnvio {
-  tipo: 'local' | 'validado' | 'naoValidado';
+  tipo: 'local' | 'validado' | 'naoValidado' | SituacaoEnvio;
   texto: string;
 }
 
 export function estadoEnvio(extras?: ExtrasResultado): EstadoEnvio {
-  if (extras?.validadoServidor === undefined) return { tipo: 'local', texto: 'Partida local — não enviada ao ranking.' };
+  if (extras?.validadoServidor === undefined) {
+    switch (extras?.envio) {
+      case 'enviando': return { tipo: 'enviando', texto: 'Enviando a partida ao servidor…' };
+      case 'pendente': return { tipo: 'pendente', texto: 'Partida guardada na fila de envio: ainda não está no ranking.' };
+      case 'recusada': return { tipo: 'recusada', texto: 'O servidor recusou esta partida: ela não entra no ranking.' };
+      case 'falhou': return { tipo: 'falhou', texto: 'Não foi possível enviar nem guardar esta partida.' };
+    }
+    return { tipo: 'local', texto: 'Partida local — não enviada ao ranking.' };
+  }
   const pos = extras.posicaoRanking !== undefined ? ` Você ficou em ${extras.posicaoRanking}º lugar no ranking.` : '';
   return extras.validadoServidor
     ? { tipo: 'validado', texto: `Score validado pelo servidor.${pos}` }
