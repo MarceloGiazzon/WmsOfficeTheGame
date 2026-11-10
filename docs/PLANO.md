@@ -101,18 +101,20 @@ header `Authorization: Bearer <jwt>`.
 
 ## 3. Fases — Backend (NPDev / WmsOffice)
 
-### N0. Ambiente Linux + baseline (pré-requisito)
+### N0. Ambiente Linux + baseline (pré-requisito) ✅ (2026-11-10)
 
-Hoje os scripts são PowerShell com caminhos `D:\WorkSpace\...` fixos (`config.json`, `Build-NpdevApp.ps1`).
-Nesta máquina já existem `pwsh`, Java 17 e Docker.
+Runbook completo e armadilhas: [NPDEV_LINUX.md](NPDEV_LINUX.md).
 
-- [ ] Parametrizar `outputRoot`, `bootstrap.root`, `artifact.root`, `finalExec.root` (ou gerar `config.json` por máquina).
-- [ ] Gerar as chaves JWT (`jwt-private-pkcs8.pem`/`jwt-public.pem`) para Linux.
-- [ ] Rodar `Build-NpdevApp.ps1` → `Build-App.ps1` → `Start-App.ps1` → `Test-App.ps1` via `pwsh`.
-- [ ] `bootstrap-admin`, login, `GET /api/ruas` e abrir `mapa-armazem.html`.
-- [ ] Decidir D4 (`_official` vs fork).
+- [x] Paths: não foi preciso editar o `config.json` — `Build-NpdevApp.ps1` (REG-144) já reescreve os caminhos no staging; basta `-BuildRoot`.
+- [x] Jars e runtime do generator recompilados do código atual (`npdev setup --build-local` + `prepare-npdev-generator-runtime.ps1`, corrigido para Linux).
+- [x] Manifesto de extensões migrado para `untrusted-extension-manifest.json` (exigido pelo generator atual).
+- [x] Chaves JWT geradas para Linux.
+- [x] Geração → `build-final-app.sh` → `start-app.sh` (os `.ps1` de `_ops` não funcionam no Linux).
+- [x] `bootstrap-admin`, login, REST, `mapa-armazem.html` e flow `SugerirDestino` verificados.
+- [x] Smoke test equivalente com Bearer (o `smoke-test.sh` gerado só suporta API key).
+- [x] D4 decidido (`_official`).
 
-**Pronto quando:** o WmsOffice atual sobe no Linux e o `Test-App.ps1` passa.
+**Pendência antes da N1:** `AppGen/` não está sob controle de versão — as mudanças da N1+ no `_official/WmsOffice` não terão histórico.
 
 ### N1. Concepts de simulação
 
