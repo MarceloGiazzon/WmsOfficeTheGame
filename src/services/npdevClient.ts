@@ -3,7 +3,8 @@ import { PoliticaAlocacao } from '../models/types';
 export class NPDevClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = 'http://localhost:8080/api') {
+  // Mesma origem: em dev o Vite repassa /api para o NPDev (:8100); em produção o jogo é servido pelo próprio app.
+  constructor(baseUrl: string = '/api') {
     this.baseUrl = baseUrl;
   }
 
