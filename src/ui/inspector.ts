@@ -28,7 +28,9 @@ export class Inspector {
     for (const a of [...v.andares].sort((x, y) => y.andar - x.andar)) {
       const e = s.locais.get(a.localId);
       acessos += e?.acessos ?? 0;
-      const conteudo = e?.produtoId ? (produto.get(e.produtoId)?.codigo ?? e.produtoId) : (e?.situacao ?? '—');
+      let conteudo = e?.produtoId ? (produto.get(e.produtoId)?.codigo ?? e.produtoId) : (e?.situacao ?? '—');
+      if (e?.reservadoSaida) conteudo += ' (separado p/ saída)';
+      else if (e?.situacao === 'Reservado') conteudo = 'destino de um putaway';
       linhas.push([`Andar ${a.andar}`, conteudo]);
     }
     linhas.push(['Acessos', String(acessos)]);

@@ -252,7 +252,7 @@ Como ficou a segurança (o NPDev tem três camadas, e cada uma cobre caminhos di
 
 Pendências que aparecem depois:
 - **Estoque inicial**: os cenários começam com todos os locais `Disponivel`; ordens outbound precisam de estoque — a
-  sim (F2) gera a ocupação inicial a partir do seed do cenário (decisão para a F2).
+  sim gera a ocupação inicial a partir do seed do cenário (resolvido na F2).
 - Remover usuários de teste: o NPDev não expõe delete de usuário; `teste-jogador-1/2` ficam no banco de dev.
 
 ### N4. Endpoint de "pacote do cenário"
@@ -328,18 +328,60 @@ src/
 - O `WarehouseEngine` atual é dividido em `render/` (draw, câmera, input) e `sim/` (estado).
 - A renderização lê um *snapshot* do estado da sim; nunca o modifica.
 
-### F2. Núcleo da simulação (com mock local)
+### F2. Núcleo da simulação (com mock local) ✅ (2026-11-10)
+
+Como ficou (`npm test`: 89 testes; verificado no navegador — WH-A e WH-B jogando, heatmap real, sem erros no console):
+
+```
+src/sim/  pathing.ts (malha de corredores: caminho e distância) · estoque.ts (curva ABC + estoque inicial)
+          politicas.ts (destino/origem) · teorica.ts (distância teórica) · simulation.ts (motor: ordens → tarefas →
+          equipamentos → métricas → score)
+```
 
 - [x] Layout a partir de `Rua.qtdPosicoes × qtdAndares`; docas a partir das `Area` de recebimento/expedição (F1).
-- [ ] Estoque inicial gerado do seed do cenário (os cenários começam vazios e há ordens de saída desde 08:00).
-- [ ] Ordens liberadas por `liberacaoSeg`; fila por doca.
-- [ ] Inbound: política escolhe o local → tarefa de putaway → equipamento livre mais próximo.
-- [ ] Outbound: `sugerirOrigem` (FIFO por validade) → tarefa de picking → doca de saída.
-- [ ] Equipamentos percorrem o grafo de corredores; tempo de descarga/carga.
-- [ ] Conflito: dois equipamentos no mesmo segmento de corredor estreito → espera + evento.
-- [ ] SLA: ordem concluída após `liberacaoSeg + slaSeg` → atrasada.
-- [ ] `distanciaTeorica`: soma das distâncias mínimas doca↔local de cada ordem com a alocação ótima por giro (definição fechada aqui e documentada).
-- [ ] Testes: mesmo seed + mesma política → métricas idênticas (golden tests).
+- [x] **Estoque inicial**: 60% dos locais livres, sorteados pelo seed do cenário; o produto de cada palete é sorteado
+  pelo peso da curva ABC; paletes entram até 30 dias antes do turno (base do FIFO). *Proposta aprovada em 2026-11-10.*
+  - **Peso = giro de saída** (paletes das ordens `Outbound` do cenário), não entrada + saída: a classe ABC é por
+    frequência de saída (F3) e é o que as saídas das 08:00 precisam. Com entrada + saída, o WH-A (fácil) terminava
+    com 9–14 ordens atrasadas por falta de estoque; com giro de saída, 2. Não depende do nome do produto.
+  - Os locais ficam em posição aleatória (sem organização prévia). Testado com metade do estoque já na faixa certa:
+    muda pouco e piora o WH-A — não vale a complexidade.
+- [x] Ordens liberadas por `liberacaoSeg`.
+  - **Inbound**: fila única → doca de entrada livre → descarga de `tempoDescargaSeg` → 1 tarefa de putaway por palete.
+  - **Outbound**: espera estoque do produto (só entra com TODOS os paletes disponíveis) + doca de saída livre; reserva os
+    paletes mais antigos (**FIFO por data de entrada** — `Produto` não tem validade no pacote, então não é FEFO ainda).
+    Ordem maior que o estoque espera e vira atraso; o motor nunca inventa palete.
+- [x] Despacho: tarefas por prazo (liberação + SLA, a mais urgente primeiro); cada uma vai para a empilhadeira
+  ociosa **mais próxima** do ponto de partida. Putaway sem local livre espera uma saída liberar.
+- [x] Equipamentos percorrem a malha (corredor principal + corredor de cada rua), a `velocidadeEquipamentoCmS` por
+  tick. Tempos de operação são constantes do motor (iguais para todas as políticas): 10 s na doca, 15 s no local +
+  5 s por andar acima do primeiro. Uma fase por tick (a que termina uma operação só se mexe no tick seguinte).
+- [x] **Conflito**: cada corredor de rua admite uma empilhadeira por vez (trava FIFO). Quem chega e encontra a rua
+  ocupada espera na junção com o corredor principal e gera **1 evento por espera** (não por tick). Sem deadlock: uma
+  empilhadeira só pede um corredor estando sem nenhum.
+- [x] SLA: ordem concluída depois de `liberacaoSeg + slaSeg` é atrasada; ordens ainda abertas e vencidas contam como
+  atrasadas já (e as não concluídas no fim do turno ficam atrasadas).
+- [x] **`distanciaTeorica`** (definição fechada em [`teorica.ts`](../src/sim/teorica.ts)): cada palete movimentado custa,
+  no melhor caso, `2 × distância(doca, local)`; o custo de um local é a média das distâncias à doca de entrada e à de
+  saída mais próximas (o palete entra por uma e sai pela outra — nenhum local é bom para as duas); os movimentos, do
+  produto de maior giro ao de menor, ocupam os locais do menor custo ao maior. É um piso razoável, não um limite:
+  terminar abaixo dele não dá bônus. *(A primeira versão tratava entrada e saída em separado, o que contava duas
+  vezes os melhores locais: no WH-B a penalidade de distância saturava em 35 e as políticas empatavam.)*
+- [x] Golden tests: mesmo seed + mesma política → métricas idênticas, e números fixos por cenário/política. Invariantes
+  verificados o turno todo: paletes conservados, no máximo uma empilhadeira por corredor, distância das métricas =
+  soma dos deslocamentos. (Mutação conferida: sem a trava, 6 testes falham.)
+- [x] Políticas que a F2 já usa: `FifoPrimeiraLivre` e `AbcProximidade` (A = 20% dos locais mais próximos da expedição,
+  B = próximos 30%, C = o resto; faixa lotada transborda para a vizinha). As outras três caem em `FifoPrimeiraLivre`
+  com aviso no log até a F3.
+- HUD: concluídas/atrasadas, distância, conflitos, ocupação e score (parcial durante o turno, oficial no fim).
+  Empilhadeira vermelha = esperando corredor; quadrado branco = carregando palete; doca com borda amarela = atendendo.
+
+Resultado de referência (score oficial): WH-A — ABC 85,52 · FIFO 83,79; WH-B — ABC 70,38 · FIFO 65,60.
+
+**Para balancear (não alterado — a fórmula é a oficial do Java):** a penalidade de conflito satura com 10 conflitos
+(15 pontos). No WH-B há 230–380 conflitos, então o termo não diferencia nada ali; e no WH-A fica perto do teto.
+Se o jogo precisar de mais gradação, é decisão de regra (mudar `P_POR_CONFLITO`/teto no Java e no `score.ts`,
+com fixtures novas), não de motor.
 
 ### F3. Políticas
 
@@ -356,10 +398,10 @@ src/
 ### F4. HUD e gameplay
 
 - [ ] Tela de seleção de cenário e política (pré-partida).
-- [ ] Relógio 08:00–18:00, pausa/1x/2x/5x (já existe, religar à sim).
-- [ ] KPIs ao vivo: ordens concluídas/atrasadas, distância, ocupação, conflitos.
-- [ ] Inspector com dados reais (Rua-Posição-Andar, produto, lote, quantidade, acessos).
-- [ ] Heatmap de acessos real (contado pela sim, não aleatório).
+- [x] Relógio 08:00–18:00, pausa/1x/2x/5x (F1).
+- [x] KPIs ao vivo: ordens concluídas/atrasadas, distância, ocupação, conflitos (F2).
+- [x] Inspector com dados reais (Rua-Posição-Andar, produto, acessos) — F2. Falta lote/quantidade (o pacote não tem).
+- [x] Heatmap de acessos real (contado pela sim, não aleatório) — F2.
 - [ ] Troca de política durante a partida (registrada na partida; afeta só alocações futuras).
 - [ ] Tela de resultado: breakdown das penalidades, score e comparação com o ranking.
 

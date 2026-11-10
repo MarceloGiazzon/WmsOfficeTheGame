@@ -53,6 +53,18 @@ export interface Ordem {
   quantidadePaletes: number;
 }
 
+/** Estado de um local durante a partida. Nasce do pacote (situacao) + estoque inicial; muda com putaway/picking. */
+export interface EstadoLocal {
+  situacao: SituacaoLocal;
+  produtoId: string | null;
+  /** Segundo (desde 00:00) em que o palete entrou; negativo = antes do turno. Base do FIFO. */
+  entradaSeg: number;
+  /** Palete já separado para uma ordem de saída (ainda no local, à espera do equipamento). */
+  reservadoSaida: boolean;
+  /** Quantas vezes um equipamento operou na posição (heatmap). */
+  acessos: number;
+}
+
 export interface RankingRua { ruaId: string; prioridade: number; }
 
 /** Tudo o que uma partida precisa, numa estrutura só (N4). */

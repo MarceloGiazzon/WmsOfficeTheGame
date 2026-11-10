@@ -43,6 +43,9 @@ const COR = {
   docaOut: '#1e3a8a',
   docaOutTexto: '#93c5fd',
   equipamento: '#f59e0b',
+  equipamentoEspera: '#ef4444',
+  carga: '#e2e8f0',
+  docaOcupada: '#fbbf24',
   selecao: '#facc15',
   texto: '#e2e8f0',
 };
@@ -88,11 +91,17 @@ export class Renderer {
     }
     ctx.fillRect(layout.corredorPrincipalX - 60, 0, 120, layout.altura);
 
-    // docas
+    // docas (borda amarela = atendendo uma ordem)
+    const docaOcupada = new Set(s.docas.filter(d => d.ocupada).map(d => d.localId));
     for (const d of layout.docas) {
       const entrada = d.tipo === 'Inbound';
       ctx.fillStyle = entrada ? COR.docaIn : COR.docaOut;
       ctx.fillRect(d.rect.x, d.rect.y + 10, d.rect.largura, d.rect.altura - 20);
+      if (docaOcupada.has(d.localId)) {
+        ctx.strokeStyle = COR.docaOcupada;
+        ctx.lineWidth = 3 * px;
+        ctx.strokeRect(d.rect.x, d.rect.y + 10, d.rect.largura, d.rect.altura - 20);
+      }
       // rótulo só se couber na doca (no WH-B enquadrado a doca tem ~50 px)
       const larguraPx = d.rect.largura * cam.escala;
       const rotulo = larguraPx >= 90 ? `${entrada ? 'DOCA IN' : 'DOCA OUT'} ${d.numero}` : `${entrada ? 'IN' : 'OUT'} ${d.numero}`;
@@ -145,12 +154,17 @@ export class Renderer {
       ctx.strokeRect(sel.rect.x, sel.rect.y, sel.rect.largura, sel.rect.altura);
     }
 
-    // equipamentos
+    // equipamentos: vermelho = esperando o corredor (conflito); quadrado branco = carregando palete
     for (const e of s.equipamentos) {
-      ctx.fillStyle = COR.equipamento;
+      const r = Math.max(45, 7 * px);
+      ctx.fillStyle = e.estado === 'Aguardando' ? COR.equipamentoEspera : COR.equipamento;
       ctx.beginPath();
-      ctx.arc(e.posicao.x, e.posicao.y, Math.max(45, 7 * px), 0, Math.PI * 2);
+      ctx.arc(e.posicao.x, e.posicao.y, r, 0, Math.PI * 2);
       ctx.fill();
+      if (e.carga !== null) {
+        ctx.fillStyle = COR.carga;
+        ctx.fillRect(e.posicao.x - r * 0.45, e.posicao.y - r * 0.45, r * 0.9, r * 0.9);
+      }
       if (cam.escala >= 0.2) this.texto(e.id, e.posicao.x + 60, e.posicao.y - 60, COR.texto, 9 * px);
     }
 
