@@ -16,12 +16,15 @@ import { ligarEntrada } from './render/input';
 import { Renderer } from './render/renderer';
 import type { PacoteCenario, Politica } from './sim/model';
 import { Simulacao, type Snapshot } from './sim/simulation';
+import './ui/fontes.css';
+import './ui/mobile.css';
 import { Drawer } from './ui/drawer';
 import { Hud } from './ui/hud';
 import { Inspector } from './ui/inspector';
 import { algumModalAberto } from './ui/modal';
 import { PreJogo } from './ui/preJogo';
 import { TelaResultado } from './ui/resultado';
+import { Tutorial } from './ui/tutorial';
 
 type Fase = 'semPartida' | 'jogando' | 'encerrada';
 
@@ -72,6 +75,19 @@ class Jogo {
   private readonly preJogo = new PreJogo({
     aoIniciar: (c, p) => void this.iniciarPartida(c, p),
     aoCancelar: () => this.cancelarPreJogo(),
+  });
+  /** O tutorial pausa a sim enquanto está aberto; ao fechar, só retoma se foi ele quem a pausou. */
+  private retomarAoFecharTutorial = false;
+  private readonly tutorial = new Tutorial({
+    aoAbrir: () => {
+      this.retomarAoFecharTutorial = this.fase === 'jogando' && this.relogio.velocidade !== 0;
+      this.definirVelocidade(0);
+    },
+    aoFechar: () => {
+      if (this.retomarAoFecharTutorial && this.fase === 'jogando') this.definirVelocidade(this.ultimaVelocidade);
+      this.retomarAoFecharTutorial = false;
+    },
+    gaveta: this.drawer,
   });
   private readonly resultadoUi = new TelaResultado({
     aoJogarDeNovo: () => {
@@ -164,6 +180,7 @@ class Jogo {
     this.enquadrar(sim);
     this.ultimaVelocidade = 1;
     this.definirVelocidade(1);
+    this.tutorial.abrirSeNovato(); // só no primeiro turno de quem nunca viu o guia; pausa a sim enquanto aberto
   }
 
   // ---------------------------------------------------------------- durante a partida
