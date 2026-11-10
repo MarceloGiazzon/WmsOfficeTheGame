@@ -40,7 +40,7 @@
 .tutorial-acoes .btn-primary { min-width: 6.5rem; }
 
 @media (max-height: 500px) {
-  .tutorial-balao { width: min(30rem, calc(100% - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); padding: 10px 14px 8px; }
+  .tutorial-balao { width: min(26rem, calc(100% - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); padding: 10px 14px 8px; }
   .tutorial-cabeca { margin-bottom: 4px; }
   .tutorial-titulo { font-size: 0.98rem; }
   .tutorial-texto { font-size: 0.82rem; line-height: 1.4; }

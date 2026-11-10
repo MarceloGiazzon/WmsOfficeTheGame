@@ -133,6 +133,7 @@ export class Tutorial {
     window.removeEventListener('resize', this.agendarDesenho);
     window.removeEventListener('orientationchange', this.agendarDesenho);
     cancelAnimationFrame(this.quadro);
+    this.rolarGavetaAte(null);
     this.opcoes.gaveta.definirAberta(this.gavetaAoAbrir);
     this.modal.fechar();
     this.opcoes.aoFechar();
@@ -174,6 +175,7 @@ export class Tutorial {
     // o passo do log mostra a gaveta; os outros a deixam como o jogador a tinha
     this.opcoes.gaveta.definirAberta(passo.abreGaveta ? true : this.gavetaAoAbrir);
 
+    this.rolarGavetaAte(passo.abreGaveta ? passo.alvos[0] : null);
     const alvos = this.medirAlvos(passo.alvos);
     this.desenharDestaques(alvos);
 
@@ -185,6 +187,22 @@ export class Tutorial {
     this.balao.style.left = `${a.left + pos.x}px`;
     this.balao.style.top = `${a.top + pos.y}px`;
     this.balao.dataset.lado = pos.lado;
+  }
+
+  /**
+   * O alvo do passo do log mora na parte de baixo da gaveta, que no celular é uma folha com rolagem própria: rola
+   * a folha até ele aparecer (se ele for mais alto que a folha, alinha pelo topo). `null` devolve a folha ao topo.
+   * A rolagem é feita à mão (não com scrollIntoView, que também rolaria ancestrais com overflow hidden e deslocaria a página).
+   */
+  private rolarGavetaAte(seletor: string | null): void {
+    const folha = document.getElementById('drawer-content');
+    if (!folha) return;
+    const alvo = seletor ? document.querySelector<HTMLElement>(seletor) : null;
+    if (!alvo) { folha.scrollTop = 0; return; }
+    const f = folha.getBoundingClientRect();
+    const a = alvo.getBoundingClientRect();
+    if (a.height > f.height || a.top < f.top) folha.scrollTop += a.top - f.top - 8;
+    else if (a.bottom > f.bottom) folha.scrollTop += a.bottom - f.bottom + 8;
   }
 
   /** Retângulos (coordenadas da janela) dos elementos do passo que existem e estão visíveis. */

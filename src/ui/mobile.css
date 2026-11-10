@@ -153,12 +153,11 @@ button, select, input, label, summary, a { touch-action: manipulation; }
 
 /* faixa larga o bastante: título e propriedades do inspector lado a lado (poupa uma linha de altura) */
 @media (min-width: 600px) and (max-width: 900px), (min-width: 600px) and (max-height: 500px) {
-  .inspector-card { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 18px; }
+  .inspector-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 18px; }
   .inspector-header { display: contents; }
   .inspector-header h3 { grid-column: 1; grid-row: 1; white-space: nowrap; }
   .inspector-header .btn-icon { grid-column: 3; grid-row: 1; }
   .inspector-body { grid-column: 2; grid-row: 1; }
-  .inspector-card { grid-template-columns: auto 1fr auto; }
 }
 
 /* ---------------------------------------------------------------- celular em paisagem (baixo e largo) */
@@ -169,7 +168,8 @@ button, select, input, label, summary, a { touch-action: manipulation; }
   .hud-telemetry { order: 0; flex: 1 1 0; min-width: 0; width: auto; }
   .hud-status { flex-wrap: nowrap; }
   .hud-status .status-item { flex: 1 1 0; }
-  .strategy-drawer { max-height: 78%; } /* a paisagem tem pouca altura: a gaveta pode tomar quase tudo, é passageira */
+  /* pouca altura: a gaveta sobe até logo abaixo do HUD (cabeçalho + faixa de estado ≈ 120 px), sem cobrir os controles */
+  .strategy-drawer { max-height: calc(100% - 120px); }
 
   /* modais: pouca altura, então cabeçalho enxuto e o corpo rola */
   .modal-cabecalho { padding: 8px 16px 6px; }
