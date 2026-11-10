@@ -9,11 +9,20 @@
     "preview": "vite preview",
     "deploy:npdev": "tsc && vite build --base=/jogo/ --outDir backend/npdev/web/jogo --emptyOutDir",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cap:sync": "npm run build && cap sync android",
+    "cap:abrir": "cap open android",
+    "apk:debug": "npm run cap:sync && cd android && ./gradlew assembleDebug",
+    "apk:instalar": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
   },
   "devDependencies": {
+    "@capacitor/cli": "6.2.3",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
     "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.2.3",
+    "@capacitor/core": "6.2.3"
   }
 }

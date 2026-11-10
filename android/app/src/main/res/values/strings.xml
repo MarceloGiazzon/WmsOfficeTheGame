@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">WmsOffice: The Game</string>
+    <string name="title_activity_main">WmsOffice: The Game</string>
+    <string name="package_name">br.com.wmsoffice.thegame</string>
+    <string name="custom_url_scheme">br.com.wmsoffice.thegame</string>
+</resources>

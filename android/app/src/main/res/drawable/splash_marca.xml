@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Marca da splash: o mesmo desenho do ícone, em 192dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp"
+    android:height="192dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M32,36.4h44v13.2h-44z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M32,58.4h44v13.2h-44z" />
+</vector>

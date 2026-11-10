@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Só no build DEBUG: permite tráfego http (sem TLS) para qualquer host, para testar contra um NPDev em
+    http://<ip-da-rede-local>:8200. O Android 9+ bloqueia isso por padrão e o build release continua bloqueando
+    (este arquivo não entra nele). RISCO: no debug, login/JWT e dados trafegam em texto puro — só em rede
+    confiável; em produção o NPDev deve ficar atrás de https. Ver docs/MOBILE.md.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true" />
+</manifest>
