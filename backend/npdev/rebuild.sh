@@ -4,7 +4,7 @@
 #
 # O front do jogo (Vite) é compilado para web/jogo/ por `npm run deploy:npdev` — a geração copia web/ para os
 # estáticos do app e apaga tudo o que não vem de lá, então o jogo precisa estar em web/jogo/ ANTES de gerar. Por isso
-# este script roda o deploy sempre (≈5 s) e o jogo fica em http://localhost:8200/jogo/ (N5).
+# este script roda o deploy sempre (≈5 s) e o jogo fica em http://localhost:8200/jogo/index.html (N5; "/jogo/" sozinho dá 404).
 #
 # Uso: backend/npdev/rebuild.sh              # tudo (inclui o deploy do jogo)
 #      backend/npdev/rebuild.sh --no-start    # não sobe o app no final
@@ -106,7 +106,7 @@ fi
 if [ -f "$HERE/web/jogo/index.html" ]; then
   JOGO_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8200/jogo/index.html || true)
   [ "$JOGO_STATUS" = 200 ] || { echo "o jogo não está sendo servido: /jogo/index.html → HTTP $JOGO_STATUS"; exit 1; }
-  echo "OK: http://localhost:8200 — jogo em http://localhost:8200/jogo/"
+  echo "OK: http://localhost:8200 — jogo em http://localhost:8200/jogo/index.html"
 else
   echo "OK: http://localhost:8200 (sem o jogo)"
 fi

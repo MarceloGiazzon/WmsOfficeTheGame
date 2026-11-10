@@ -169,7 +169,7 @@ Implementação oficial: `SimulacaoCapability.calcularScore` (backend, inteiros 
 Estado em 2026-11-10; o acompanhamento detalhado (fases N0–N5 e F0–F7, decisões e pendências) está em [docs/PLANO.md](docs/PLANO.md).
 
 1. **Etapa 1 — Frontend Web Funcional** ✅: galpão em Canvas 2D, câmera tátil (arraste e pinça), inspeção de nichos e simulação determinística por seed (`src/sim`), com cenários embutidos para jogar sem rede.
-2. **Etapa 2 — Acoplamento com NPDev** ✅: concepts `Sim*`, capability `simulacao`, role `Jogador`, cenários semeados, ranking por cenário e versão do motor; o jogo é servido em `http://localhost:8200/jogo/` e joga offline com fila de envio ao religar.
+2. **Etapa 2 — Acoplamento com NPDev** ✅: concepts `Sim*`, capability `simulacao`, role `Jogador`, cenários semeados, ranking por cenário e versão do motor; o jogo é servido em `http://localhost:8200/jogo/index.html` e joga offline com fila de envio ao religar.
 3. **Etapa 3 — Expansão das Regras Logísticas** ✅: as cinco políticas do §4 estão no motor, com testes de paridade TS × Java para as regras de alocação. A **WmsOffice Real** é decidida pelo servidor quando há login (flow `SugerirDestinoJogo`; o jogo para o relógio enquanto espera cada resposta, ~50 ms) e cai para a porta TS, que é a mesma regra, sem login ou se o servidor falhar; a tela de resultado diz de onde vieram os destinos.
 4. **Etapa 4 — Portabilidade Mobile** ◐: Capacitor 6 + projeto Android, `.apk` de debug, layout de toque e fontes locais. Faltam testar em aparelho ou emulador, apontar o APK para a URL do backend (com CORS) e o build de release.
 5. **Integridade do ranking** ◻: validação por replay no servidor (§5.4).
