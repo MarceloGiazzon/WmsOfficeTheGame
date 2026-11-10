@@ -35,3 +35,7 @@ produto: `~/repos/NPDev/AppGen/apps/_official/WmsOffice/README.md`.
 
 Concepts `Sim*`, capability `simulacao`, role `JOGADOR` e seeds de cenários — ver fases N1–N5 em
 [docs/PLANO.md](../../docs/PLANO.md).
+
+| Fase | O que entrou | Verificação |
+| --- | --- | --- |
+| N1 | `SimCenario`, `SimOrdem`, `SimPartida` (lifecycle), `SimScore` — REST em `/api/sim_cenarios`, `/api/sim_ordems`, `/api/sim_partidas`, `/api/sim_scores` | `python3 backend/npdev/tests/n1_sim_concepts.py` (app de pé na 8200) |

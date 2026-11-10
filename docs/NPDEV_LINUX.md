@@ -49,7 +49,10 @@ sh _ops/start-app.sh        # http://localhost:8200
 sh _ops/stop-app.sh
 ```
 
-> Se a geração recriar `App/`, copie de volta `wmsoffice-keys/` (ou gere novas — abaixo).
+> A geração **sempre** recria `App/` e apaga `wmsoffice-keys/`: copie a pasta para fora antes e de volta depois
+> (ou gere novas — abaixo). O banco em `App/data/` sobrevive à regeneração.
+
+Testes ao vivo do jogo (app de pé): `python3 ~/repos/WmsOfficeTheGame/backend/npdev/tests/n1_sim_concepts.py`.
 
 Chaves JWT novas (dentro de `App/`):
 

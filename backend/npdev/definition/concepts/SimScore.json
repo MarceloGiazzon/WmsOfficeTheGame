@@ -1,0 +1,29 @@
+{
+  "name": "SimScore",
+  "ui": { "label": "Score da partida" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "partidaId", "type": "reference", "required": true, "unique": true,
+      "reference": { "target": "SimPartida", "onDelete": "cascade" },
+      "ui": { "label": "Partida" }
+    },
+    { "name": "distanciaRealCm", "type": "long", "required": true, "ui": { "label": "Distancia real (cm)" } },
+    { "name": "distanciaTeoricaCm", "type": "long", "required": true, "ui": { "label": "Distancia teorica (cm)" } },
+    { "name": "ordensTotal", "type": "integer", "required": true, "ui": { "label": "Ordens" } },
+    { "name": "ordensAtrasadas", "type": "integer", "required": true, "default": 0, "ui": { "label": "Ordens atrasadas" } },
+    { "name": "eventosConflito", "type": "integer", "required": true, "default": 0, "ui": { "label": "Conflitos" } },
+    { "name": "ocupacaoFinalCentesimos", "type": "integer", "required": true, "ui": { "label": "Ocupacao final (centesimos de %)" } },
+    { "name": "scoreCentesimos", "type": "integer", "required": true, "ui": { "label": "Score (centesimos)" } },
+    { "name": "validadoServidor", "type": "boolean", "required": true, "default": false, "ui": { "label": "Validado no servidor" } }
+  ],
+  "invariants": [
+    { "name": "SimScoreDistanciaRealNonNegative", "type": "expression", "expr": "distanciaRealCm >= 0" },
+    { "name": "SimScoreDistanciaTeoricaNonNegative", "type": "expression", "expr": "distanciaTeoricaCm >= 0" },
+    { "name": "SimScoreOrdensTotalPositive", "type": "expression", "expr": "ordensTotal > 0" },
+    { "name": "SimScoreOrdensAtrasadasRange", "type": "expression", "expr": "ordensAtrasadas >= 0 && ordensAtrasadas <= ordensTotal" },
+    { "name": "SimScoreConflitosNonNegative", "type": "expression", "expr": "eventosConflito >= 0" },
+    { "name": "SimScoreOcupacaoRange", "type": "expression", "expr": "ocupacaoFinalCentesimos >= 0 && ocupacaoFinalCentesimos <= 10000" },
+    { "name": "SimScoreRange", "type": "expression", "expr": "scoreCentesimos >= 0 && scoreCentesimos <= 10000" }
+  ]
+}

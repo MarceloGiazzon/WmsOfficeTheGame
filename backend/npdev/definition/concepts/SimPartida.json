@@ -1,0 +1,47 @@
+{
+  "name": "SimPartida",
+  "ui": { "label": "Partida" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "cenarioId", "type": "reference", "required": true,
+      "reference": { "target": "SimCenario", "onDelete": "restrict" },
+      "ui": { "label": "Cenario" }
+    },
+    {
+      "name": "jogadorId", "type": "reference", "required": true,
+      "reference": { "target": "identity::User", "onDelete": "cascade" },
+      "ui": { "label": "Jogador" }
+    },
+    {
+      "name": "politica", "type": "enum", "required": true,
+      "values": ["AbcProximidade", "FifoPrimeiraLivre", "Consolidacao", "CrossDocking", "WmsReal"],
+      "ui": { "label": "Politica" }
+    },
+    { "name": "versaoMotor", "type": "string", "required": true, "minLength": 1, "maxLength": 40, "ui": { "label": "Versao do motor" } },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["EmAndamento", "Concluida", "Abandonada"],
+      "default": "EmAndamento",
+      "ui": { "label": "Situacao" }
+    },
+    { "name": "iniciadaEm", "type": "datetime", "required": true, "ui": { "label": "Iniciada em" } },
+    { "name": "concluidaEm", "type": "datetime", "ui": { "label": "Concluida em" } }
+  ],
+  "lifecycle": {
+    "statusField": "situacao",
+    "states": [
+      { "value": "EmAndamento", "label": "Em andamento", "initial": true },
+      { "value": "Concluida", "label": "Concluida", "terminal": true },
+      { "value": "Abandonada", "label": "Abandonada", "terminal": true }
+    ],
+    "transitions": [
+      { "from": "EmAndamento", "to": "Concluida" },
+      { "from": "EmAndamento", "to": "Abandonada" }
+    ]
+  },
+  "invariants": [
+    { "name": "SimPartidaVersaoMotorRequired", "type": "expression", "expr": "versaoMotor != null && versaoMotor != ''" },
+    { "name": "SimPartidaConcluidaEmRequired", "type": "expression", "expr": "situacao != 'Concluida' || concluidaEm != null" }
+  ]
+}

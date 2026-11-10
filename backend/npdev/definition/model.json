@@ -169,6 +169,18 @@
     },
     {
       "$ref": "concepts/Usuario.json"
+    },
+    {
+      "$ref": "concepts/SimCenario.json"
+    },
+    {
+      "$ref": "concepts/SimOrdem.json"
+    },
+    {
+      "$ref": "concepts/SimPartida.json"
+    },
+    {
+      "$ref": "concepts/SimScore.json"
     }
   ],
   "aggregates": [

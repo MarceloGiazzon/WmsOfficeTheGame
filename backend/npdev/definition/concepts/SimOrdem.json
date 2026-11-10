@@ -1,0 +1,32 @@
+{
+  "name": "SimOrdem",
+  "ui": { "label": "Ordem de simulacao" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "cenarioId", "type": "reference", "required": true,
+      "reference": { "target": "SimCenario", "onDelete": "cascade" },
+      "ui": { "label": "Cenario" }
+    },
+    { "name": "numero", "type": "string", "required": true, "minLength": 1, "maxLength": 30, "ui": { "label": "Numero" } },
+    {
+      "name": "tipo", "type": "enum", "required": true,
+      "values": ["Inbound", "Outbound"],
+      "ui": { "label": "Tipo" }
+    },
+    { "name": "liberacaoSeg", "type": "integer", "required": true, "ui": { "label": "Liberacao (s)" } },
+    { "name": "slaSeg", "type": "integer", "required": true, "ui": { "label": "SLA (s)" } },
+    {
+      "name": "produtoId", "type": "reference", "required": true,
+      "reference": { "target": "Produto", "onDelete": "restrict" },
+      "ui": { "label": "Produto" }
+    },
+    { "name": "quantidadePaletes", "type": "integer", "required": true, "default": 1, "ui": { "label": "Paletes" } }
+  ],
+  "invariants": [
+    { "name": "SimOrdemNumeroRequired", "type": "expression", "expr": "numero != null && numero != ''" },
+    { "name": "SimOrdemLiberacaoRange", "type": "expression", "expr": "liberacaoSeg >= 0 && liberacaoSeg < 86400" },
+    { "name": "SimOrdemSlaPositive", "type": "expression", "expr": "slaSeg > 0" },
+    { "name": "SimOrdemPaletesPositive", "type": "expression", "expr": "quantidadePaletes > 0" }
+  ]
+}

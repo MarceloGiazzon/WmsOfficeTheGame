@@ -1,0 +1,39 @@
+{
+  "name": "SimCenario",
+  "ui": { "label": "Cenario de simulacao" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    { "name": "codigo", "type": "string", "required": true, "unique": true, "minLength": 1, "maxLength": 40, "ui": { "label": "Codigo" } },
+    { "name": "nome", "type": "string", "required": true, "minLength": 1, "maxLength": 120, "ui": { "label": "Nome" } },
+    {
+      "name": "dificuldade", "type": "enum", "required": true,
+      "values": ["Facil", "Medio", "Dificil", "Extremo"],
+      "default": "Facil",
+      "ui": { "label": "Dificuldade" }
+    },
+    {
+      "name": "armazemId", "type": "reference", "required": true,
+      "reference": { "target": "Armazem", "onDelete": "restrict" },
+      "ui": { "label": "Armazem (topologia)" }
+    },
+    { "name": "seed", "type": "long", "required": true, "ui": { "label": "Seed" } },
+    { "name": "qtdDocasInbound", "type": "integer", "required": true, "default": 2, "ui": { "label": "Docas de entrada" } },
+    { "name": "qtdDocasOutbound", "type": "integer", "required": true, "default": 2, "ui": { "label": "Docas de saida" } },
+    { "name": "qtdEquipamentos", "type": "integer", "required": true, "default": 3, "ui": { "label": "Equipamentos" } },
+    { "name": "velocidadeEquipamentoCmS", "type": "integer", "required": true, "default": 220, "ui": { "label": "Velocidade (cm/s)" } },
+    { "name": "tempoDescargaSeg", "type": "integer", "required": true, "default": 300, "ui": { "label": "Tempo de descarga (s)" } },
+    { "name": "inicioTurnoSeg", "type": "integer", "required": true, "default": 28800, "ui": { "label": "Inicio do turno (s)" } },
+    { "name": "fimTurnoSeg", "type": "integer", "required": true, "default": 64800, "ui": { "label": "Fim do turno (s)" } },
+    { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
+  ],
+  "invariants": [
+    { "name": "SimCenarioCodigoRequired", "type": "expression", "expr": "codigo != null && codigo != ''" },
+    { "name": "SimCenarioDocasInboundPositive", "type": "expression", "expr": "qtdDocasInbound > 0" },
+    { "name": "SimCenarioDocasOutboundPositive", "type": "expression", "expr": "qtdDocasOutbound > 0" },
+    { "name": "SimCenarioEquipamentosPositive", "type": "expression", "expr": "qtdEquipamentos > 0" },
+    { "name": "SimCenarioVelocidadePositive", "type": "expression", "expr": "velocidadeEquipamentoCmS > 0" },
+    { "name": "SimCenarioDescargaNonNegative", "type": "expression", "expr": "tempoDescargaSeg >= 0" },
+    { "name": "SimCenarioInicioTurnoRange", "type": "expression", "expr": "inicioTurnoSeg >= 0 && inicioTurnoSeg < 86400" },
+    { "name": "SimCenarioFimTurnoRange", "type": "expression", "expr": "fimTurnoSeg > inicioTurnoSeg && fimTurnoSeg <= 86400" }
+  ]
+}

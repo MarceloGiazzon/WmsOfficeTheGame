@@ -120,9 +120,16 @@ Runbook completo e armadilhas: [NPDEV_LINUX.md](NPDEV_LINUX.md).
 
 Resolvido: a definição do jogo fica neste repo (versionada), então N1+ têm histórico normal.
 
-### N1. Concepts de simulação
+### N1. Concepts de simulação ✅ (2026-11-10)
 
-Arquivos novos em `definition/concepts/`, referenciados no `model.json`:
+Arquivos novos em `definition/concepts/`, referenciados no `model.json`. Verificação ao vivo:
+[`backend/npdev/tests/n1_sim_concepts.py`](../backend/npdev/tests/n1_sim_concepts.py) (31 checks).
+
+Decisões tomadas na implementação (não estavam na tabela abaixo):
+- `SimCenario.codigo` e `SimScore.partidaId` são `unique` (o 1:1 partida↔score é garantido pelo banco).
+- `SimPartida.cenarioId` é `restrict` (não se apaga cenário com partidas jogadas); `jogadorId` é `cascade`.
+- `SimPartida`: invariant `situacao != 'Concluida' || concluidaEm != null`; `Concluida` e `Abandonada` são terminais.
+- Faixas: `inicioTurnoSeg` em [0, 86400), `fimTurnoSeg` em (`inicioTurnoSeg`, 86400], `liberacaoSeg` em [0, 86400).
 
 **`SimCenario`**
 | Campo | Tipo | Nota |
@@ -173,7 +180,7 @@ Arquivos novos em `definition/concepts/`, referenciados no `model.json`:
 
 Invariants: faixas (0–10000, `> 0`), `ordensAtrasadas <= ordensTotal`, `fimTurnoSeg > inicioTurnoSeg`.
 
-**Pronto quando:** CRUD REST dos 4 concepts funciona com os bonds e o lifecycle validados ao vivo.
+**Pronto quando:** CRUD REST dos 4 concepts funciona com os bonds e o lifecycle validados ao vivo. ✅
 
 ### N2. Capability `simulacao` (Java puro)
 
