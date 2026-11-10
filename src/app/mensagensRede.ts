@@ -42,7 +42,7 @@ export function mensagemDeErro(e: unknown, contexto: ContextoErro = 'geral'): st
 
 const CURTO: Readonly<Record<TipoErro, string>> = {
   offline: 'sem login',
-  rede: 'sem conexão com o servidor',
+  rede: 'sem internet ou servidor fora do ar',
   timeout: 'o servidor não respondeu a tempo',
   nao_autenticado: 'sessão expirada',
   proibido: 'sem permissão',

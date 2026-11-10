@@ -8,7 +8,7 @@
 import type { FilaEnvio, ItemFila, ResultadoSincronizacao } from '../net/filaEnvio';
 import type { Http } from '../net/npdevClient';
 import type { Abandonos } from './abandonos';
-import { plural } from './formato';
+import { formatarScore, plural } from './formato';
 import { mensagemDeErro } from './mensagensRede';
 
 export interface EstadoSincronizacao {
@@ -107,7 +107,16 @@ export function descreverRodada(r: ResultadoSincronizacao): string {
 
 /** Rótulo curto do estado de um item da fila (a lista de pendentes/rejeitadas). */
 export function situacaoDoItem(item: ItemFila): { rotulo: string; detalhe: string } {
-  if (item.situacao === 'rejeitado') return { rotulo: 'Rejeitada', detalhe: item.rejeicao?.motivo ?? 'O servidor recusou a partida.' };
+  if (item.situacao === 'rejeitado') {
+    // score que o servidor recalculou diferente: os dois números, no mesmo formato do resto da tela (o motivo da fila usa ponto)
+    if (item.rejeicao?.codigo === 'score_divergente' && item.resultado) {
+      return {
+        rotulo: 'Rejeitada',
+        detalhe: `O servidor recalculou o score em ${formatarScore(item.resultado.scoreServidorCentesimos)} (o jogo calculou ${formatarScore(item.resultado.scoreClienteCentesimos)}): partida registrada fora do ranking.`,
+      };
+    }
+    return { rotulo: 'Rejeitada', detalhe: item.rejeicao?.motivo ?? 'O servidor recusou a partida.' };
+  }
   if (item.ultimoErro) return { rotulo: 'Aguardando envio', detalhe: `Última tentativa falhou: ${item.ultimoErro.mensagem}` };
   return { rotulo: 'Aguardando envio', detalhe: 'Ainda não houve tentativa.' };
 }

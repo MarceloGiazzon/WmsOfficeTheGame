@@ -33,6 +33,7 @@ export class TelaFila {
   private logado = false;
   private usuario: string | null = null;
   private confirmando: string | null = null;
+  private confirmandoDesde = 0;
   private temporizadorConfirmacao: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private readonly acoes: AcoesFila) {
@@ -115,9 +116,6 @@ export class TelaFila {
         this.usuario === null ? h('span', { class: 'item-fila-dono' }, `de ${item.jogador}`) : null,
         h('span', { class: `selo selo-fila selo-fila-${item.situacao}` }, rotulo)),
       h('p', { class: 'item-fila-detalhe' }, detalhe),
-      divergencia
-        ? h('p', { class: 'item-fila-detalhe' }, `O servidor gravou ${formatarScore(divergencia.scoreServidorCentesimos)}; o jogo tinha calculado ${formatarScore(divergencia.scoreClienteCentesimos)}.`)
-        : null,
       h('div', { class: 'item-fila-acoes' },
         rejeitado && !divergencia
           ? h('button', { class: 'btn-secundario btn-pequeno', type: 'button', 'data-acao': 'reenviar', onclick: () => void this.reenviar(item.id) }, 'Tentar de novo')
@@ -135,8 +133,11 @@ export class TelaFila {
   }
 
   private async descartar(id: string): Promise<void> {
+    // o 2º clique só vale depois de um instante: um duplo clique apressado não pode contar como "confirmei"
+    if (this.confirmando === id && Date.now() - this.confirmandoDesde < 600) return;
     if (this.confirmando !== id) {
       this.confirmando = id;
+      this.confirmandoDesde = Date.now();
       clearTimeout(this.temporizadorConfirmacao);
       this.temporizadorConfirmacao = setTimeout(() => { this.confirmando = null; void this.desenhar(); }, CONFIRMAR_MS);
       await this.desenhar();

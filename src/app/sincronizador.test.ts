@@ -127,6 +127,12 @@ describe('textos', () => {
     expect(situacaoDoItem(item({})).detalhe).toMatch(/Ainda não houve tentativa/);
   });
 
+  it('situacaoDoItem: score divergente mostra os dois números formatados', () => {
+    const r = { partidaId: 'p', scoreId: 's', scoreServidorCentesimos: 8100, scoreClienteCentesimos: 8552, validadoServidor: false };
+    const { detalhe } = situacaoDoItem(item({ situacao: 'rejeitado', rejeicao: { motivo: 'x', codigo: 'score_divergente', em: 'x' }, resultado: r }));
+    expect(detalhe).toBe('O servidor recalculou o score em 81,00 (o jogo calculou 85,52): partida registrada fora do ranking.');
+  });
+
   it('descreverRodada: nada, enviadas, rejeitadas, erro', () => {
     expect(descreverRodada({ enviados: [], rejeitados: [], pendentes: 0, erro: null })).toBe('Nada pendente para enviar.');
     const env = { partidaId: 'p', scoreId: 's', scoreServidorCentesimos: 1, scoreClienteCentesimos: 1, validadoServidor: true };
