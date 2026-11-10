@@ -4,10 +4,10 @@
 /* ---------------------------------------------------------------- conta no cabeçalho */
 .rede-usuario { display: flex; align-items: center; gap: 8px; flex: none; font-size: 0.8rem; }
 .rede-nome {
-  display: inline-flex; align-items: center; gap: 6px; font-weight: 700; max-width: 11ch;
+  display: inline-block; font-weight: 700; max-width: 12ch;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.rede-nome::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); flex: none; }
+.rede-nome::before { content: ''; display: inline-block; vertical-align: middle; margin: -2px 6px 0 0; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
 .rede-usuario[data-modo='logado'] .rede-nome::before { background: var(--accent-green); }
 .rede-usuario[data-modo='convidado'] .rede-nome { color: var(--text-muted); }
 

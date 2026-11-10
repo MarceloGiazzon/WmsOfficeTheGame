@@ -292,10 +292,9 @@ Como ficou (o que o NPDev realmente oferece — descoberto ao vivo, não estava 
   (2) as outras quatro também mudam (WH-A: Fifo 83,79 → 86,09 com uma semente), por um desempate que **não** é do WmsReal:
   `calcularCurvaAbc` (`src/sim/estoque.ts`) ordena produtos de mesmo giro por `id.localeCompare`, o que muda a curva, o
   produto sorteado para cada palete do estoque inicial e o turno todo. Online (UUIDs) e offline (aliases embutidos) jogam,
-  na prática, estoques iniciais diferentes. **Correção de 2 linhas, ainda NÃO aplicada** (fora do escopo desta fase):
-  desempatar por `produto.codigo`; verificado que os goldens atuais continuam passando e que as 4 políticas passam a dar
-  métricas idênticas com UUIDs (hoje o teste `it.fails` de `uuid.test.ts` documenta isso e vai quebrar quando for
-  corrigido, para virar `it`).
+  na prática, estoques iniciais diferentes. **Corrigido em `297c8ef`** (desempate por `produto.codigo`, não por id): as 4
+  políticas dão métricas idênticas com UUIDs e com aliases. Conferido na F5 no navegador: o mesmo turno do WH-A (Curva ABC)
+  fecha em **85,52** jogando com o pacote do servidor, do cache e embutido.
 
 ### N5. Mount do jogo e CORS ✅ (2026-11-10)
 
@@ -554,11 +553,10 @@ Pendências visíveis (fora do escopo da F4): o canvas não usa `devicePixelRati
 densidade — F6); a pré-partida mostra só o cartão, sem pré-visualização do armazém (montar a `Simulacao` do WH-B leva
 ~0,2 s, e o modal cobre o mapa).
 
-### F5. Integração com o NPDev — camada de rede ✅, UI pendente (2026-11-10)
+### F5. Integração com o NPDev ✅ (2026-11-10): camada de rede + UI
 
-A camada de rede está pronta e testada em `src/net/` (módulos puros: sem DOM, `fetch`/relógio/armazenamento injetados).
-**Nada disso está ligado à UI ainda** — `main.ts`, `src/ui/*` e `index.html` não foram tocados. `npm test`: 295 passam
-(+12 ao vivo, pulados sem `NPDEV_LIVE=1`); verificado ao vivo contra a 8200.
+A camada de rede está pronta e testada em `src/net/` (módulos puros: sem DOM, `fetch`/relógio/armazenamento injetados) e
+**ligada à UI** (login, fonte de cenários, partida online, fila de envio — seção "Como ficou a UI" abaixo).
 
 ```
 src/net/  erros.ts (NpdevError + classificação) · npdevClient.ts (login, JWT em memória, get/post) · leitura.ts (paginação)
@@ -608,19 +606,75 @@ src/net/  erros.ts (NpdevError + classificação) · npdevClient.ts (login, JWT 
   src/net/live.test.ts`): login, 403, pacotes WH-A/WH-B × embutido, cache com rede caída, partida → ranking, fila com
   resposta perdida; cria um cenário `F5-LIVE-<hora>` e o admin apaga tudo no fim.
 
-**Depende da UI / ainda não feito:**
-- [ ] Tela de login (`criarRede()` → `cliente.login`) e persistência opcional da sessão; chamar `fila.sincronizar()` logo após
-  o login e no evento `online`. Passar `aoSessaoExpirar` para voltar ao login/offline.
-- [ ] Seleção de cenário: `listarCenarios` quando logado; mostrar a origem do pacote (`obterPacote().origem`/`salvoEm`).
-- [ ] Início da partida: `iniciarPartida` é opcional (a fila cria a partida depois se faltar); se a UI chamar, passar o
-  mesmo `partidaId` **e** o mesmo `iniciadaEm` no `registrar`, e chamar `abandonarPartida` ao desistir (partida em
-  andamento esquecida fica `EmAndamento` para sempre — o Jogador não pode apagar).
-- [ ] Fim da partida / tela de resultado (F4): `fila.registrar(...)` → `estado` (`enviado`/`pendente`/`rejeitado`/`convidado`)
-  e `ranking(cenarioId, {partidaId})` para a posição; mostrar `validadoServidor` e a divergência, se houver.
-- [ ] Indicador "N partidas pendentes de envio": `fila.observar()` / `fila.resumo()`; tela para ver/descartar/reenviar rejeitadas.
+**Como ficou a UI** (F5 completa; `npm test`: ver rodapé desta seção; verificado no Chrome headless contra a 8200):
+
+```
+src/app/  sessao.ts (convidado/logado, sessionStorage, expiração) · fonteRede.ts (servidor → cache → embutido)
+          partidaOnline.ts (iniciar/concluir/desistir + extras do resultado) · sincronizador.ts (estado e gatilhos da fila)
+          abandonos.ts · rankingTabela.ts · mensagensRede.ts · configRede.ts   ← puros, com teste (ServidorFalso)
+          appRede.ts (cola: único módulo app/ que toca o DOM, via ui/)
+src/ui/   login.ts · indicadorRede.ts · filaPendentes.ts · avisos.ts · rede.css   (estilos próprios; style.css/index.html intactos)
+```
+
+- [x] **Login e sessão.** Modal com usuário/senha; erro por `NpdevError.tipo` em `mensagemDeErro` (401 "Usuário ou senha
+  inválidos", rede caída com a saída "jogue como convidado", timeout, 5xx com o HTTP, resposta que não é do NPDev, 403 "falta a
+  role Jogador"). Cabeçalho: "● usuário [Sair]" ou "Convidado [Entrar]". **Primeira abertura** oferece login ou
+  **"Jogar como convidado"** (botão ou Esc; zero chamadas de rede) — a escolha vale pela aba (sessionStorage), então um F5 não
+  pergunta de novo. JWT só na memória do `NpdevClient`; copiado no `sessionStorage` (por aba, tudo em try/catch — janela privada
+  faz o acesso lançar e o jogo segue sem restaurar). Expiração por 401 (`aoSessaoExpirar`) **ou** por temporizador (o token vale
+  8 h): volta a convidado com aviso, **sem mexer na partida em andamento** — se ela terminar sem login o resultado fica na fila
+  DO DONO e vai quando ele entrar de novo. URL base: `import.meta.env.VITE_NPDEV_URL` (`configRede.ts`; vazia = `/api`; o
+  `/api` é acrescentado, e o sufixo duplicado é tolerado). Chamada absoluta no APK é cross-origin: falta o CORS (N5).
+- [x] **Fonte de cenários** (`FonteRede`). `listar()`: logado → `listarCenarios` mesclado com cache e embutidos; convidado →
+  só cache/embutido, **sem chamada**. Os números do cartão vêm do último pacote conhecido (cache, senão embutido); cenário que
+  só o servidor tem é baixado uma vez. `carregar()` = `obterPacote` e devolve a origem REAL (`rede`/`cache`/`embutido`) + `aviso`:
+  "Sem conexão com o servidor (…): usando o cenário guardado neste aparelho em 10/11 13:00". A lista também avisa (faixa acima
+  dos cartões) quando o servidor não respondeu ou quando é modo convidado. O selo de origem do cartão é a origem ESPERADA; o
+  resultado mostra a real.
+- [x] **Partida online** (`PartidaOnline`, uma por turno). Logado e pacote da rede → `iniciarPartida` em segundo plano (falhar
+  não atrapalha: o jogo segue e a fila cria a partida no envio); pacote embutido/cache não chama (o `cenario.id` do embutido é
+  alias do seed). `iniciadaEm` é o mesmo no POST e na fila (chave de idempotência). Fim do turno → `fila.registrar` (guarda
+  ANTES de enviar) → `ranking()`. **Tela de resultado** (`extras` da F4): "Enviando…", `validadoServidor`, posição, tabela com
+  **top 10 + a linha desta partida** (posições reais e "⋮" no salto), total de partidas validadas, selo da origem; **score que o
+  servidor recalculou diferente NÃO é escondido**: "O servidor recalculou o score em 81,52 (o jogo calculou 85,52). A partida foi
+  registrada com o valor do servidor, mas fica fora do ranking" (e a partida fica na lista de rejeitadas); recusa (métricas
+  inválidas…) mostra o motivo; sem rede → "Partida salva para envio quando a rede voltar"; sem onde guardar E sem rede → "não foi
+  possível enviar nem guardar". A `SimPartida` leva a política **inicial** do turno (trocas ficam só no resultado local).
+  **Desistir** (trocar de cenário/reiniciar no meio) → `abandonarPartida`; se falhar por rede/login o pedido fica guardado
+  (`abandonos.ts`, prefixo `abandono:`) e é refeito a cada sincronização. **Sair** no meio do turno abandona a partida do
+  usuário (espera no máx. 2,5 s) e o turno segue como local.
+- [x] **Fila de envio** (`Sincronizador`). `sincronizar()` ao logar, ao restaurar a sessão na abertura, no evento `online` (que
+  também confere a sessão), no fim de cada partida e no botão "Enviar agora". Indicador na faixa de estado: "N partidas
+  pendentes [Enviar agora]" e "N rejeitada(s) pelo servidor" (somem com a fila vazia); abre a visão "Partidas para enviar" —
+  cada item com cenário, política, score, data, situação e motivo; **Tentar de novo** (rejeitada) e **Descartar** (com
+  confirmação, porque o item é a única cópia da partida). Aviso temporário a cada rodada que enviou/rejeitou algo.
+- [x] **Decisão — convidado que joga sem rede NÃO guarda a partida.** Sem dono não há como provar de quem é, e uma fila anônima
+  juntaria resultados que ninguém reivindica; o que há de honesto e simples é o botão **"Entrar e enviar esta partida"** no
+  resultado do convidado: o resultado fica só na memória da aba, e depois do login vai para a fila do usuário que entrou (fechou
+  a aba antes? perdeu — e o resultado já avisou "não foi enviada nem guardada").
+
+**Evidência** — `npm test`: 427 passam (+12 ao vivo pulados; eram 338: +89 desta etapa, todos com `ServidorFalso`: sessão,
+fonte, partida online, fila/sincronizador, ranking, mensagens, base da API); `typecheck` e `build` limpos. **Ao vivo** (Chrome
+headless 1280×800 e 390×844, vite `:3300` → `:8200`, `teste-jogador-2`, relógio acelerado por script; 44 verificações, console
+sem erros — as 7 mensagens "Failed to load resource" são das requisições que o próprio teste bloqueou/negou):
+- 1ª abertura oferece login/convidado e não faz nenhuma chamada `/api`; senha errada → "Usuário ou senha inválidos."; rede
+  cortada → mensagem de rede com a saída "convidado".
+- Logado: pré-partida com origem **Servidor** nos dois cenários → WH-A até o fim: **score 85,52 validado pelo servidor, 1º no
+  ranking**, tabela com a minha linha em destaque. Mesmo turno com a rede cortada: aviso "usando o cenário guardado neste
+  aparelho", origem **Em cache**, 85,52 de novo, "Partida salva para envio quando a rede voltar", "1 partida pendente".
+  Recarregar sem rede: sessão restaurada e fila intacta (IndexedDB), pré-partida avisa e mostra cache/embutido. Religar (evento
+  `online`): sincroniza sozinha, "1 partida enviada ao servidor".
+- Score que o servidor recalcula diferente (adulterei as métricas no `fetch`): "recalculou o score em 81,52 (o jogo calculou
+  85,52) … fora do ranking", "1 rejeitada pelo servidor", visão com o motivo e descarte com confirmação.
+- Telefone: convidado joga o turno inteiro com **zero** chamadas `/api`; "Entrar e enviar esta partida" → login → validado, 3º
+  lugar, sem rolagem horizontal. Banco: 4 partidas `Concluida` e 4 scores (nenhuma duplicada nem `EmAndamento`), apagados pelo
+  admin no fim. Achados e corrigidos ali: o aviso temporário cobria o rodapé dos modais no celular (agora no topo e sem capturar
+  cliques) e a frase da queda de rede repetia a causa.
+
 - [ ] `VERSAO_MOTOR` (`partidas.ts`) é manual: subir quando uma regra do motor mudar.
 - [ ] Política **WmsReal online** (flow `SugerirDestinoJogo`, D2) continua só com a porta TS offline.
-- [ ] Decisão em aberto (ver N4): desempate da curva ABC por `codigo` em vez de `id` (2 linhas em `src/sim/estoque.ts`).
+- [x] ~~Desempate da curva ABC por `codigo` em vez de `id`~~ — feito em `297c8ef` (online e offline jogam o mesmo estoque inicial: 85,52 nos dois, conferido no navegador).
+- [ ] Pendências da UI: o aviso/retentativa não tem *backoff* (só `online` e o botão); a sessão não é validada no servidor ao restaurar (o 1º 401 derruba); item de outro usuário do mesmo aparelho fica invisível para quem está logado; o `index.html`/cabeçalho foram só encaixados por JS — se o layout mobile reorganizar o cabeçalho, ajustar os dois pontos de encaixe em `indicadorRede.ts`.
 
 ### F6. Escala e polimento
 
