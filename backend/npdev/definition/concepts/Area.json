@@ -16,6 +16,9 @@
     },
     { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "AreaNomeRequired", "type": "expression", "expr": "nome != null && nome != ''" }
   ]

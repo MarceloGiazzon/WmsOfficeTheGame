@@ -56,6 +56,9 @@
       { "from": "MovimentacaoConcluida", "to": "SaidaConfirmada" }
     ]
   },
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     {
       "name": "ExpedicaoMovimentoRequiredWhenConfirmada", "type": "expression",

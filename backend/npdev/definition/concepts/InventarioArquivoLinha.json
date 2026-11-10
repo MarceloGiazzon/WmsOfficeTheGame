@@ -68,6 +68,9 @@
       "ui": { "label": "Linha (CSV)" }
     }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "InventarioArquivoLinhaQuantidadeEsperadaNonNegative", "type": "expression", "expr": "quantidadeEsperada == null || quantidadeEsperada >= 0" }
   ]

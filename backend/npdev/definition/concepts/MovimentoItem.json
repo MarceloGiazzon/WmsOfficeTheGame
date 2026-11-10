@@ -20,6 +20,9 @@
     },
     { "name": "quantidade", "type": "long", "required": true, "ui": { "label": "Quantidade" } }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "MovimentoItemQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
   ]

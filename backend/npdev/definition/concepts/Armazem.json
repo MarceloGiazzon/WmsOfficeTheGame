@@ -19,6 +19,9 @@
       "ui": { "label": "Localizacao", "widget": "custom", "customWidgetRef": "widgets/armazem-location-map.js" }
     }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "ArmazemNomeRequired", "type": "expression", "expr": "nome != null && nome != ''" }
   ]

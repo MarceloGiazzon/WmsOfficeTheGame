@@ -215,17 +215,45 @@ Como ficou (decisões e limitações descobertas):
   Erros de negócio voltam como `{sucesso:false, motivo}` (HTTP 200); sucesso devolve o envelope do `SimScore`.
 - **Pendente para a N3**: o procedure não confere se a partida é do usuário logado (entra com a role `JOGADOR`).
 
-### N3. Queries, seeds e role
+### N3. Queries, seeds e role ✅ (2026-11-10)
 
-- Queries: `CenariosAtivos`, `OrdensPorCenario` (via dataSource de panel, que filtra), `RankingPorCenario` (top N por `scoreCentesimos`).
-- Role `JOGADOR`: leitura de cenários/ordens/topologia, escrita só em `SimPartida`/`SimScore` próprios.
-- Seeds (`definition/seeds/`): **2 cenários** iniciais
-  - `WH-A-PEQUENO`: 4 ruas × 12 posições × 1 andar, 2+2 docas, 3 equipamentos, ~60 ordens.
-  - `WH-B-MEGA`: 12 ruas × 30 posições × 4 andares, 4+4 docas, 8 equipamentos, ~400 ordens.
-  - Produtos com frequência de saída definida (gera a curva ABC naturalmente).
-- Panel de administração: `SimCenario` + `RankingPorCenario`.
+Teste ao vivo: [`n3_jogador.py`](../backend/npdev/tests/n3_jogador.py) (46 checks, dois jogadores de teste).
 
-**Pronto quando:** um usuário `JOGADOR` lista os cenários e as ordens e grava uma partida com score, e recebe 403 fora do seu escopo.
+- Queries (`GET /api/queries/<nome>`): `CenariosAtivos`; `OrdensPorCenario?cenarioId=` (parâmetro obrigatório —
+  sem ele, 400; ordenada por liberação, até 5000 linhas numa chamada); `RankingPorCenario?cenarioId=` (top 50, só
+  `validadoServidor`, desempate pela menor distância).
+- Role **`Jogador`** (o nome da role no NPDev; usuários criados pelo admin via `POST /api/auth/create-user` com
+  `roleNames: ["Jogador"]`): lê topologia, cenários e ordens; cria `SimPartida`; lê `SimScore`. Todo o resto do WMS → 403.
+- Seeds: `definition/seeds/cenario-wh-a-pequeno.json` (4×12×1 + 2+2 docas = 52 locais, 12 produtos, 60 ordens) e
+  `cenario-wh-b-mega.json` (12×30×4 + 4+4 docas = 1448 locais, 30 produtos, 400 ordens). Gerados por
+  [`tools/gerar_seeds_cenarios.py`](../backend/npdev/tools/gerar_seeds_cenarios.py) — as ordens vêm de
+  `SimulacaoCapability.gerarOrdens` com o seed do cenário; produtos com pesos em curva ABC; `RankingRua` R01 = mais
+  próxima da expedição. Aplicar com [`tools/semear_cenarios.py`](../backend/npdev/tools/semear_cenarios.py) (pula o que
+  já existe) ou `rebuild.sh --reset-db`.
+- Panel de administração: **adiado** — o admin usa as telas CRUD geradas e as queries; um panel próprio entra se fizer falta.
+
+**Pronto quando:** um usuário `JOGADOR` lista os cenários e as ordens e grava uma partida com score, e recebe 403 fora do seu escopo. ✅
+
+Como ficou a segurança (o NPDev tem três camadas, e cada uma cobre caminhos diferentes — ver
+[NPDEV_LINUX.md](NPDEV_LINUX.md#limitações-do-npdev-encontradas-ao-escrever-capabilitiesprocedures-n2)):
+- **Dono = username.** `$user.id` é o `sub` do JWT (o username), não o UUID do usuário. Por isso `SimPartida.jogador` e
+  `SimScore.jogador` são texto (username), não referência a `identity::User`. Regra por linha em ambos:
+  `jogador == $user.id || ADMIN` (partida: leitura e escrita; score: escrita — o ranking é público entre jogadores).
+- **`SimScore` só pelo `ConcluirPartida`.** O jogador não tem `create` em `SimScore` nem `update` em `SimPartida` no
+  REST (antes dava para forjar um score 100 validado e para trocar o dono da partida). O procedure grava pelo gateway,
+  que só aplica a regra por linha.
+- **Sem `capability.invoke` para o jogador.** Flows com `createConcept`/`updateConcept` ignoram as regras por linha;
+  sem essa permissão o jogador não roda nenhum deles. Os flows do jogo usam só `callProcedure`
+  (procedures chamam capabilities sem esse gate). Não há flow de create para `SimPartida` de propósito.
+- **`access.write` em todos os concepts do WMS** (`ADMIN || WarehouseManager`) e em `SimCenario`/`SimOrdem` (`ADMIN`):
+  cobre aggregates e procedures. Seeds ignoram regras por linha.
+- `WarehouseManager` passou a listar todos os concepts do WMS (sem isso, listar um concept só para o `Jogador`
+  fecharia o concept para os demais).
+
+Pendências que aparecem depois:
+- **Estoque inicial**: os cenários começam com todos os locais `Disponivel`; ordens outbound precisam de estoque — a
+  sim (F2) gera a ocupação inicial a partir do seed do cenário (decisão para a F2).
+- Remover usuários de teste: o NPDev não expõe delete de usuário; `teste-jogador-1/2` ficam no banco de dev.
 
 ### N4. Endpoint de "pacote do cenário"
 

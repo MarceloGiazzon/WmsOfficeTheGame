@@ -9,9 +9,8 @@
       "ui": { "label": "Cenario" }
     },
     {
-      "name": "jogadorId", "type": "reference", "required": true,
-      "reference": { "target": "identity::User", "onDelete": "cascade" },
-      "ui": { "label": "Jogador" }
+      "name": "jogador", "type": "string", "required": true, "minLength": 1, "maxLength": 100,
+      "ui": { "label": "Jogador (username)" }
     },
     {
       "name": "politica", "type": "enum", "required": true,
@@ -39,6 +38,10 @@
       { "from": "EmAndamento", "to": "Concluida" },
       { "from": "EmAndamento", "to": "Abandonada" }
     ]
+  },
+  "access": {
+    "read": "jogador == $user.id || $user.roles.contains('ADMIN')",
+    "write": "jogador == $user.id || $user.roles.contains('ADMIN')"
   },
   "invariants": [
     { "name": "SimPartidaVersaoMotorRequired", "type": "expression", "expr": "versaoMotor != null && versaoMotor != ''" },

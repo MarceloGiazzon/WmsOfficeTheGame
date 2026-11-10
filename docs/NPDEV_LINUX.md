@@ -56,7 +56,11 @@ sh _ops/stop-app.sh
 > (ou gere novas — abaixo). O banco em `App/data/` sobrevive à regeneração.
 
 Testes do jogo, em `backend/npdev/tests/`: `n2_simulacao_capability.py` (offline) e, com o app de pé,
-`n1_sim_concepts.py` e `n2_simulacao_flows.py`.
+`n1_sim_concepts.py`, `n2_simulacao_flows.py` e `n3_jogador.py`.
+
+Banco novo (apaga o atual, com backup): `backend/npdev/rebuild.sh --reset-db` — recria o admin (`admin`/`Teste123!`)
+e semeia os cenários `WH-A-PEQUENO` e `WH-B-MEGA`. Usuário jogador: `POST /api/auth/create-user` (como admin) com
+`{"username","displayName","password","roleNames":["Jogador"]}`.
 
 Chaves JWT novas (dentro de `App/`):
 
@@ -88,7 +92,7 @@ Chamadas: `Authorization: Bearer <token>`. Tenant: `dev`.
 4. **Manifesto de extensões**: o generator atual exige `untrusted-extension-manifest.json` com todas as entradas
    referenciadas pelo modelo. (O produto WmsOffice tinha um manifesto parcial e não gerava — ver abaixo.)
 
-## Limitações do NPDev encontradas ao escrever capabilities/procedures (N2)
+## Limitações do NPDev encontradas ao escrever capabilities/procedures (N2) e permissões (N3)
 
 Todas verificadas ao vivo em 2026-11-10; as soluções adotadas estão nos comentários do `model.json` e da capability.
 
@@ -101,6 +105,13 @@ Todas verificadas ao vivo em 2026-11-10; as soluções adotadas estão nos comen
 | Referência a registro lido | Validador recusa `$registro.data.campo` | Usar `$registro.campo` |
 | Patch para o mesmo estado do lifecycle | `Concluida → Concluida` é aceito (não conta como transição) | Conferir o estado antes de escrever |
 | Saída de procedure que devolve registro | Vem como envelope `{conceptName, id, tenantId, data}` | O cliente lê `output.data` |
+| **`createConcept`/`updateConcept` em flow ignoram `access.*`** (N3) | Um jogador criou um `LocalArmazenagem` pelo flow `CriarLocalArmazenagemVerificado`, apesar do `access.write` | Não dar `capability.invoke` a roles não confiáveis; escritas de usuário comum só por REST ou procedure (`patchConcept` passa pelo gateway) |
+| `capability.invoke` é global e só é concedido via "flow wrapper" de CRUD | Flow com `capabilityCall` dá `Permission 'capability.invoke' denied` para a role | Para roles restritas, flows só com `callProcedure` (procedures não checam esse gate) |
+| CRUD por role (`roles[].concepts`) só vale no REST | Procedures/flows escrevem mesmo sem o `create` da role | Usar isso a favor: tirar o CRUD do REST e deixar a escrita só pelo procedure |
+| `$user.id` é o username (`sub` do JWT) | `jogadorId == $user.id` nunca casa com o UUID de `identity::User` | Guardar o dono como texto (username) |
+| Listar um concept em `roles[].concepts` fecha o concept para quem não está listado | Outras roles perdem acesso | Listar todas as roles que precisam |
+| Campo novo `required` de referência numa tabela existente | Boot recusado ("tables with existing data"), **mesmo com a tabela vazia** | Em dev: `rebuild.sh --reset-db` |
+| Seeds não são transacionais nem idempotentes | Rodar de novo duplica a topologia e falha no primeiro `unique` | `tools/semear_cenarios.py` (pula cenário existente) |
 
 ## Nota sobre o produto WmsOffice
 

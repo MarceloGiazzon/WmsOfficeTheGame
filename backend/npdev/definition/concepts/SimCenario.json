@@ -26,6 +26,9 @@
     { "name": "fimTurnoSeg", "type": "integer", "required": true, "default": 64800, "ui": { "label": "Fim do turno (s)" } },
     { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN')"
+  },
   "invariants": [
     { "name": "SimCenarioCodigoRequired", "type": "expression", "expr": "codigo != null && codigo != ''" },
     { "name": "SimCenarioDocasInboundPositive", "type": "expression", "expr": "qtdDocasInbound > 0" },

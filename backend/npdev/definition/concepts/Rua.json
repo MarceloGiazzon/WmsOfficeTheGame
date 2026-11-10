@@ -16,6 +16,9 @@
     { "name": "bloqueiaMovimento", "type": "boolean", "required": true, "default": false, "ui": { "label": "Bloqueia movimento" } },
     { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "RuaCodigoRequired", "type": "expression", "expr": "codigo != null && codigo != ''" },
     { "name": "RuaQtdPosicoesPositive", "type": "expression", "expr": "qtdPosicoes > 0" },

@@ -23,6 +23,9 @@
     },
     { "name": "quantidadePaletes", "type": "integer", "required": true, "default": 1, "ui": { "label": "Paletes" } }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN')"
+  },
   "invariants": [
     { "name": "SimOrdemNumeroRequired", "type": "expression", "expr": "numero != null && numero != ''" },
     { "name": "SimOrdemLiberacaoRange", "type": "expression", "expr": "liberacaoSeg >= 0 && liberacaoSeg < 86400" },

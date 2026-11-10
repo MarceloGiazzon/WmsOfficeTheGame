@@ -17,6 +17,9 @@
     },
     { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "ProdutoNomeRequired", "type": "expression", "expr": "nome != null && nome != ''" },
     { "name": "ProdutoQtdCaixasPorPalletPositive", "type": "expression", "expr": "qtdCaixasPorPallet > 0" }

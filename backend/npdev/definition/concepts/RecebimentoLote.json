@@ -16,6 +16,9 @@
     { "name": "quantidade", "type": "long", "required": true, "default": 1, "ui": { "label": "Quantidade" } },
     { "name": "crossDocking", "type": "boolean", "required": true, "default": false, "ui": { "label": "Cross-docking" } }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "RecebimentoLoteQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
   ]

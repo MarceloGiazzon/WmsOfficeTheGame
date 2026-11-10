@@ -52,12 +52,11 @@ def run(api):
     expect_reject("tipo fora do enum rejeitado", "POST", "sim_ordems", {**ord_body, "numero": "X", "tipo": "Lateral"})
 
     print("SimPartida")
-    par_body = {"cenarioId": cen["id"], "jogadorId": me["id"], "politica": "AbcProximidade",
+    par_body = {"cenarioId": cen["id"], "jogador": me["username"], "politica": "AbcProximidade",
                 "versaoMotor": "0.1.0", "iniciadaEm": "2026-11-10T08:00:00Z"}
     par = create("sim_partidas", par_body)
     check("situacao inicial EmAndamento", par["situacao"] == "EmAndamento", par)
-    expect_reject("jogadorId inexistente rejeitado", "POST", "sim_partidas",
-                  {**par_body, "jogadorId": "00000000-0000-0000-0000-000000000000"})
+    expect_reject("jogador vazio rejeitado", "POST", "sim_partidas", {**par_body, "jogador": ""})
     expect_reject("politica fora do enum rejeitada", "POST", "sim_partidas", {**par_body, "politica": "Aleatoria"})
     expect_reject("Concluida sem concluidaEm rejeitado", "PUT", f"sim_partidas/{par['id']}",
                   {**par_body, "situacao": "Concluida"}, why="SimPartidaConcluidaEmRequired")
@@ -75,7 +74,7 @@ def run(api):
     check("EmAndamento -> Abandonada", st == 200 and upd["situacao"] == "Abandonada", f"{st} {upd}")
 
     print("SimScore")
-    sc_body = {"partidaId": par["id"], "distanciaRealCm": 1_250_000, "distanciaTeoricaCm": 1_000_000,
+    sc_body = {"partidaId": par["id"], "cenarioId": cen["id"], "jogador": me["username"], "distanciaRealCm": 1_250_000, "distanciaTeoricaCm": 1_000_000,
                "ordensTotal": 60, "ordensAtrasadas": 3, "eventosConflito": 2,
                "ocupacaoFinalCentesimos": 8150, "scoreCentesimos": 9150}
     expect_reject("ordensAtrasadas > ordensTotal rejeitado", "POST", "sim_scores", {**sc_body, "ordensAtrasadas": 61},

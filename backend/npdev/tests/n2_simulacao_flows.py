@@ -44,7 +44,7 @@ def run(api):
     cen = api.create("sim_cenarios", {"codigo": "N2-TESTE", "nome": "Cenario N2", "armazemId": arm["id"], "seed": 7})
 
     def nova_partida(politica="AbcProximidade"):
-        return api.create("sim_partidas", {"cenarioId": cen["id"], "jogadorId": api.me["id"], "politica": politica,
+        return api.create("sim_partidas", {"cenarioId": cen["id"], "jogador": api.me["username"], "politica": politica,
                                            "versaoMotor": "0.1.0", "iniciadaEm": "2026-11-10T08:00:00Z"})
 
     def scores_da(partida):
@@ -101,7 +101,7 @@ def run(api):
     check("  partida continua EmAndamento e sem score", got["situacao"] == "EmAndamento" and not scores_da(p3), got)
 
     p4 = nova_partida("WmsReal")
-    api.call("PUT", f"sim_partidas/{p4['id']}", {**{k: p4[k] for k in ("cenarioId", "jogadorId", "politica",
+    api.call("PUT", f"sim_partidas/{p4['id']}", {**{k: p4[k] for k in ("cenarioId", "jogador", "politica",
                                                                        "versaoMotor", "iniciadaEm")},
                                                  "situacao": "Abandonada"})
     st, res = api.flow("ConcluirPartida", {"partidaId": p4["id"], **METRICAS_A, "scoreCentesimos": 5040})
@@ -119,7 +119,7 @@ def run(api):
     # Um SimScore criado à parte (via REST) faz a criação do score falhar (unique em partidaId); a partida
     # tem de continuar EmAndamento.
     p5 = nova_partida()
-    api.create("sim_scores", {"partidaId": p5["id"], **METRICAS_A, "scoreCentesimos": 5040})
+    api.create("sim_scores", {"partidaId": p5["id"], "cenarioId": cen["id"], "jogador": api.me["username"], **METRICAS_A, "scoreCentesimos": 5040})
     st, res = api.flow("ConcluirPartida", {"partidaId": p5["id"], **METRICAS_A, "scoreCentesimos": 5040})
     _, got = api.call("GET", f"sim_partidas/{p5['id']}")
     check("falha ao gravar o score -> erro", st >= 400, f"{st} {res}")

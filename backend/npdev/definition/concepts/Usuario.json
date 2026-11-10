@@ -20,6 +20,9 @@
       "ui": { "label": "Estabelecimento padrao" }
     }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "UsuarioSenhaHashRequired", "type": "expression", "expr": "senhaHash != null && senhaHash != ''" }
   ]

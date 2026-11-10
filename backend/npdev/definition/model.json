@@ -24,7 +24,213 @@
         "EXECUTE_FLOW",
         "READ_EXECUTIONS",
         "READ_FLOW_DEFINITIONS"
-      ]
+      ],
+      "concepts": {
+        "Entidade": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Armazem": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Area": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Rua": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "LocalArmazenagem": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "PerfilAlocacao": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "RankingRua": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "LocalArmazenagemLote": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Produto": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Lote": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Movimento": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "MovimentoItem": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "MovimentoItemPosicao": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Recebimento": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "RecebimentoLote": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Expedicao": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "ExpedicaoItem": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "HistoricoMovimentacao": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "DocumentoFiscal": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "DocumentoFiscalItem": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Romaneio": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "RomaneioItem": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "CrossDocking": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "InventarioArquivo": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "InventarioArquivoLinha": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
+        "Usuario": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    {
+      "name": "Jogador",
+      "grants": [
+        "EXECUTE_FLOW"
+      ],
+      "concepts": {
+        "Armazem": [
+          "read"
+        ],
+        "Area": [
+          "read"
+        ],
+        "Rua": [
+          "read"
+        ],
+        "LocalArmazenagem": [
+          "read"
+        ],
+        "LocalArmazenagemLote": [
+          "read"
+        ],
+        "Lote": [
+          "read"
+        ],
+        "Produto": [
+          "read"
+        ],
+        "PerfilAlocacao": [
+          "read"
+        ],
+        "RankingRua": [
+          "read"
+        ],
+        "SimCenario": [
+          "read"
+        ],
+        "SimOrdem": [
+          "read"
+        ],
+        "SimPartida": [
+          "read",
+          "create"
+        ],
+        "SimScore": [
+          "read"
+        ]
+      }
     }
   ],
   "propertyScopes": [
@@ -978,13 +1184,10 @@
       "concept": "SimScore",
       "steps": [
         {
-          "name": "calcular",
-          "type": "capabilityCall",
-          "capability": "simulacao",
-          "operation": "calcularScore",
-          "args": [
-            "$input"
-          ],
+          "name": "executar",
+          "type": "callProcedure",
+          "procedure": "CalcularScoreProcedure",
+          "input": "$input",
           "output": "$resultado"
         },
         {
@@ -1017,13 +1220,10 @@
       "concept": "SimOrdem",
       "steps": [
         {
-          "name": "gerar",
-          "type": "capabilityCall",
-          "capability": "simulacao",
-          "operation": "gerarOrdens",
-          "args": [
-            "$input"
-          ],
+          "name": "executar",
+          "type": "callProcedure",
+          "procedure": "GerarOrdensProcedure",
+          "input": "$input",
           "output": "$resultado"
         },
         {
@@ -1041,6 +1241,24 @@
           "name": "sugerir-destino",
           "type": "callProcedure",
           "procedure": "SugerirDestinoProcedure",
+          "input": "$input",
+          "output": "$resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "AbandonarPartida",
+      "concept": "SimPartida",
+      "steps": [
+        {
+          "name": "abandonar",
+          "type": "callProcedure",
+          "procedure": "AbandonarPartidaProcedure",
           "input": "$input",
           "output": "$resultado"
         },
@@ -1222,6 +1440,57 @@
       "limit": 500,
       "metadata": {
         "purpose": "Move 10 B2 (LC-B2): the bar gadget on the Analytics dashboard, replacing analytics.html's client-side 'Movimentos por Tipo e Situacao' pivot table (x=tipo, series=situacao, y=total)."
+      }
+    },
+    {
+      "name": "CenariosAtivos",
+      "concept": "SimCenario",
+      "where": "ativo == true",
+      "orderBy": [
+        "codigo"
+      ],
+      "metadata": {
+        "purpose": "N3: tela de selecao de cenario do jogo."
+      }
+    },
+    {
+      "name": "OrdensPorCenario",
+      "concept": "SimOrdem",
+      "where": "cenarioId == :cenarioId",
+      "orderBy": [
+        "liberacaoSeg",
+        "numero"
+      ],
+      "parameters": [
+        {
+          "name": "cenarioId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "limit": 5000,
+      "metadata": {
+        "purpose": "N3/N4: ordens canonicas de um cenario, na ordem de liberacao."
+      }
+    },
+    {
+      "name": "RankingPorCenario",
+      "concept": "SimScore",
+      "where": "cenarioId == :cenarioId && validadoServidor == true",
+      "orderBy": [
+        "scoreCentesimos desc",
+        "distanciaRealCm"
+      ],
+      "limit": 50,
+      "parameters": [
+        {
+          "name": "cenarioId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "metadata": {
+        "purpose": "N3: top 50 por cenario, so scores validados no servidor; desempate pela menor distancia."
       }
     }
   ],
@@ -3381,6 +3650,8 @@
                   "createIfMissing": true,
                   "set": {
                     "partidaId": "$input.partidaId",
+                    "cenarioId": "$partida.cenarioId",
+                    "jogador": "$partida.jogador",
                     "distanciaRealCm": "$input.distanciaRealCm",
                     "distanciaTeoricaCm": "$input.distanciaTeoricaCm",
                     "ordensTotal": "$input.ordensTotal",
@@ -3429,6 +3700,69 @@
               "value": "$validacao"
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "AbandonarPartidaProcedure",
+      "description": "N3: o jogador desiste da partida ({partidaId}). A role Jogador nao tem update em SimPartida pelo REST (impede trocar o dono ou editar a partida); a mudanca de estado passa por aqui. A regra por linha de SimPartida garante que so o dono (ou ADMIN) chega na partida, e o lifecycle so permite EmAndamento -> Abandonada.",
+      "steps": [
+        {
+          "name": "abandonar",
+          "type": "patchConcept",
+          "concept": "SimPartida",
+          "id": "$input.partidaId",
+          "set": {
+            "situacao": "Abandonada"
+          },
+          "target": "partida"
+        },
+        {
+          "name": "return-partida",
+          "type": "return",
+          "value": "$partida"
+        }
+      ]
+    },
+    {
+      "name": "CalcularScoreProcedure",
+      "description": "N2/N3: SimulacaoCapability.calcularScore sobre o $input. Flow so com callProcedure de proposito: a role Jogador NAO tem capability.invoke (um flow com capabilityCall/createConcept/updateConcept exige essa permissao, que e global; e createConcept/updateConcept de flow ignoram as regras access.* -- ver docs/NPDEV_LINUX.md). Procedures chamam a capability sem esse gate e escrevem pelo gateway, que aplica as regras por linha.",
+      "steps": [
+        {
+          "name": "calcularScore",
+          "type": "capabilityCall",
+          "capability": "simulacao",
+          "operation": "calcularScore",
+          "args": {
+            "input": "$input"
+          },
+          "target": "resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
+        }
+      ]
+    },
+    {
+      "name": "GerarOrdensProcedure",
+      "description": "N2/N3: SimulacaoCapability.gerarOrdens sobre o $input. Flow so com callProcedure de proposito: a role Jogador NAO tem capability.invoke (um flow com capabilityCall/createConcept/updateConcept exige essa permissao, que e global; e createConcept/updateConcept de flow ignoram as regras access.* -- ver docs/NPDEV_LINUX.md). Procedures chamam a capability sem esse gate e escrevem pelo gateway, que aplica as regras por linha.",
+      "steps": [
+        {
+          "name": "gerarOrdens",
+          "type": "capabilityCall",
+          "capability": "simulacao",
+          "operation": "gerarOrdens",
+          "args": {
+            "input": "$input"
+          },
+          "target": "resultado"
+        },
+        {
+          "name": "return-resultado",
+          "type": "return",
+          "value": "$resultado"
         }
       ]
     }

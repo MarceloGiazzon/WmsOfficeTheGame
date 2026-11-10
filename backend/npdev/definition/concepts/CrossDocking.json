@@ -44,6 +44,9 @@
       { "from": "Ativo", "to": "Cancelado" }
     ]
   },
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "CrossDockingQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
   ]

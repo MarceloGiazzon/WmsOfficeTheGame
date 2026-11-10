@@ -17,6 +17,9 @@
       "ui": { "label": "Situacao" }
     }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "LocalPosicaoPositive", "type": "expression", "expr": "posicao > 0" },
     { "name": "LocalAndarPositive", "type": "expression", "expr": "andar > 0" }

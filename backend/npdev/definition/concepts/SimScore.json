@@ -8,6 +8,15 @@
       "reference": { "target": "SimPartida", "onDelete": "cascade" },
       "ui": { "label": "Partida" }
     },
+    {
+      "name": "cenarioId", "type": "reference", "required": true,
+      "reference": { "target": "SimCenario", "onDelete": "restrict" },
+      "ui": { "label": "Cenario" }
+    },
+    {
+      "name": "jogador", "type": "string", "required": true, "minLength": 1, "maxLength": 100,
+      "ui": { "label": "Jogador (username)" }
+    },
     { "name": "distanciaRealCm", "type": "long", "required": true, "ui": { "label": "Distancia real (cm)" } },
     { "name": "distanciaTeoricaCm", "type": "long", "required": true, "ui": { "label": "Distancia teorica (cm)" } },
     { "name": "ordensTotal", "type": "integer", "required": true, "ui": { "label": "Ordens" } },
@@ -17,6 +26,9 @@
     { "name": "scoreCentesimos", "type": "integer", "required": true, "ui": { "label": "Score (centesimos)" } },
     { "name": "validadoServidor", "type": "boolean", "required": true, "default": false, "ui": { "label": "Validado no servidor" } }
   ],
+  "access": {
+    "write": "jogador == $user.id || $user.roles.contains('ADMIN')"
+  },
   "invariants": [
     { "name": "SimScoreDistanciaRealNonNegative", "type": "expression", "expr": "distanciaRealCm >= 0" },
     { "name": "SimScoreDistanciaTeoricaNonNegative", "type": "expression", "expr": "distanciaTeoricaCm >= 0" },

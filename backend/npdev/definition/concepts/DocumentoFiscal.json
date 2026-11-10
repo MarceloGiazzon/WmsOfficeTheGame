@@ -44,6 +44,9 @@
       { "from": "Importada", "to": "Cancelada" }
     ]
   },
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "DocumentoFiscalNumeroRequired", "type": "expression", "expr": "numero != null && numero != ''" },
     { "name": "DocumentoFiscalChaveRequired", "type": "expression", "expr": "chave != null && chave != ''" },

@@ -36,5 +36,8 @@
       { "from": "Pendente", "to": "Cancelado" },
       { "from": "Suspenso", "to": "Cancelado" }
     ]
+  },
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
   }
 }

@@ -14,5 +14,8 @@
     },
     { "name": "descricao", "type": "string", "maxLength": 500, "ui": { "label": "Descricao" } },
     { "name": "ocorridoEm", "type": "datetime", "ui": { "label": "Ocorrido em" } }
-  ]
+  ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  }
 }

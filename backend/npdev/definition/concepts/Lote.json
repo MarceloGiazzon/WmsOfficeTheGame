@@ -28,6 +28,9 @@
     },
     { "name": "quantidade", "type": "long", "required": true, "default": 0, "ui": { "label": "Quantidade" } }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "LoteQuantidadeNonNegative", "type": "expression", "expr": "quantidade >= 0" }
   ]

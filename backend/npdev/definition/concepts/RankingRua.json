@@ -18,6 +18,9 @@
       "ui": { "label": "Prioridade (menor = preferida)" }
     }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "RankingRuaPrioridadePositive", "type": "expression", "expr": "prioridade > 0" }
   ]

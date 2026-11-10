@@ -34,6 +34,9 @@
       { "from": "Importado", "to": "Cancelado" }
     ]
   },
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "RomaneioNumeroRequired", "type": "expression", "expr": "numero != null && numero != ''" },
     {

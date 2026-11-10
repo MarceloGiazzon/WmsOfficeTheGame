@@ -31,5 +31,8 @@
       { "from": "Gerado", "to": "Conferido" },
       { "from": "Conferido", "to": "Confirmado" }
     ]
+  },
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
   }
 }

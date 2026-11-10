@@ -17,6 +17,9 @@
     { "name": "quantidade", "type": "long", "required": true, "ui": { "label": "Quantidade" } },
     { "name": "valorUnitarioCentavos", "type": "long", "required": true, "ui": { "label": "Valor unitario (centavos)" } }
   ],
+  "access": {
+    "write": "$user.roles.contains('ADMIN') || $user.roles.contains('WarehouseManager')"
+  },
   "invariants": [
     { "name": "DocumentoFiscalItemQuantidadePositive", "type": "expression", "expr": "quantidade > 0" }
   ]
