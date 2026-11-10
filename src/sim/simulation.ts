@@ -6,6 +6,8 @@
 //             (a política escolhe o local no momento do despacho) → concluída quando o último palete é guardado.
 //   Outbound: liberada → espera estoque do produto + doca de saída livre → reserva os paletes mais antigos (FIFO)
 //             → 1 tarefa de picking por palete → concluída quando o último chega na doca.
+//   Cross-docking (política CrossDocking): um palete descarregado que ainda espera putaway pode ser desviado para uma
+//             saída pendente do mesmo produto — vai da doca de entrada direto para a de saída, sem passar pelo estoque.
 // Despacho: tarefas por prazo (liberação + SLA, o mais urgente primeiro); cada uma vai para a empilhadeira ociosa
 // mais próxima do ponto de partida. Cada corredor de rua admite uma empilhadeira por vez (conflito = espera + evento).
 // Um tick por fase: a empilhadeira que termina uma operação só se mexe no tick seguinte.
@@ -14,7 +16,7 @@ import { construirLayout, type Layout, type LayoutDoca, type Ponto } from './lay
 import { calcularCurvaAbc, gerarEstoqueInicial, OCUPACAO_INICIAL_CENTESIMOS, type CurvaAbc } from './estoque';
 import type { EstadoLocal, Metricas, Ordem, PacoteCenario, Politica } from './model';
 import { Malha, type Trecho } from './pathing';
-import { escolherDestino, escolherOrigens, politicaEfetiva, POLITICA_FALLBACK, type ContextoPolitica } from './politicas';
+import { escolherDestino, escolherOrigens, type ContextoPolitica } from './politicas';
 import { calcularScore, type ResultadoScore } from './score';
 import { calcularDistanciaTeorica } from './teorica';
 
@@ -24,6 +26,8 @@ export type { EstadoLocal } from './model';
 export const TEMPO_DOCA_SEG = 10;           // pegar/largar palete na doca
 export const TEMPO_LOCAL_BASE_SEG = 15;     // guardar/retirar no andar 1
 export const TEMPO_POR_ANDAR_SEG = 5;       // a mais por andar acima do primeiro
+/** CrossDocking: quanto um palete descarregado espera, no máximo, por uma saída do mesmo produto antes de ir para o estoque. */
+export const ESPERA_CROSSDOCK_SEG = 600;
 
 export type EstadoEquipamento = 'Ocioso' | 'Deslocando' | 'Operando' | 'Aguardando';
 
@@ -99,9 +103,14 @@ interface OrdemEstado {
   concluidaSeg: number | null;
 }
 
-type Tarefa =
-  | { tipo: 'Putaway'; seq: number; ordem: OrdemEstado; doca: LayoutDoca }
-  | { tipo: 'Picking'; seq: number; ordem: OrdemEstado; origemId: string; doca: LayoutDoca };
+type Tarefa = { seq: number; criadaSeg: number } & (
+  | { tipo: 'Putaway'; ordem: OrdemEstado; doca: LayoutDoca }
+  | { tipo: 'Picking'; ordem: OrdemEstado; origemId: string; doca: LayoutDoca }
+  /** Doca de entrada → doca de saída. `ordem` é a entrada (de onde o palete vem), `saida` a ordem que o recebe. */
+  | { tipo: 'CrossDock'; ordem: OrdemEstado; saida: OrdemEstado; doca: LayoutDoca; docaSaida: LayoutDoca });
+
+/** Prazo que ordena o despacho: o da ordem a que a tarefa serve (no cross-docking, o mais apertado das duas). */
+const prazoDaTarefa = (t: Tarefa): number => (t.tipo === 'CrossDock' ? Math.min(t.ordem.prazoSeg, t.saida.prazoSeg) : t.ordem.prazoSeg);
 
 interface DocaInterna {
   doca: LayoutDoca;
@@ -143,6 +152,7 @@ export class Simulacao {
   private estoqueInicial = 0;
   private paletesGuardados = 0;
   private paletesRetirados = 0;
+  private paletesCruzados = 0;
   private distanciaRealCm = 0;
   private eventosConflito = 0;
   private ordensConcluidas = 0;
@@ -189,7 +199,6 @@ export class Simulacao {
     this.registrar(`Turno iniciado — cenário ${pacote.cenario.codigo}, política ${politica}.`);
     this.registrar(`Estoque inicial: ${estoque.length} paletes em ${livres.length} locais ` +
       `(${(OCUPACAO_INICIAL_CENTESIMOS / 100).toFixed(0)}% de ocupação, pesos da curva ABC).`);
-    this.avisarFallback(politica);
   }
 
   get terminado(): boolean {
@@ -212,7 +221,6 @@ export class Simulacao {
     if (p === this.politica) return;
     this.politica = p;
     this.registrar(`Política alterada para ${p} (vale para as próximas alocações).`);
-    this.avisarFallback(p);
   }
 
   /** Métricas de agora, no formato do score. */
@@ -230,8 +238,11 @@ export class Simulacao {
   }
 
   /** Contadores para auditar a conservação de paletes: ocupados = inicial + guardados − retirados, sempre. */
-  auditoria(): { estoqueInicial: number; paletesGuardados: number; paletesRetirados: number } {
-    return { estoqueInicial: this.estoqueInicial, paletesGuardados: this.paletesGuardados, paletesRetirados: this.paletesRetirados };
+  auditoria(): { estoqueInicial: number; paletesGuardados: number; paletesRetirados: number; paletesCruzados: number } {
+    return {
+      estoqueInicial: this.estoqueInicial, paletesGuardados: this.paletesGuardados,
+      paletesRetirados: this.paletesRetirados, paletesCruzados: this.paletesCruzados,
+    };
   }
 
   snapshot(): Snapshot {
@@ -289,23 +300,70 @@ export class Simulacao {
     }
   }
 
-  /** Saída: a primeira ordem da fila (por liberação) cujo estoque já existe ocupa a doca livre. */
+  /**
+   * Saída: a primeira ordem da fila (por liberação) cujo estoque já existe ocupa a doca livre.
+   * Com a política CrossDocking, os paletes do produto que acabaram de ser descarregados e ainda esperam putaway
+   * contam como estoque: vão direto para a doca de saída e o resto vem do armazém (FIFO).
+   */
   private iniciarSaidas(): void {
     if (this.pendentesSaida.length === 0) return;
     for (const d of this.docasSaida) {
       if (d.ocupadaPor) continue;
-      const i = this.pendentesSaida.findIndex(o => (this.estoqueLivre.get(o.ordem.produtoId) ?? 0) >= o.ordem.quantidadePaletes);
+      const cruzaveis = this.paletesCruzaveis();
+      const i = this.pendentesSaida.findIndex(o => {
+        const { produtoId, quantidadePaletes: qtd } = o.ordem;
+        return (this.estoqueLivre.get(produtoId) ?? 0) + Math.min(cruzaveis.get(produtoId) ?? 0, qtd) >= qtd;
+      });
       if (i < 0) return;
       const [o] = this.pendentesSaida.splice(i, 1);
       d.ocupadaPor = o;
-      const origens = escolherOrigens(this.ctxPolitica, o.ordem.produtoId, o.ordem.quantidadePaletes);
+      const { produtoId, quantidadePaletes: qtd } = o.ordem;
+      const cruzar = Math.min(cruzaveis.get(produtoId) ?? 0, qtd);
+      if (cruzar > 0) this.desviarParaSaida(o, d.doca, cruzar);
+      const origens = escolherOrigens(this.ctxPolitica, produtoId, qtd - cruzar);
       for (const origemId of origens) {
         this.locais.get(origemId)!.reservadoSaida = true;
         this.criarTarefa({ tipo: 'Picking', ordem: o, origemId, doca: d.doca });
       }
-      this.estoqueLivre.set(o.ordem.produtoId, this.estoqueLivre.get(o.ordem.produtoId)! - origens.length);
-      this.registrar(`Ordem ${o.ordem.numero}: ${origens.length} palete(s) separados para a doca OUT ${d.doca.numero}.`);
+      this.estoqueLivre.set(produtoId, this.estoqueLivre.get(produtoId)! - origens.length);
+      this.registrar(`Ordem ${o.ordem.numero}: ${origens.length} palete(s) separados para a doca OUT ${d.doca.numero}` +
+        (cruzar > 0 ? ` e ${cruzar} direto da entrada (cross-docking).` : '.'));
     }
+  }
+
+  /** Paletes descarregados por produto que ainda esperam putaway (só na política CrossDocking). */
+  private paletesCruzaveis(): Map<string, number> {
+    const porProduto = new Map<string, number>();
+    if (this.politica !== 'CrossDocking') return porProduto;
+    for (const t of this.tarefas) {
+      if (t.tipo === 'Putaway') porProduto.set(t.ordem.ordem.produtoId, (porProduto.get(t.ordem.ordem.produtoId) ?? 0) + 1);
+    }
+    return porProduto;
+  }
+
+  /**
+   * CrossDocking: paletes do produto que o despacho segura na doca de entrada em vez de guardar, por produto —
+   * tantos quantos as saídas pendentes (ainda sem doca) do produto pedem. Cada palete espera no máximo
+   * ESPERA_CROSSDOCK_SEG; depois disso vai para o estoque como qualquer outro.
+   */
+  private retencaoCrossDock(): Map<string, number> {
+    const porProduto = new Map<string, number>();
+    if (this.politica !== 'CrossDocking') return porProduto;
+    for (const o of this.pendentesSaida) {
+      porProduto.set(o.ordem.produtoId, (porProduto.get(o.ordem.produtoId) ?? 0) + o.ordem.quantidadePaletes);
+    }
+    return porProduto;
+  }
+
+  /** Troca `qtd` tarefas de putaway do produto da ordem de saída por transferências doca → doca. */
+  private desviarParaSaida(saida: OrdemEstado, docaSaida: LayoutDoca, qtd: number): void {
+    let restante = qtd;
+    this.tarefas = this.tarefas.map(t => {
+      if (restante === 0 || t.tipo !== 'Putaway' || t.ordem.ordem.produtoId !== saida.ordem.produtoId) return t;
+      restante--;
+      return { tipo: 'CrossDock', seq: t.seq, criadaSeg: t.criadaSeg, ordem: t.ordem, saida, doca: t.doca, docaSaida };
+    });
+    this.tarefasDesordenadas = true;
   }
 
   private concluirOrdem(o: OrdemEstado): void {
@@ -323,8 +381,8 @@ export class Simulacao {
 
   // ---------------------------------------------------------------- tarefas e despacho
 
-  private criarTarefa(t: DistributiveOmit<Tarefa, 'seq'>): void {
-    this.tarefas.push({ ...t, seq: this.seqTarefa++ } as Tarefa);
+  private criarTarefa(t: DistributiveOmit<Tarefa, 'seq' | 'criadaSeg'>): void {
+    this.tarefas.push({ ...t, seq: this.seqTarefa++, criadaSeg: this.relogioSeg } as Tarefa);
     this.tarefasDesordenadas = true;
   }
 
@@ -333,18 +391,26 @@ export class Simulacao {
     let ociosos = this.equipamentos.filter(e => e.passos.length === 0);
     if (ociosos.length === 0) return;
     if (this.tarefasDesordenadas) {
-      this.tarefas.sort((a, b) => a.ordem.prazoSeg - b.ordem.prazoSeg || a.seq - b.seq);
+      this.tarefas.sort((a, b) => prazoDaTarefa(a) - prazoDaTarefa(b) || a.seq - b.seq);
       this.tarefasDesordenadas = false;
     }
+    const retencao = this.retencaoCrossDock();
     const restantes: Tarefa[] = [];
     for (const t of this.tarefas) {
       if (ociosos.length === 0) { restantes.push(t); continue; }
       let destinoId: string | null = null;
       if (t.tipo === 'Putaway') {
-        destinoId = this.locaisDisponiveis > 0 ? escolherDestino(this.politica, this.ctxPolitica, t.ordem.ordem.produtoId) : null;
+        const produtoId = t.ordem.ordem.produtoId;
+        if ((retencao.get(produtoId) ?? 0) > 0 && this.relogioSeg - t.criadaSeg < ESPERA_CROSSDOCK_SEG) {
+          retencao.set(produtoId, retencao.get(produtoId)! - 1); // espera uma doca de saída para ir direto
+          restantes.push(t);
+          continue;
+        }
+        destinoId = this.locaisDisponiveis > 0
+          ? escolherDestino(this.politica, this.ctxPolitica, t.ordem.ordem.produtoId, t.ordem.ordem.id) : null;
         if (destinoId === null) { restantes.push(t); continue; } // sem local livre: espera uma saída liberar
       }
-      const partida = t.tipo === 'Putaway' ? t.doca.acesso : this.localLayout.get(t.origemId)!.acesso;
+      const partida = t.tipo === 'Picking' ? this.localLayout.get(t.origemId)!.acesso : t.doca.acesso;
       let melhor = ociosos[0];
       let melhorDist = this.malha.distancia(melhor.posicao, partida);
       for (const e of ociosos.slice(1)) {
@@ -353,7 +419,8 @@ export class Simulacao {
       }
       ociosos = ociosos.filter(e => e !== melhor);
       if (t.tipo === 'Putaway') this.atribuirPutaway(melhor, t, destinoId!);
-      else this.atribuirPicking(melhor, t);
+      else if (t.tipo === 'Picking') this.atribuirPicking(melhor, t);
+      else this.atribuirCrossDock(melhor, t);
     }
     this.tarefas = restantes;
   }
@@ -370,7 +437,8 @@ export class Simulacao {
     const destino = this.localLayout.get(destinoId)!;
     const estado = this.locais.get(destinoId)!;
     const produtoId = t.ordem.ordem.produtoId;
-    estado.situacao = 'Reservado';
+    // O produto já fica marcado na reserva: a política Consolidacao conta os paletes a caminho.
+    Object.assign(estado, { situacao: 'Reservado', produtoId });
     this.locaisDisponiveis--;
     e.passos = [
       ...this.mover(e.posicao, t.doca.acesso),
@@ -406,6 +474,22 @@ export class Simulacao {
       { t: 'operar', seg: TEMPO_DOCA_SEG, aoFim: () => {
         e.carga = null;
         this.terminarPalete(t.ordem);
+      } },
+    ];
+    e.estado = 'Deslocando';
+  }
+
+  private atribuirCrossDock(e: EquipamentoInterno, t: Extract<Tarefa, { tipo: 'CrossDock' }>): void {
+    const produtoId = t.ordem.ordem.produtoId;
+    e.passos = [
+      ...this.mover(e.posicao, t.doca.acesso),
+      { t: 'operar', seg: TEMPO_DOCA_SEG, aoFim: () => { e.carga = produtoId; } },
+      ...this.mover(t.doca.acesso, t.docaSaida.acesso),
+      { t: 'operar', seg: TEMPO_DOCA_SEG, aoFim: () => {
+        e.carga = null;
+        this.paletesCruzados++;
+        this.terminarPalete(t.ordem);
+        this.terminarPalete(t.saida);
       } },
     ];
     e.estado = 'Deslocando';
@@ -499,13 +583,8 @@ export class Simulacao {
     const ordemVarredura = new Map(this.layout.locais.map((l, i) => [l.localId, i]));
     const porProximidade = [...this.layout.locais].sort((a, b) =>
       distExpedicao.get(a.localId)! - distExpedicao.get(b.localId)! || ordemVarredura.get(a.localId)! - ordemVarredura.get(b.localId)!);
-    return { layout: this.layout, locais: this.locais, curva: this.curva, porProximidade, distExpedicao };
-  }
-
-  private avisarFallback(p: Politica): void {
-    if (politicaEfetiva(p) !== p) {
-      this.registrar(`Política ${p} chega na F3 — por enquanto as alocações usam ${POLITICA_FALLBACK}.`);
-    }
+    const ranking = new Map(this.pacote.rankingRuas.map(r => [r.ruaId, r.prioridade]));
+    return { layout: this.layout, locais: this.locais, curva: this.curva, porProximidade, distExpedicao, ranking };
   }
 
   private encerrarTurno(): void {

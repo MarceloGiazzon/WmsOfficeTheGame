@@ -383,17 +383,51 @@ Resultado de referência (score oficial): WH-A — ABC 85,52 · FIFO 83,79; WH-B
 Se o jogo precisar de mais gradação, é decisão de regra (mudar `P_POR_CONFLITO`/teto no Java e no `score.ts`,
 com fixtures novas), não de motor.
 
-### F3. Políticas
+### F3. Políticas ✅ (2026-11-10)
 
-| Política | Base |
+Como ficou (`npm test`: 146 testes; os 5 modos rodam nos dois cenários com os mesmos invariantes da F2):
+
+| Política | O que faz no jogo |
 | --- | --- |
-| `FifoPrimeiraLivre` | primeiro `LocalArmazenagem` `Disponivel` na ordem de varredura |
-| `AbcProximidade` | classe por frequência de saída; A nas posições de menor distância até a expedição |
-| `Consolidacao` | prefere local com o mesmo produto/lote (porta de `sugerirDestino`) |
-| `CrossDocking` | se existe outbound pendente do produto → doca a doca (porta de `candidatosCrossDocking`) |
-| `WmsReal` | online: flow `SugerirDestinoJogo`; offline: porta TS de `sugerirDestino` + `RankingRua` |
+| `FifoPrimeiraLivre` | primeiro local livre na ordem de varredura |
+| `AbcProximidade` | classe A nos 20% de locais mais próximos da expedição, B nos 30% seguintes, C no resto |
+| `Consolidacao` | o local livre da rua que já guarda mais paletes do produto (os a caminho contam); empate: melhor rua do `RankingRua`, posição mais perto da doca, andar mais baixo. É a porta da regra "mesmo lote primeiro" de `sugerirDestino` adaptada a um palete por local |
+| `WmsReal` | `AllocationCapability.sugerirDestino` (porta TS em [`wmsReal.ts`](../src/sim/wmsReal.ts)) sobre os locais livres, com a prioridade da rua no `RankingRua`. Offline; o flow online é da F5 |
+| `CrossDocking` | palete descarregado vai direto da doca de entrada para a de saída se há saída pendente do mesmo produto; o resto é guardado como em `AbcProximidade` |
 
-- [ ] **Testes de paridade TS × Java** com fixtures JSON compartilhadas (executadas contra o flow quando o backend estiver de pé).
+- [x] **Cross-docking no motor**: com a política ativa, a saída pendente conta como estoque os paletes do produto que
+  acabaram de ser descarregados e ainda esperam putaway (uma tarefa `CrossDock`: doca IN → doca OUT, sem passar pelo
+  estoque; conta como palete concluído das DUAS ordens). O despacho **segura** esses paletes até
+  `ESPERA_CROSSDOCK_SEG` (600 s) quando há saída pendente do produto — sem isso o putaway sai no mesmo tick da
+  descarga e o desvio nunca teria chance. Passou do prazo, vai para o estoque. Distância teórica não muda.
+- [x] **Estado**: um local `Reservado` já traz o `produtoId` (Consolidacao conta os paletes a caminho). Invariante nova:
+  local `Disponivel`/`Bloqueado` não tem produto; os outros têm.
+- [x] **Testes de paridade TS × Java**: [`alocacao-casos.json`](../backend/npdev/tests/fixtures/alocacao-casos.json)
+  (`sugerirDestino` e `sugerirOrigem`: lote igual, prioridade, empate por id em ordem de texto, prioridade/validade
+  ausentes ou ilegíveis, FEFO, estoque insuficiente, 30 de fevereiro, cross-docking). O vitest
+  ([`wmsReal.test.ts`](../src/sim/wmsReal.test.ts)) roda contra a porta TS; `tests/f3_paridade_alocacao.py` roda o mesmo
+  arquivo contra os flows `SugerirDestinoJogo`/`SugerirOrigem` (Java, app de pé na 8200). Os casos com `somenteDireto`
+  dependem de `CrossDocking` no banco e só rodam no TS. Os dois lados passam. (Achado no caminho: a porta TS comparava
+  `LocalDate.MAX` como texto e ordenava a data ausente *antes* das reais; o caso "mesma validade" pegou.)
+- [x] Testes de política sem motor ([`politicas.test.ts`](../src/sim/politicas.test.ts)), goldens das 5 políticas × 2
+  cenários e 3 testes de cross-docking (desvio, mesma carga sem a política, tempo máximo de espera; mutação conferida).
+
+Resultado de referência (score oficial):
+
+| Cenário | Abc | Fifo | Consolidação | CrossDocking | WmsReal |
+| --- | --- | --- | --- | --- | --- |
+| WH-A | 85,52 | 83,79 | 84,47 | 85,52 | 83,79 |
+| WH-B | 70,38 | 65,60 | **71,46** | 70,55 | 65,60 |
+
+**Dois resultados que pedem decisão de design (não de motor):**
+
+- **`WmsReal` = `FifoPrimeiraLivre`** nos dois cenários. O `RankingRua` dos seeds é a própria ordem das ruas, e cada
+  local guarda um palete (nunca há "completar pallet"), então a regra do WMS Office degenera para "primeira posição
+  livre". É fiel ao Java, mas não dá personalidade ao modo. Para ter, os seeds precisam de ranking de verdade (por
+  perfil/produto — `PerfilAlocacao`) ou os locais precisam de capacidade em caixas.
+- **`CrossDocking` quase não age** (WH-B: 2 paletes; WH-A: 0). O gerador de ordens não cria saída pendente do mesmo
+  produto que está chegando: as saídas saem do estoque inicial. Para o modo valer, o gerador (ou um cenário dedicado)
+  tem de produzir saídas que dependam de entradas.
 
 ### F4. HUD e gameplay
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import whA from '../data/cenarios/WH-A-PEQUENO.json';
 import whB from '../data/cenarios/WH-B-MEGA.json';
-import type { Metricas, PacoteCenario, Politica } from './model';
+import { POLITICAS, type Metricas, type PacoteCenario, type Politica } from './model';
 import { calcularScore } from './score';
-import { formatarHora, Simulacao } from './simulation';
+import { ESPERA_CROSSDOCK_SEG, formatarHora, Simulacao } from './simulation';
 
 const pacoteA = whA as unknown as PacoteCenario;
 const pacoteB = whB as unknown as PacoteCenario;
@@ -58,11 +58,12 @@ describe('Simulacao: relógio, ordens e log', () => {
     expect(sim.snapshot().eventos[0].texto).toContain('FifoPrimeiraLivre');
   });
 
-  it('política da F3 ainda não implementada: avisa e usa o fallback, com o mesmo resultado dele', () => {
-    const sim = new Simulacao(pacoteA, 'Consolidacao');
-    expect(sim.snapshot().eventos.some(e => e.texto.includes('Consolidacao chega na F3'))).toBe(true);
-    rodar(sim, duracao(pacoteA));
-    expect(sim.metricas()).toEqual(turnoCompleto(pacoteA, 'FifoPrimeiraLivre').metricas());
+  it('as cinco políticas existem e nenhuma avisa de fallback', () => {
+    for (const politica of POLITICAS) {
+      const sim = new Simulacao(pacoteA, politica);
+      rodar(sim, 3600);
+      expect(sim.snapshot().eventos.some(e => /chega na F3|fallback/i.test(e.texto)), politica).toBe(false);
+    }
   });
 
   it('formatarHora', () => {
@@ -90,6 +91,21 @@ describe('Simulacao: determinismo e golden tests', () => {
       { distanciaRealCm: 8262925, distanciaTeoricaCm: 5840060, ordensTotal: 400, ordensAtrasadas: 1, eventosConflito: 234, ocupacaoFinalCentesimos: 5972 }, 7038],
     ['WH-B Fifo', pacoteB, 'FifoPrimeiraLivre',
       { distanciaRealCm: 9060245, distanciaTeoricaCm: 5840060, ordensTotal: 400, ordensAtrasadas: 1, eventosConflito: 378, ocupacaoFinalCentesimos: 5972 }, 6560],
+    ['WH-A Consolidacao', pacoteA, 'Consolidacao',
+      { distanciaRealCm: 343930, distanciaTeoricaCm: 307050, ordensTotal: 60, ordensAtrasadas: 2, eventosConflito: 26, ocupacaoFinalCentesimos: 7708 }, 8447],
+    ['WH-B Consolidacao', pacoteB, 'Consolidacao',
+      { distanciaRealCm: 8082060, distanciaTeoricaCm: 5840060, ordensTotal: 400, ordensAtrasadas: 1, eventosConflito: 389, ocupacaoFinalCentesimos: 5972 }, 7146],
+    ['WH-A CrossDocking', pacoteA, 'CrossDocking',
+      { distanciaRealCm: 334700, distanciaTeoricaCm: 307050, ordensTotal: 60, ordensAtrasadas: 2, eventosConflito: 12, ocupacaoFinalCentesimos: 7708 }, 8552],
+    ['WH-B CrossDocking', pacoteB, 'CrossDocking',
+      { distanciaRealCm: 8234875, distanciaTeoricaCm: 5840060, ordensTotal: 400, ordensAtrasadas: 1, eventosConflito: 231, ocupacaoFinalCentesimos: 5972 }, 7055],
+    // WmsReal = FIFO aqui: o RankingRua dos cenários é a própria ordem das ruas e cada local guarda um palete (sem
+    // "completar pallet"), então a regra do WMS Office degenera para a primeira posição livre. Se os seeds ganharem
+    // ranking de verdade, estes números mudam e está certo.
+    ['WH-A WmsReal', pacoteA, 'WmsReal',
+      { distanciaRealCm: 349860, distanciaTeoricaCm: 307050, ordensTotal: 60, ordensAtrasadas: 2, eventosConflito: 26, ocupacaoFinalCentesimos: 7708 }, 8379],
+    ['WH-B WmsReal', pacoteB, 'WmsReal',
+      { distanciaRealCm: 9060245, distanciaTeoricaCm: 5840060, ordensTotal: 400, ordensAtrasadas: 1, eventosConflito: 378, ocupacaoFinalCentesimos: 5972 }, 6560],
   ];
   it.each(dourado)('%s', (_, pacote, politica, metricas, score) => {
     const sim = turnoCompleto(pacote, politica);
@@ -108,9 +124,11 @@ describe('Simulacao: determinismo e golden tests', () => {
   });
 });
 
-describe.each([['WH-A', pacoteA], ['WH-B', pacoteB]] as const)('Simulacao: invariantes %s', (_, pacote) => {
+const casosPoliticas = [pacoteA, pacoteB].flatMap((p, i) => POLITICAS.map(pol => [`${i === 0 ? 'WH-A' : 'WH-B'} ${pol}`, p, pol] as const));
+
+describe.each(casosPoliticas)('Simulacao: invariantes %s', (_, pacote, politica) => {
   it('durante o turno todo: conserva paletes, um equipamento por corredor, distância = deslocamento', () => {
-    const sim = new Simulacao(pacote, 'AbcProximidade');
+    const sim = new Simulacao(pacote, politica);
     let andado = 0;
     const violacoes: string[] = [];
     let anterior = sim.snapshot().equipamentos.map(e => ({ ...e.posicao }));
@@ -136,6 +154,9 @@ describe.each([['WH-A', pacoteA], ['WH-B', pacoteB]] as const)('Simulacao: invar
       if (t % 60 === 0) { // conservação: nenhum palete some nem aparece
         const a = sim.auditoria();
         if (ocupados(sim) !== a.estoqueInicial + a.paletesGuardados - a.paletesRetirados) violacoes.push(`paletes não conservados em t=${t}`);
+        for (const e of s.locais.values()) { // produto num local livre (ou local ocupado/reservado sem produto) = estado incoerente
+          if ((e.situacao === 'Disponivel' || e.situacao === 'Bloqueado') !== (e.produtoId === null)) { violacoes.push(`estado de local incoerente em t=${t}`); break; }
+        }
       }
     }
     expect(violacoes).toEqual([]);
@@ -144,7 +165,7 @@ describe.each([['WH-A', pacoteA], ['WH-B', pacoteB]] as const)('Simulacao: invar
   });
 
   it('no fim: ordens concluídas + abertas = total; atrasadas incluem as abertas vencidas; score = fórmula oficial', () => {
-    const sim = turnoCompleto(pacote, 'AbcProximidade');
+    const sim = turnoCompleto(pacote, politica);
     const s = sim.snapshot();
     expect(s.terminado).toBe(true);
     expect(s.ordensConcluidas).toBeLessThanOrEqual(s.ordensTotal);
@@ -156,7 +177,7 @@ describe.each([['WH-A', pacoteA], ['WH-B', pacoteB]] as const)('Simulacao: invar
   });
 
   it('heatmap real: as operações incrementam os acessos das posições', () => {
-    const sim = turnoCompleto(pacote, 'AbcProximidade');
+    const sim = turnoCompleto(pacote, politica);
     const acessos = [...sim.snapshot().locais.values()].reduce((n, l) => n + l.acessos, 0);
     expect(acessos).toBeGreaterThan(0);
   });
@@ -198,6 +219,56 @@ describe('Simulacao: situações limite', () => {
     const a = sim.auditoria();
     expect([a.paletesGuardados, a.paletesRetirados]).toEqual([2, 1]);
     expect(ocupados(sim)).toBe(2);
+  });
+});
+
+describe('Simulacao: cross-docking', () => {
+  const produto = 'WHAprod01';
+  const t0 = pacoteA.cenario.inicioTurnoSeg;
+
+  /** Só o produto tem giro de saída, então todo o estoque inicial é dele (29 paletes no WH-A). */
+  function cenario(qtdSaida: number) {
+    const p = structuredClone(pacoteA);
+    p.ordens = [
+      { id: 'i', numero: 'IN-X', tipo: 'Inbound', liberacaoSeg: t0 + 1, slaSeg: 7200, produtoId: produto, quantidadePaletes: 2 },
+      { id: 'o', numero: 'OUT-X', tipo: 'Outbound', liberacaoSeg: t0 + 10, slaSeg: 7200, produtoId: produto, quantidadePaletes: qtdSaida },
+    ];
+    return p;
+  }
+
+  it('saída que só fecha com os paletes recém-descarregados: eles vão direto da doca de entrada para a de saída', () => {
+    const p = cenario(31); // estoque 29 + 2 que chegam
+    const sim = new Simulacao(p, 'CrossDocking');
+    expect(sim.auditoria().estoqueInicial).toBe(29);
+    rodar(sim, duracao(p));
+    const s = sim.snapshot();
+    const a = sim.auditoria();
+    expect(s.ordensConcluidas).toBe(2);
+    expect(s.metricas.ordensAtrasadas).toBe(0);
+    expect(a.paletesCruzados).toBe(2);
+    expect([a.paletesGuardados, a.paletesRetirados]).toEqual([0, 29]); // os 2 cruzados nunca entram no estoque
+    expect(ocupados(sim)).toBe(0);
+    expect(s.eventos.some(e => e.texto.includes('2 direto da entrada (cross-docking)'))).toBe(true);
+  });
+
+  it('sem a política, os mesmos paletes são guardados e depois retirados', () => {
+    const p = cenario(31);
+    const sim = new Simulacao(p, 'AbcProximidade');
+    rodar(sim, duracao(p));
+    const a = sim.auditoria();
+    expect(sim.snapshot().ordensConcluidas).toBe(2);
+    expect([a.paletesCruzados, a.paletesGuardados, a.paletesRetirados]).toEqual([0, 2, 31]);
+  });
+
+  it('o palete segurado espera no máximo ESPERA_CROSSDOCK_SEG; depois vai para o estoque', () => {
+    const p = cenario(40); // 29 + 2 < 40: a saída nunca fecha, então o desvio nunca acontece
+    const sim = new Simulacao(p, 'CrossDocking');
+    rodar(sim, 301 + 300); // descarga pronta há ~300 s
+    expect(sim.snapshot().tarefasPendentes).toBe(2);
+    expect(sim.auditoria().paletesGuardados).toBe(0);
+    rodar(sim, 301 + ESPERA_CROSSDOCK_SEG + 300 - 601);
+    expect(sim.auditoria().paletesGuardados).toBe(2);
+    expect(sim.auditoria().paletesCruzados).toBe(0);
   });
 });
 

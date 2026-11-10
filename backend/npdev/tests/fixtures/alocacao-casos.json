@@ -1,0 +1,124 @@
+{
+  "descricao": "Casos de paridade de AllocationCapability.sugerirDestino / sugerirOrigem (Java) com a porta TS (src/sim/wmsReal.ts). Esperado calculado a mao a partir do codigo Java. Rodam no vitest (wmsReal.test.ts) e contra o flow SugerirDestinoJogo (tests/f3_paridade_alocacao.py). 'crossDockings' so vale no TS e no teste Java direto: o flow le os CrossDockings do banco.",
+  "destino": [
+    {
+      "nome": "prefere o local ja ocupado pelo mesmo lote, mesmo com prioridade pior",
+      "entrada": { "loteId": "L1", "candidatos": [
+        { "localArmazenagemId": "B", "prioridade": 2 },
+        { "localArmazenagemId": "A", "prioridade": 1 },
+        { "localArmazenagemId": "C", "prioridade": 5, "loteOcupanteId": "L1" } ] },
+      "esperado": { "localArmazenagemId": "C", "motivo": "Local ja ocupado pelo mesmo lote (completar pallet)", "sucesso": true }
+    },
+    {
+      "nome": "sem lote igual: menor prioridade de ranking",
+      "entrada": { "loteId": "L9", "candidatos": [
+        { "localArmazenagemId": "B", "prioridade": 2 },
+        { "localArmazenagemId": "A", "prioridade": 1 } ] },
+      "esperado": { "localArmazenagemId": "A", "motivo": "Local disponivel com maior prioridade de ranking", "sucesso": true }
+    },
+    {
+      "nome": "lote de outro produto ocupando nao conta como mesmo lote",
+      "entrada": { "loteId": "L1", "candidatos": [
+        { "localArmazenagemId": "X", "prioridade": 3, "loteOcupanteId": "L2" },
+        { "localArmazenagemId": "Y", "prioridade": 4 } ] },
+      "esperado": { "localArmazenagemId": "X", "motivo": "Local disponivel com maior prioridade de ranking", "sucesso": true }
+    },
+    {
+      "nome": "empate de prioridade: id em ordem de texto (maiuscula antes de minuscula)",
+      "entrada": { "loteId": "L1", "candidatos": [
+        { "localArmazenagemId": "b-02", "prioridade": 1 },
+        { "localArmazenagemId": "B-10", "prioridade": 1 },
+        { "localArmazenagemId": "B-9", "prioridade": 1 } ] },
+      "esperado": { "localArmazenagemId": "B-10", "motivo": "Local disponivel com maior prioridade de ranking", "sucesso": true }
+    },
+    {
+      "nome": "prioridade ausente ou ilegivel vai para o fim; texto numerico vale",
+      "entrada": { "loteId": "L1", "candidatos": [
+        { "localArmazenagemId": "A" },
+        { "localArmazenagemId": "B", "prioridade": "abc" },
+        { "localArmazenagemId": "C", "prioridade": " 7 " },
+        { "localArmazenagemId": "D", "prioridade": 8 } ] },
+      "esperado": { "localArmazenagemId": "C", "motivo": "Local disponivel com maior prioridade de ranking", "sucesso": true }
+    },
+    {
+      "nome": "lote nulo nunca casa com ocupante nulo",
+      "entrada": { "candidatos": [
+        { "localArmazenagemId": "B", "prioridade": 1 },
+        { "localArmazenagemId": "A", "prioridade": 2, "loteOcupanteId": null } ] },
+      "esperado": { "localArmazenagemId": "B", "motivo": "Local disponivel com maior prioridade de ranking", "sucesso": true }
+    },
+    {
+      "nome": "sem candidatos",
+      "entrada": { "loteId": "L1", "candidatos": [] },
+      "esperado": { "localArmazenagemId": null, "motivo": "Nenhum local candidato informado", "sucesso": false }
+    },
+    {
+      "nome": "cross-docking ativo do recebimento fixa a baia (so TS / Java direto)",
+      "somenteDireto": true,
+      "crossDockings": [
+        { "recebimentoId": "R1", "situacao": "Cancelado", "baiaLocalArmazenagemId": "BAIA-0" },
+        { "recebimentoId": "R1", "situacao": "Ativo", "baiaLocalArmazenagemId": "BAIA-1" } ],
+      "entrada": { "recebimentoId": "R1", "loteId": "L1", "candidatos": [ { "localArmazenagemId": "A", "prioridade": 1 } ] },
+      "esperado": { "localArmazenagemId": "BAIA-1", "motivo": "Cross-Docking ativo: destino fixado na baia de cross-docking", "sucesso": true }
+    },
+    {
+      "nome": "cross-docking ativo sem baia provisionada nao desvia (so TS / Java direto)",
+      "somenteDireto": true,
+      "crossDockings": [ { "recebimentoId": "R1", "situacao": "Ativo", "baiaLocalArmazenagemId": null } ],
+      "entrada": { "recebimentoId": "R1", "loteId": "L1", "candidatos": [ { "localArmazenagemId": "A", "prioridade": 1 } ] },
+      "esperado": { "localArmazenagemId": "A", "motivo": "Local disponivel com maior prioridade de ranking", "sucesso": true }
+    }
+  ],
+  "origem": [
+    {
+      "nome": "FEFO: validade mais proxima primeiro, completando a quantidade em mais de um local",
+      "entrada": { "quantidadeNecessaria": 12, "candidatos": [
+        { "localArmazenagemId": "L-tarde", "loteId": "T", "dataValidade": "2027-06-01", "prioridade": 1, "quantidadeDisponivel": 10 },
+        { "localArmazenagemId": "L-cedo", "loteId": "C", "dataValidade": "2026-12-01", "prioridade": 9, "quantidadeDisponivel": 8 } ] },
+      "esperado": { "sucesso": true, "quantidadeAtendida": 12, "atendeuTotal": true, "alocacoes": [
+        { "localArmazenagemId": "L-cedo", "loteId": "C", "quantidadeAlocada": 8 },
+        { "localArmazenagemId": "L-tarde", "loteId": "T", "quantidadeAlocada": 4 } ] }
+    },
+    {
+      "nome": "mesma validade: menor prioridade; sem validade vai para o fim",
+      "entrada": { "quantidadeNecessaria": 5, "candidatos": [
+        { "localArmazenagemId": "SEM", "loteId": "S", "prioridade": 1, "quantidadeDisponivel": 5 },
+        { "localArmazenagemId": "P2", "loteId": "B", "dataValidade": "2026-12-01", "prioridade": 2, "quantidadeDisponivel": 5 },
+        { "localArmazenagemId": "P1", "loteId": "A", "dataValidade": "2026-12-01", "prioridade": 1, "quantidadeDisponivel": 5 } ] },
+      "esperado": { "sucesso": true, "quantidadeAtendida": 5, "atendeuTotal": true, "alocacoes": [
+        { "localArmazenagemId": "P1", "loteId": "A", "quantidadeAlocada": 5 } ] }
+    },
+    {
+      "nome": "estoque insuficiente: atende o que tem e diz que nao atendeu o total",
+      "entrada": { "quantidadeNecessaria": 10, "candidatos": [
+        { "localArmazenagemId": "A", "loteId": "A", "dataValidade": "2026-12-01", "quantidadeDisponivel": 3 },
+        { "localArmazenagemId": "B", "loteId": "B", "dataValidade": "2026-12-02", "quantidadeDisponivel": 0 },
+        { "localArmazenagemId": "C", "loteId": "C", "dataValidade": "2026-12-03", "quantidadeDisponivel": 2 } ] },
+      "esperado": { "sucesso": true, "quantidadeAtendida": 5, "atendeuTotal": false, "alocacoes": [
+        { "localArmazenagemId": "A", "loteId": "A", "quantidadeAlocada": 3 },
+        { "localArmazenagemId": "C", "loteId": "C", "quantidadeAlocada": 2 } ] }
+    },
+    {
+      "nome": "data impossivel (30 de fevereiro) conta como sem validade",
+      "entrada": { "quantidadeNecessaria": 1, "candidatos": [
+        { "localArmazenagemId": "RUIM", "loteId": "R", "dataValidade": "2026-02-30", "quantidadeDisponivel": 1 },
+        { "localArmazenagemId": "BOM", "loteId": "B", "dataValidade": "2030-01-01", "quantidadeDisponivel": 1 } ] },
+      "esperado": { "sucesso": true, "quantidadeAtendida": 1, "atendeuTotal": true, "alocacoes": [
+        { "localArmazenagemId": "BOM", "loteId": "B", "quantidadeAlocada": 1 } ] }
+    },
+    {
+      "nome": "sem candidatos",
+      "entrada": { "quantidadeNecessaria": 1, "candidatos": [] },
+      "esperado": { "sucesso": false, "localArmazenagemId": null, "motivo": "Nenhum local candidato informado" }
+    },
+    {
+      "nome": "cross-docking ativo da expedicao fixa a baia (so TS / Java direto)",
+      "somenteDireto": true,
+      "crossDockings": [ { "expedicaoId": "E1", "situacao": "Ativo", "baiaLocalArmazenagemId": "BAIA-1" } ],
+      "entrada": { "expedicaoId": "E1", "quantidadeNecessaria": 7, "candidatos": [ { "localArmazenagemId": "A", "quantidadeDisponivel": 100 } ] },
+      "esperado": { "sucesso": true, "quantidadeAtendida": 7, "atendeuTotal": true,
+        "motivo": "Cross-Docking ativo: origem fixada na baia de cross-docking",
+        "alocacoes": [ { "localArmazenagemId": "BAIA-1", "loteId": null, "quantidadeAlocada": 7 } ] }
+    }
+  ]
+}

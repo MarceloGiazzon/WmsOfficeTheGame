@@ -30,7 +30,7 @@ export class Inspector {
       acessos += e?.acessos ?? 0;
       let conteudo = e?.produtoId ? (produto.get(e.produtoId)?.codigo ?? e.produtoId) : (e?.situacao ?? '—');
       if (e?.reservadoSaida) conteudo += ' (separado p/ saída)';
-      else if (e?.situacao === 'Reservado') conteudo = 'destino de um putaway';
+      else if (e?.situacao === 'Reservado') conteudo = `destino de um putaway${e.produtoId ? ` de ${conteudo}` : ''}`;
       linhas.push([`Andar ${a.andar}`, conteudo]);
     }
     linhas.push(['Acessos', String(acessos)]);
