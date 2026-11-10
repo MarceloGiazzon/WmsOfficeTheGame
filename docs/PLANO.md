@@ -447,12 +447,96 @@ Resultado de referência (score oficial):
 - [ ] Fim de partida: `ConcluirPartida` → mostrar `validadoServidor` e a posição no ranking.
 - [ ] Fila de envio offline: partidas jogadas offline enviadas quando a rede voltar.
 
-### F6. Escala e polimento
+### F6. Escala e polimento ✅ (2026-11-10, exceto o tutorial — entra depois da F4)
 
-- [ ] Medir FPS no `WH-B-MEGA` (~1400 locais, 8 equipamentos); se não houver folga, offscreen canvas
-  para o layout estático e avaliar PixiJS.
-- [ ] Zoom por pinça/roda, centralizar em seleção.
-- [ ] Tutorial curto do primeiro cenário.
+Como ficou (`npm test`: 185 testes; verificado no Chrome headless em desktop 1280×800 e celular 390×844 com toque e pinça).
+
+**Como medir (reaproveitável)** — [`tools/perf/`](../tools/perf/), com `puppeteer-core@22` instalado FORA do repo (instruções no
+topo de [`comum.mjs`](../tools/perf/comum.mjs); não entra no `package.json`) e o app rodando com `npx vite --port 3200 --no-open`:
+
+| Script | O que faz |
+| --- | --- |
+| `medir.mjs` | **micro**: `Simulacao.tick` do turno inteiro, `snapshot`, `Renderer.desenhar` em 9 cenas (JS puro e JS + descarga do raster) e DOM do HUD/log; **e2e**: o app com rAF real a 1x/2x/5x/pausa, repartindo o quadro (tick/snapshot/desenhar/HUD/log), quadros/s, ocupação da thread e layout+estilo (CDP). Sem instrumentação dentro do app: envolve os métodos públicos pelo lado de fora, então serve para versões antigas e novas |
+| `ab.mjs` | A/B de dois renderers **intercalado quadro a quadro** na mesma página (versão antiga servida em outra porta). Existe porque a máquina estava carregada (load 2–17) e medir A e depois B mistura código com carga |
+| `capturas.mjs` | `estado` (PNG do canvas com estado determinístico da sim), `comparar` (diferença pixel a pixel) e `telas` (página inteira, desktop e celular, com clique, roda, arrasto, pinça e duplo toque por CDP) |
+| `?perf=1` | overlay no canto da tela com quadros/s e ms por fase (sim, desenho, UI); últimos números em `window.__perfil`. Para medir em celular/APK (F7), onde não há puppeteer |
+
+Ambiente: Chrome 156 headless, Intel HD 5500, 4 núcleos, **máquina compartilhada com outros processos**. Dois modos: *software* (padrão do
+headless: Skia na CPU, compositor em software) e *GPU* (`--gpu`: ANGLE/Vulkan; canvas 2D acelerado, mas o compositor do headless continua
+em software). Os absolutos são pessimistas e ruidosos; vale a razão B/A. O `WH-B-MEGA` tem 1440 locais (360 vãos × 4 andares) e 8 empilhadeiras.
+
+**O que a medição mostrou (antes)**
+
+- **A sim não é o gargalo**: `tick` = 0,02 ms em média (turno inteiro de 36 000 ticks em 0,7 s). Por segundo real: 1x 0,6 ms, 2x 1,2 ms,
+  5x 2,9 ms (≈ 0,05 ms por quadro a 60 fps). No máximo algumas dezenas de ticks em 36 000 passam de 2 ms (aquecimento do JIT). `snapshot` custa 35–65 µs.
+  Nada a fazer no motor.
+- **O desenho custava 1,5–3 ms de JS por quadro** (WH-B, 1280×640): ~360 `fillText` com `ctx.font` reatribuído a cada rótulo, `filter` +
+  8 `Map.get`/vão, strings `rgba(...)` por vão no heatmap, `Set` novo por quadro — e redesenhava tudo mesmo parado.
+- **O DOM era tocado a 60 Hz**: HUD (~0,3–1 ms por atualização com layout) e log (50 `li` refeitos, 5–8 ms por evento novo). Layout+estilo
+  ocupava 6–8% da thread; **pausado**, o jogo seguia a 51–73% da thread só redesenhando o mesmo quadro.
+
+**O que mudou**
+
+- `renderer.ts`: (1) **quadro idêntico não é desenhado** (pausado, 1x entre dois ticks, fim do turno — chave: layout, mapa de locais,
+  relógio, câmera, tamanho do canvas, heatmap, seleção; canvas limpo pelo navegador é detectado por um sentinela em `ctx.miterLimit`);
+  (2) **culling pela viewport** e laços sem alocação (sem `filter`/closures/strings por vão; heatmap com cor fixa + `globalAlpha`; rótulo
+  do vão montado uma vez; fonte definida uma vez por grupo de textos); (3) **bordas e rótulos dos vãos em um canvas auxiliar**, refeito só
+  quando câmera/tamanho/layout/fontes mudam — só com zoom de rótulos (escala ≥ 0,25) e câmera parada; em movimento desenha direto;
+  (4) refaz o cache quando a JetBrains Mono termina de carregar. API intacta (`desenhar`, `vaosDe`, `vaoEm`, `Vao` ganhou `rotulo`;
+  `invalidar()` novo).
+- `main.ts` (loop de quadro): HUD e log por `Cadencia` (~10 Hz, HUD só se o relógio ou a sim mudaram; log se auto-verifica por evento novo),
+  chamadas `perf?.…` do `?perf=1`, e `redimensionar` por `ResizeObserver`.
+- **Câmera/entrada** (`camera.ts` com os testes; `gestos.ts` reconhecedor puro e testado; `input.ts` só liga os eventos): roda proporcional ao
+  delta (trackpad suave; Ctrl+roda = pinça do trackpad) ancorada no cursor; **pinça com pan simultâneo** (pointer events); pan com 1 dedo/mouse;
+  **duplo clique/toque centraliza e aproxima** (≥ 0,6) com voo animado — o segundo toque não dispara a seleção, então o clique simples segue
+  igual; limiar de clique maior para toque (14 px × 5); 2 dedos nunca viram clique e levantar um continua como pan sem salto; botão do meio/direito
+  ignorado. **Limites**: zoom mínimo = metade do enquadramento (máx. 2); pan sempre deixa ≥ 20% da tela coberta pelo armazém. `touch-action: none`
+  por JS (já havia).
+- **Achado de passagem**: o bitmap do canvas só era redimensionado no `resize` da janela; quando o layout mudava sem `resize` (fonte web que
+  chega, drawer) o bitmap ficava esticado em relação ao CSS (1280×517 num elemento de 1280×529 no desktop) e os cliques erravam. Agora
+  `ResizeObserver` no container, e o `input` converte ponto de tela → canvas pela razão bitmap/CSS.
+
+**Antes → depois** (ms por quadro; software, mediana de 3 rodadas alternadas antes/depois em máquina quase ociosa; "thread" = ocupação da
+thread principal; os dois seguraram 60 fps com a máquina ociosa — o ganho é folga):
+
+| Cenário (WH-B) | JS/quadro | Thread | Layout+estilo |
+| --- | --- | --- | --- |
+| **Pausado** | 2,2 → **0,2** | 51–73% → **3–4%** | 6–8% → 0% |
+| 1x enquadrado | 2,4 → 0,9 | 55% → 22% | 6% → 1% |
+| 2x enquadrado | 2,0 → 1,8 | 53% → 42% | 7% → 2% |
+| **5x enquadrado** | 2,0 → 1,9 | 55% → 46% | 7% → 2% |
+| 5x enquadrado + heatmap | 2,3 → 1,5 | 55% → 44% | 8% → 3% |
+| 5x zoom (roda ×6, com rótulos) | 1,9 → 1,4 | 51% → 44% | 7% → 3% |
+| 5x, GPU, sem limite de 60 Hz | 1,4–2,1 → 1,1–1,4 | 97–99% → 67–72% | 10–12% → 2–3% |
+
+- Sob carga da máquina (load 7–17), uma rodada isolada (não intercalada) deu **5x: 35–43 fps antes × 58–60 depois**; ociosa, os dois dão 60.
+  Em GPU sem limite os fps são ruidosos (108–172 antes, 119–130 depois): não tire conclusão deles, só da ocupação da thread.
+- `Renderer.desenhar` A/B intercalado (JS puro | com descarga do raster; software; em GPU as razões foram parecidas): pausado 0,7 → 0,0 ms; enquadrado 0,6 →
+  0,6 (paridade — o enquadrado já era barato: 720 retângulos); heatmap 1,0 → 0,6; **zoom 0,3 com rótulos 2,9 → 0,5** (raster 6,0 → 3,9, 0,65×);
+  zoom 1,0 2,3 → 0,2; pan contínuo 2,8 → 1,5.
+- DOM: HUD de 60/s → ≤ 10/s e **0/s pausado**; log de 60/s → 10/s (a chamada só reconstrói o DOM com evento novo).
+- Meta "60 FPS no WH-B a 5x com folga": atendida nesta máquina (60 fps nos dois modos, JS ≈ 1,5–2 ms de 16,7 ms, thread ≈ 45%; 22% a 1x e ~3%
+  pausado).
+
+**Aparência**: sem regressão visível (capturas antes × depois, `capturas.mjs`: 11 cenas, estado fixo; ≤ 1,1% dos pixels diferem, no máximo 43/255,
+sempre as bordas verticais de 1 px entre vãos). Causa: as bordas agora são pintadas depois de TODOS os preenchimentos (antes cada vão
+pintava a sua e o próximo vão cobria metade dela), então a coluna à direita de cada divisória ficou um pouco mais escura. O resto é idêntico,
+inclusive os rótulos pela camada.
+
+**Decisão sobre PixiJS (no papel): não adotar agora.** O cenário é ~720 retângulos, 8 círculos e rótulos; o `desenhar` custa 0,2–1,5 ms de JS e a
+thread passa de 45% a 5x. PixiJS acrescentaria dependência (~100+ KB gz), perda de contexto WebGL no WebView, texto por BitmapText/SDF e
+hit-testing próprio, sem gargalo que o justifique. Reavaliar se (a) aparecer cenário com ≫ 10 000 locais, ou (b) a medição em celular real/APK
+(`?perf=1`) mostrar JS ≥ 8 ms por quadro a 5x. Degraus antes dele: camada de ocupação como textura de baixa resolução e `devicePixelRatio` correto.
+
+**Pendências**
+
+- [ ] **Tutorial curto do primeiro cenário** (depois da F4).
+- [ ] **`devicePixelRatio`**: o canvas é 1 px de bitmap por px de CSS; em celular (DPR 2–3) fica borrado. Pede `width = CSS × DPR` com a câmera
+  e o `input` em px de CSS e o `Renderer` aplicando o DPR — mexe nos três, fica para o F7 (e aumenta o custo de raster 4–9×: medir de novo).
+- [ ] Medir em aparelho real/APK com `?perf=1` (aqui só há headless: GPU Intel por ANGLE/Vulkan e compositor em software).
+- [ ] `Drawer.atualizarLog` ainda refaz 50 `li` por evento novo (5–8 ms com layout); agora ≤ 10×/s, mas é incremental por natureza (`src/ui`, fora do escopo).
+- [ ] Ao redimensionar, o enquadramento inicial pode ficar fora de escala (o centro é preservado, o zoom não): quem quiser reenquadrar ao girar o
+  celular chama `enquadrar()` no `ResizeObserver` (decisão de UX da F4/F7).
 
 ### F7. Mobile (Capacitor)
 
