@@ -4,3 +4,22 @@ dist/
 *.log
 .DS_Store
 __pycache__/
+
+# Android / Capacitor (F7): só o projeto-fonte em android/ é versionado. Os assets web copiados pelo
+# `cap sync` e os arquivos de configuração gerados também ficam fora (ver android/.gitignore).
+android/.gradle/
+android/build/
+android/app/build/*
+!android/app/build/.npmkeep
+android/local.properties
+android/captures/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
+android/capacitor-cordova-android-plugins/
+# Artefatos de build/assinatura nunca vão para o git
+*.apk
+*.aab
+*.keystore
+*.jks

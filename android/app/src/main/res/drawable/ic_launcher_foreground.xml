@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Primeiro plano do ícone adaptativo: as duas "prateleiras" do favicon do jogo (azul e âmbar),
+     centradas na zona segura de 66dp. Fundo: @color/ic_launcher_background. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M32,36.4h44v13.2h-44z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M32,58.4h44v13.2h-44z" />
+</vector>
