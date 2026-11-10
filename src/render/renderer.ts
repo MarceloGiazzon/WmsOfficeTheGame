@@ -12,6 +12,11 @@
 //     a câmera parada; no enquadrado do WH-B a camada custa mais (um blit de tela cheia) do que desenhar direto.
 //     O piso/corredores/docas NÃO vão para camada: pintá-los direto custa o mesmo que copiar uma imagem.
 //
+// Alta densidade (dpr): o bitmap do canvas tem `px de CSS × dpr`; câmera, mundo e tudo o que é medido "em px de tela" (borda
+// de 1 px, fonte de 9 px, limiares de rótulo) continuam em px de CSS — o render só multiplica a transformação por `dpr`
+// (`Renderer.dpr`, definido por quem dimensiona o canvas). Mesmo tamanho visual de antes, mais nítido. O dpr entra na
+// chave de cache/quadro idêntico.
+//
 // Ordem de composição: fundo → docas ocupadas → preenchimento dos vãos (ocupação / heatmap) → bordas e rótulos
 // (por cima do preenchimento) → seleção → equipamentos.
 //
@@ -105,6 +110,7 @@ export class Renderer {
   private vistaLargura = 0;
   private vistaAltura = 0;
   private vistaFontes = -1;
+  private vistaDpr = NaN;
 
   // camada "topo" (bordas e rótulos) em cache e a chave com que foi desenhada
   private topo: HTMLCanvasElement | null = null;
@@ -115,6 +121,7 @@ export class Renderer {
   private cacheLargura = 0;
   private cacheAltura = 0;
   private cacheFontes = -1;
+  private cacheDpr = NaN;
   private versaoFontes = 0;
 
   // o que o canvas principal mostra agora (para pular quadros idênticos)
@@ -122,6 +129,12 @@ export class Renderer {
   private ultRelogio = NaN;
   private ultHeatmap: boolean | null = null;
   private ultSelecao: string | null | undefined = undefined;
+
+  /**
+   * Pixels de bitmap por px de CSS (o canvas tem `px de CSS × dpr`). Quem dimensiona o canvas (main/`aplicarTela`) o
+   * define; 1 = canvas sem escala, o comportamento de antes. Mudar o valor força o redesenho completo.
+   */
+  dpr = 1;
 
   /** Reaproveitados entre quadros (sem alocação por quadro). */
   private acessosVao = new Int32Array(0);
@@ -151,13 +164,15 @@ export class Renderer {
 
   desenhar(s: Snapshot, cam: Camera, op: OpcoesRender): void {
     const { ctx } = this;
-    const { width, height } = ctx.canvas;
+    const { width, height } = ctx.canvas; // bitmap, em px de dispositivo
+    const dpr = this.dpr;
     const layout = s.layout;
     const vaos = this.vaosDe(layout);
 
     const camMudou = layout !== this.vistaLayout || cam.escala !== this.vistaEscala
       || cam.offsetX !== this.vistaOffsetX || cam.offsetY !== this.vistaOffsetY
-      || width !== this.vistaLargura || height !== this.vistaAltura || this.versaoFontes !== this.vistaFontes;
+      || width !== this.vistaLargura || height !== this.vistaAltura || this.versaoFontes !== this.vistaFontes
+      || dpr !== this.vistaDpr;
     const igualAoDesenhado = !camMudou && ctx.miterLimit === SENTINELA && s.locais === this.ultLocais
       && s.relogioSeg === this.ultRelogio && op.heatmap === this.ultHeatmap && op.vaoSelecionado === this.ultSelecao;
     if (igualAoDesenhado) return;
@@ -172,9 +187,10 @@ export class Renderer {
     this.vistaLargura = width;
     this.vistaAltura = height;
     this.vistaFontes = this.versaoFontes;
+    this.vistaDpr = dpr;
 
-    const px = 1 / cam.escala; // 1 pixel de tela em cm
-    const vis = cam.mundoVisivel(width, height);
+    const px = 1 / cam.escala; // 1 pixel de tela (de CSS) em cm
+    const vis = cam.mundoVisivel(width / dpr, height / dpr);
     const x0 = vis.x;
     const x1 = vis.x + vis.largura;
     const y0 = vis.y;
@@ -202,7 +218,7 @@ export class Renderer {
     if (topoEmCamada) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.drawImage(this.topo!, 0, 0);
-      ctx.setTransform(cam.escala, 0, 0, cam.escala, cam.offsetX, cam.offsetY);
+      this.transformarMundo(ctx, cam);
     } else {
       this.pintarTopo(ctx, layout, vaos, cam, width, height);
     }
@@ -305,7 +321,7 @@ export class Renderer {
   private cacheDesatualizado(layout: Layout, cam: Camera, largura: number, altura: number): boolean {
     return layout !== this.cacheLayout || cam.escala !== this.cacheEscala || cam.offsetX !== this.cacheOffsetX
       || cam.offsetY !== this.cacheOffsetY || largura !== this.cacheLargura || altura !== this.cacheAltura
-      || this.versaoFontes !== this.cacheFontes;
+      || this.versaoFontes !== this.cacheFontes || this.dpr !== this.cacheDpr;
   }
 
   private refazerTopo(layout: Layout, vaos: Vao[], cam: Camera, largura: number, altura: number): void {
@@ -313,7 +329,7 @@ export class Renderer {
     const t = this.topo.getContext('2d')!;
     t.setTransform(1, 0, 0, 1, 0, 0);
     t.clearRect(0, 0, largura, altura); // transparente: só bordas e texto, por cima do preenchimento
-    t.setTransform(cam.escala, 0, 0, cam.escala, cam.offsetX, cam.offsetY);
+    this.transformarMundo(t, cam);
     this.pintarTopo(t, layout, vaos, cam, largura, altura);
     this.cacheLayout = layout;
     this.cacheEscala = cam.escala;
@@ -322,6 +338,13 @@ export class Renderer {
     this.cacheLargura = largura;
     this.cacheAltura = altura;
     this.cacheFontes = this.versaoFontes;
+    this.cacheDpr = this.dpr;
+  }
+
+  /** Mundo (cm) → bitmap: escala da câmera (px de CSS por cm) × dpr, offset de CSS × dpr. */
+  private transformarMundo(c: CanvasRenderingContext2D, cam: Camera): void {
+    const k = cam.escala * this.dpr;
+    c.setTransform(k, 0, 0, k, cam.offsetX * this.dpr, cam.offsetY * this.dpr);
   }
 
   /** Fundo: cor de fundo, piso, corredores e docas. Deixa `c` com a transformação da câmera. */
@@ -329,7 +352,7 @@ export class Renderer {
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.fillStyle = COR.fundo;
     c.fillRect(0, 0, largura, altura);
-    c.setTransform(cam.escala, 0, 0, cam.escala, cam.offsetX, cam.offsetY);
+    this.transformarMundo(c, cam);
 
     c.fillStyle = COR.piso;
     c.fillRect(0, 0, layout.largura, layout.altura);
@@ -351,7 +374,7 @@ export class Renderer {
   /** Bordas dos vãos e rótulos (vãos, ruas, docas). Espera `c` com a transformação da câmera. */
   private pintarTopo(c: CanvasRenderingContext2D, layout: Layout, vaos: Vao[], cam: Camera, largura: number, altura: number): void {
     const px = 1 / cam.escala;
-    const vis = cam.mundoVisivel(largura, altura);
+    const vis = cam.mundoVisivel(largura / this.dpr, altura / this.dpr);
     const x0 = vis.x - FOLGA_CULLING_CM;
     const x1 = vis.x + vis.largura + FOLGA_CULLING_CM;
     const y0 = vis.y - FOLGA_CULLING_CM;

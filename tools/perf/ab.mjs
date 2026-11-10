@@ -5,6 +5,8 @@
 //   #      cd /tmp/antes && npx vite --port 3201 --no-open
 //   # 2) a versão nova no repo:  npx vite --port 3200 --no-open
 //   node tools/perf/ab.mjs --a http://localhost:3201 --b http://localhost:3200 [--gpu] [--quadros 300]
+//   # custo do devicePixelRatio: o MESMO código dos dois lados, com bitmap = CSS × dpr (câmera em px de CSS)
+//   node tools/perf/ab.mjs --a http://localhost:3200 --b http://localhost:3200 --dpr-a 1 --dpr-b 2
 //
 // Por que existe: a máquina de desenvolvimento costuma estar carregada (outros processos), e medir A e depois B em
 // momentos diferentes mistura a diferença do código com a da carga. Aqui cada quadro é desenhado pelos dois
@@ -20,6 +22,7 @@ const urlB = args.b ?? 'http://localhost:3200';
 const [largura, altura] = String(args.tamanho ?? '1280x640').split('x').map(Number);
 const quadros = Number(args.quadros ?? 300);
 const cenario = args.cenario ?? 'WH-B-MEGA';
+const dprs = { A: Number(args['dpr-a'] ?? 1), B: Number(args['dpr-b'] ?? 1) };
 
 const navegador = await abrirNavegador({ gpu: !!args.gpu });
 const page = await navegador.newPage();
@@ -29,7 +32,7 @@ page.on('request', r => (r.url().endsWith('/src/main.ts') ? r.abort() : r.contin
 page.on('pageerror', e => console.error('[pageerror]', e.message));
 await page.goto(urlB, { waitUntil: 'load' });
 
-const resultado = await page.evaluate(async (urlA, w, h, N, cenario) => {
+const resultado = await page.evaluate(async (urlA, w, h, N, cenario, dprs) => {
   const { Simulacao } = await import('/src/sim/simulation.ts');
   const { Camera } = await import('/src/render/camera.ts');
   const lados = [
@@ -41,12 +44,14 @@ const resultado = await page.evaluate(async (urlA, w, h, N, cenario) => {
   for (let i = 0; i < 14400; i++) sim.tick();
   for (const l of lados) {
     const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    c.style.cssText = 'position:fixed;left:0;top:0;';
+    const dpr = dprs[l.nome];
+    c.width = Math.round(w * dpr); // w × h são px de CSS; o bitmap tem × dpr
+    c.height = Math.round(h * dpr);
+    c.style.cssText = `position:fixed;left:0;top:0;width:${w}px;height:${h}px;`;
     document.body.appendChild(c);
     l.ctx = c.getContext('2d');
     l.renderer = new l.mod.Renderer(l.ctx);
+    l.renderer.dpr = dpr; // renderers anteriores ao dpr ignoram a propriedade
   }
   const s0 = sim.snapshot();
   const cenas = {
@@ -93,9 +98,9 @@ const resultado = await page.evaluate(async (urlA, w, h, N, cenario) => {
     out[nome] = { js, total };
   }
   return out;
-}, urlA, largura, altura, quadros, cenario);
+}, urlA, largura, altura, quadros, cenario, dprs);
 
-console.log(`${cenario}, canvas ${largura}x${altura}, ${args.gpu ? 'GPU (ANGLE/Vulkan)' : 'software'}, ${quadros} quadros por cena; ms por quadro, mediana (média)`);
+console.log(`${cenario}, canvas ${largura}x${altura} CSS (dpr A=${dprs.A}, B=${dprs.B}), ${args.gpu ? 'GPU (ANGLE/Vulkan)' : 'software'}, ${quadros} quadros por cena; ms por quadro, mediana (média)`);
 console.log('cena'.padEnd(24), 'JS  A'.padStart(14), 'JS  B'.padStart(14), '| JS+raster A'.padStart(16), 'JS+raster B'.padStart(14), '  B/A (JS+raster)');
 for (const [nome, v] of Object.entries(resultado)) {
   const f = x => { const e = estatisticas(x); return `${fmt(e.p50)} (${fmt(e.media)})`; };

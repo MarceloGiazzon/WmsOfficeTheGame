@@ -80,3 +80,28 @@ export function lerArgs(argv = process.argv.slice(2)) {
   }
   return out;
 }
+
+/** Pausa e confere (aria-pressed): o jogo ignora o botão enquanto um modal está fechando; tenta de novo se preciso. */
+export async function pausar(page) {
+  for (let i = 0; i < 5; i++) {
+    await page.click('#btn-pause');
+    await new Promise(r => setTimeout(r, 250));
+    if (await page.$eval('#btn-pause', b => b.getAttribute('aria-pressed') === 'true')) return;
+  }
+}
+
+/**
+ * Leva o app do zero até um turno do `cenario` pronto para jogar: fecha o login ("Jogar como convidado"), marca o cenário
+ * no modal de pré-partida e clica em "Iniciar turno". O relógio fica no que o jogo definir (use #btn-play-Nx depois).
+ */
+export async function iniciarPartida(page, cenario = 'WH-B-MEGA') {
+  await page.waitForSelector('#modal-login:not([hidden]), #modal-prejogo:not([hidden])', { timeout: 15000 });
+  if (await page.$('#modal-login:not([hidden])')) {
+    await page.evaluate(() => [...document.querySelectorAll('#modal-login button')].find(b => /convidado/i.test(b.textContent))?.click());
+  }
+  await page.waitForSelector('#modal-prejogo:not([hidden]) input[name="cenario"]', { timeout: 15000 });
+  await page.evaluate(c => document.querySelector(`#modal-prejogo input[name="cenario"][value="${c}"]`).click(), cenario);
+  await page.evaluate(() => document.querySelector('#prejogo-rodape .btn-primary').click());
+  await page.waitForSelector('#modal-prejogo', { hidden: true, timeout: 15000 });
+  await new Promise(r => setTimeout(r, 400)); // a sim nasce e o primeiro quadro é desenhado
+}

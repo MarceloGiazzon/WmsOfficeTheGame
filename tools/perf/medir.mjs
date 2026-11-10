@@ -6,6 +6,7 @@
 //   node tools/perf/medir.mjs --modo e2e --seg 10   # só o app de verdade (rAF), 10 s por cenário
 //   node tools/perf/medir.mjs --gpu                 # tenta GL por hardware (o padrão é software)
 //   node tools/perf/medir.mjs --sem-limite          # tira o limite de 60 quadros/s (mostra a folga)
+//   node tools/perf/medir.mjs --dpr 2               # e2e com devicePixelRatio 2 (canvas com bitmap = CSS × dpr)
 //   node tools/perf/medir.mjs --vel 5x              # só estas velocidades no e2e (padrão: 1x,2x,5x,pausa)
 //   node tools/perf/medir.mjs --sem-ticks           # pula a medição dos 36 000 ticks do turno (mais rápido)
 //   node tools/perf/medir.mjs --json saida.json     # grava também o resultado bruto
@@ -23,14 +24,15 @@
 // navegador com GPU; compare versões entre si (relativo), na mesma máquina e no mesmo modo.
 
 import { writeFileSync } from 'node:fs';
-import { abrirNavegador, descreverGpu, estatisticas, fmt, lerArgs, URL_APP } from './comum.mjs';
+import { abrirNavegador, descreverGpu, estatisticas, fmt, iniciarPartida, lerArgs, URL_APP } from './comum.mjs';
 
 const args = lerArgs();
 const modo = args.modo ?? 'tudo';
 const cenario = args.cenario ?? 'WH-B-MEGA';
 const segundos = Number(args.seg ?? 8);
 const [largura, altura] = String(args.tamanho ?? '1280x640').split('x').map(Number);
-const resultado = { cenario, modo, gpu: !!args.gpu, tamanho: [largura, altura] };
+const dpr = Number(args.dpr ?? 1); // e2e: devicePixelRatio da página (o jogo limita o dpr efetivo, ver render/tela.ts)
+const resultado = { cenario, modo, gpu: !!args.gpu, tamanho: [largura, altura], dpr };
 
 const navegador = await abrirNavegador({ gpu: !!args.gpu, semLimite: !!args['sem-limite'] });
 
@@ -233,7 +235,7 @@ async function metricasCdp(cdp) {
 
 async function e2e() {
   const page = await navegador.newPage();
-  await page.setViewport({ width: largura, height: altura + 200 });
+  await page.setViewport({ width: largura, height: altura + 200, deviceScaleFactor: dpr });
   await page.evaluateOnNewDocument(INJETAR_RAF);
   page.on('pageerror', e => console.error('[pageerror]', e.message));
   const cdp = await page.createCDPSession();
@@ -243,15 +245,12 @@ async function e2e() {
   resultado.renderizador = resultado.renderizador ?? await descreverGpu(page);
   await page.evaluate(PATCH_MODULOS);
 
-  // troca de cenário pelo select do drawer (é a mesma ação do jogador)
-  await page.evaluate(c => {
-    const sel = document.getElementById('select-scenario');
-    sel.value = c;
-    sel.dispatchEvent(new Event('change'));
-  }, cenario);
-  await new Promise(r => setTimeout(r, 1500));
+  // login (convidado) → pré-partida → "Iniciar turno" no cenário pedido: o mesmo caminho do jogador
+  await iniciarPartida(page, cenario);
+  await new Promise(r => setTimeout(r, 1000));
   const box = await (await page.$('#warehouse-canvas')).boundingBox();
   resultado.canvasCss = [Math.round(box.width), Math.round(box.height)];
+  resultado.canvasBitmap = await page.evaluate(() => { const c = document.getElementById('warehouse-canvas'); return [c.width, c.height]; });
   const centro = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 
   const preparar = {
@@ -309,7 +308,8 @@ async function e2e() {
 function relatorio() {
   const linhas = [];
   const p = (...x) => linhas.push(x.join(' '));
-  p(`## ${cenario} — ${resultado.renderizador} — canvas ${largura}x${altura}${args.gpu ? ' (GPU)' : ' (software)'}`);
+  p(`## ${cenario} — ${resultado.renderizador} — canvas ${largura}x${altura}${args.gpu ? ' (GPU)' : ' (software)'}, dpr ${dpr}`
+    + (resultado.canvasBitmap ? ` (bitmap do canvas ${resultado.canvasBitmap.join('x')} para ${resultado.canvasCss.join('x')} de CSS)` : ''));
   const m = resultado.micro;
   if (m) {
     p(`\nSim (${m.locais} locais, ${m.equipamentos} empilhadeiras): construção ${fmt(m.simConstrucaoMs, 0)} ms`);

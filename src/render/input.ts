@@ -26,20 +26,21 @@ export function ligarEntrada(canvas: HTMLCanvasElement, cam: Camera, op: OpcoesE
     voo = 0;
   };
 
-  const tela = () => ({ largura: canvas.width, altura: canvas.height });
+  // Câmera, mundo e gestos vivem em px de CSS (o bitmap do canvas tem `× dpr`, ver tela.ts): o tamanho da tela é o do CSS.
+  const tela = () => ({ largura: canvas.clientWidth, altura: canvas.clientHeight });
 
   /** Anima a câmera até centralizar `alvo`. Qualquer gesto novo interrompe (`aoIniciar`). */
   const voarPara = (alvo: Ponto) => {
     pararVoo();
     const de = cam.estado();
     const destino = cam.clonar(); // o clone leva os limites aprendidos no enquadrar
-    destino.centralizarEm(alvo, canvas.width, canvas.height, ESCALA_DETALHE);
+    destino.centralizarEm(alvo, canvas.clientWidth, canvas.clientHeight, ESCALA_DETALHE);
     const para = destino.estado();
     const inicio = performance.now();
     const passo = (agora: number) => {
       const t = Math.min(1, (agora - inicio) / DURACAO_VOO_MS);
       const suave = 1 - Math.pow(1 - t, 3); // easeOutCubic
-      cam.aplicar(Camera.entre(de, para, suave, canvas.width, canvas.height));
+      cam.aplicar(Camera.entre(de, para, suave, canvas.clientWidth, canvas.clientHeight));
       voo = t < 1 ? requestAnimationFrame(passo) : 0;
     };
     voo = requestAnimationFrame(passo);
@@ -53,8 +54,8 @@ export function ligarEntrada(canvas: HTMLCanvasElement, cam: Camera, op: OpcoesE
 
   const pontoNoCanvas = (e: PointerEvent | WheelEvent): Ponto => {
     const r = canvas.getBoundingClientRect();
-    // o canvas tem width/height em px de CSS (1:1); se o CSS o escalar, converte para px do canvas
-    return { x: (e.clientX - r.left) * (canvas.width / r.width), y: (e.clientY - r.top) * (canvas.height / r.height) };
+    // px de CSS relativos ao canvas; a razão clientWidth/r.width só difere de 1 se o canvas estiver sob um transform de CSS
+    return { x: (e.clientX - r.left) * (canvas.clientWidth / r.width), y: (e.clientY - r.top) * (canvas.clientHeight / r.height) };
   };
 
   const down = (e: PointerEvent) => {
