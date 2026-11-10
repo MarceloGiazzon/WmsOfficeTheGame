@@ -546,8 +546,8 @@ src/sim/  simulation.ts: só `trocasPolitica()` e `Snapshot.trocasPolitica` (adi
   drawer não estica mais o mapa.
 - [x] Relógio 08:00–18:00, pausa/1x/2x/5x (F1). KPIs ao vivo (F2). Inspector com dados reais — falta lote/quantidade (o
   pacote não tem). Heatmap de acessos real (F2).
-- [ ] **Comparação com o ranking** na tela de resultado: o slot e a tabela existem (`extras.ranking`), mas só a F5 tem
-  de onde preencher. Também da F5: origens `'rede'`/`'cache'` na `FonteCenarios`, envio do resultado e `validadoServidor`.
+- [x] **Comparação com o ranking** na tela de resultado, origens `'rede'`/`'cache'` na `FonteCenarios`, envio do resultado e
+  `validadoServidor`: feitos na F5 (UI de rede) e verificados ao vivo contra o backend.
 
 Pendências visíveis (fora do escopo da F4): o canvas não usa `devicePixelRatio` (o mapa fica borrado em telas de alta
 densidade — F6); a pré-partida mostra só o cartão, sem pré-visualização do armazém (montar a `Simulacao` do WH-B leva
@@ -806,8 +806,9 @@ máquina de desenvolvimento; nada foi executado em aparelho ou emulador.**
   manipulation` nos controles. Mapa com 70–75% da altura em paisagem (800×360 e 844×390) e ~80% em retrato. Verificado em
   1280×800, 390×844, 844×390 e 800×360 (sem transbordo, sem erro de console, sem request externo). **Fontes locais:**
   Plus Jakarta Sans e JetBrains Mono (OFL) em `public/fonts/` + `src/ui/fontes.css`; o `<link>` do Google saiu. Detalhes
-  em `MOBILE.md`. Fica fora daqui a **pinça** (item de zoom da F6, no módulo de entrada do mapa).
-- [ ] Teste offline completo da F5 (cenário em cache → jogar → sincronizar depois) — depende da F5.
+  em `MOBILE.md`. A **pinça** e o centralizar na seleção são da F6 (módulo de entrada do mapa) e estão feitos.
+- [x] Fluxo offline completo (cenário em cache → jogar → fila → sincronizar ao religar) verificado **no navegador** (F5, rede cortada
+  no Chrome headless). **Falta** o mesmo no APK, em aparelho/emulador.
 - [ ] Base do `NPDevClient` no APK por URL absoluta (`VITE_NPDEV_URL`, com troca em tempo de execução) e CORS de
   `https://localhost` no NPDev (N5) — **documentado** em `MOBILE.md`, não implementado (F5/N5).
 - [ ] Build **release** (assinatura/keystore, AAB, minificação) — fora do escopo desta fase.
