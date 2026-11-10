@@ -12,9 +12,9 @@ import { ServidorFalso } from './servidorFalso';
 const banco = remapearIds(whA as unknown as PacoteCenario, 3).pacote;
 const CENARIO = banco.cenario.id;
 
-// Mesmas métricas do exemplo "Estratégia A" do README / n3_jogador.py: score oficial 50,40.
+// Métricas coerentes com WH-A-PEQUENO (60 ordens, teórica 307050 cm: o servidor confere as duas), score oficial 50,40.
 const METRICAS: Metricas = {
-  distanciaRealCm: 824000, distanciaTeoricaCm: 400000, ordensTotal: 100, ordensAtrasadas: 14, eventosConflito: 6, ocupacaoFinalCentesimos: 6200,
+  distanciaRealCm: 557950, distanciaTeoricaCm: 307050, ordensTotal: 60, ordensAtrasadas: 9, eventosConflito: 10, ocupacaoFinalCentesimos: 6200,
 };
 const scoreDe = (m: Metricas): number => { const r = calcularScore(m); if (!r.sucesso) throw new Error(r.motivo); return r.scoreCentesimos; };
 
@@ -90,6 +90,31 @@ describe('concluirPartida', () => {
     expect(erro).toMatchObject({ tipo: 'recusado', codigo: 'metricas_invalidas', recuperavel: false });
     expect(erro.message).toBe('ordensAtrasadas > ordensTotal');
     expect(servidor.partidas.get(p.id)?.situacao).toBe('EmAndamento');
+  });
+
+  describe('referências do cenário: o servidor não aceita as do cliente', () => {
+    it.each([
+      ['ordensTotal diferente das ordens do cenário', { ordensTotal: 10, ordensAtrasadas: 0 }, 'ordensTotal nao confere com as ordens do cenario'],
+      ['distância teórica inventada (maior, para esconder o excesso)', { distanciaTeoricaCm: 9_999_999 }, 'distanciaTeoricaCm nao confere com a do cenario'],
+      ['distância teórica inventada (igual à real, penalidade zero)', { distanciaTeoricaCm: METRICAS.distanciaRealCm }, 'distanciaTeoricaCm nao confere com a do cenario'],
+      ['distância real abaixo da metade da teórica', { distanciaRealCm: Math.floor(METRICAS.distanciaTeoricaCm / 2) - 1 }, 'distanciaRealCm abaixo da metade'],
+    ])('%s → recusado/metricas_invalidas, sem score e com a partida em andamento', async (_nome, alteracao, motivo) => {
+      const { servidor, ana } = await montar();
+      const p = await iniciarPartida(ana, { cenarioId: CENARIO, politica: 'AbcProximidade' });
+      const m = { ...METRICAS, ...alteracao };
+      const erro = await concluirPartida(ana, p.id, m, scoreDe(m)).catch(e => e);
+      expect(erro).toMatchObject({ tipo: 'recusado', codigo: 'metricas_invalidas', recuperavel: false });
+      expect(erro.message).toContain(motivo);
+      expect(servidor.scores.size).toBe(0);
+      expect(servidor.partidas.get(p.id)?.situacao).toBe('EmAndamento');
+    });
+
+    it('o piso é metade da teórica: exatamente a metade passa (o servidor não prova a distância, só barra o impossível)', async () => {
+      const { ana } = await montar();
+      const p = await iniciarPartida(ana, { cenarioId: CENARIO, politica: 'AbcProximidade' });
+      const m = { ...METRICAS, distanciaRealCm: METRICAS.distanciaTeoricaCm / 2 };
+      expect(await concluirPartida(ana, p.id, m, scoreDe(m))).toMatchObject({ validadoServidor: true });
+    });
   });
 
   it('partida já concluída (ou abandonada) → recusado/partida_encerrada, sem segundo score', async () => {
@@ -209,7 +234,21 @@ describe('ranking', () => {
     ]);
     expect(r).toMatchObject({ total: 3, posicaoDaPartida: 1, melhorPosicaoDoJogador: 2, truncado: false });
     expect(r.entradas.filter(e => e.souEu).map(e => e.jogador)).toEqual(['caio']);
-    expect(r.entradas[0]).toMatchObject({ distanciaRealCm: METRICAS.distanciaRealCm, ordensTotal: 100, ordensAtrasadas: 2 });
+    expect(r.entradas[0]).toMatchObject({ distanciaRealCm: METRICAS.distanciaRealCm, ordensTotal: 60, ordensAtrasadas: 2 });
+  });
+
+  it('só compara scores da mesma versão do motor: manda a versão na query e não mistura as outras', async () => {
+    const { servidor, clientes } = await montar(['ana', 'bia']);
+    const nova = await jogar(clientes.ana, m(5));
+    const velha = await iniciarPartida(clientes.bia, { cenarioId: CENARIO, politica: 'AbcProximidade', versaoMotor: '0.0.1' });
+    await concluirPartida(clientes.bia, velha.id, m(1), scoreDe(m(1))); // melhor score, mas de outra versão
+    const atual = await ranking(clientes.ana, CENARIO, { partidaId: nova.partida.id });
+    expect(atual.entradas.map(e => e.jogador)).toEqual(['ana']);
+    expect(atual.posicaoDaPartida).toBe(1);
+    expect(servidor.chamadas.filter(c => c.caminho === '/queries/RankingPorCenario').at(-1)?.query).toMatchObject({ cenarioId: CENARIO, versaoMotor: VERSAO_MOTOR });
+    const antiga = await ranking(clientes.ana, CENARIO, { versaoMotor: '0.0.1' });
+    expect(antiga.entradas.map(e => e.jogador)).toEqual(['bia']);
+    expect(await ranking(clientes.ana, CENARIO, { versaoMotor: '9.9.9' })).toMatchObject({ entradas: [], total: 0 });
   });
 
   it('jogador sem partida validada: posição null; partida pedida fora do ranking: null', async () => {

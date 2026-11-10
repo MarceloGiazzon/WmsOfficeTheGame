@@ -4,13 +4,23 @@
 As ordens vêm da regra canônica — SimulacaoCapability.gerarOrdens, compilada e executada aqui com
 javac/java — usando o mesmo seed gravado em SimCenario.seed. Rodar de novo gera arquivos idênticos.
 
+SimCenario.qtdOrdens (contagem das ordens geradas) e SimCenario.distanciaTeoricaCm são os valores de referência
+com que o ConcluirPartida confere as métricas do cliente. A teórica só existe no motor do front (malha + curva ABC):
+é calculada por backend/npdev/tools/teorica_cenarios.ts (npx vite-node, precisa de node_modules na raiz do repo).
+Depois de mudar src/sim/teorica.ts, o layout ou as ordens, rode este script, gerar_pacotes_front.py e
+semear_cenarios.py (que atualiza os cenários já semeados); o teste src/sim/teoricaSeeds.test.ts avisa se esquecer.
+
 Uso: python3 backend/npdev/tools/gerar_seeds_cenarios.py
 """
 import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gerar_pacotes_front  # noqa: E402  (monta o pacote do front a partir do seed)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEF = os.path.join(HERE, "..", "definition")
@@ -115,7 +125,7 @@ public class Gen {
     return [s["ordens"] for s in saidas]
 
 
-def montar(c, ordens):
+def montar(c, ordens, teorica=None):
     p = c["prefixo"]
     R = []
 
@@ -134,7 +144,8 @@ def montar(c, ordens):
                        "qtdDocasInbound": c["docasIn"], "qtdDocasOutbound": c["docasOut"],
                        "qtdEquipamentos": c["equipamentos"], "velocidadeEquipamentoCmS": c["velocidade"],
                        "tempoDescargaSeg": c["descarga"], "inicioTurnoSeg": TURNO[0], "fimTurnoSeg": TURNO[1],
-                       "ativo": True}, f"{p}cenario")
+                       "ativo": True, "qtdOrdens": len(ordens),
+                       **({"distanciaTeoricaCm": teorica} if teorica is not None else {})}, f"{p}cenario")
     for area, funcao in [("Recebimento", "Recebimento"), ("Expedicao", "Expedicao"), ("Armazenagem", "Armazenagem")]:
         rec("Area", {"armazemId": f"$ref:{p}armazem", "nome": f"Area {area}", "funcao": funcao, "ativo": True},
             f"{p}area{area}")
@@ -186,14 +197,42 @@ def montar(c, ordens):
     }
 
 
+def calcular_teoricas(seeds):
+    """{codigo: distanciaTeoricaCm}, pelo motor do front, a partir de pacotes montados dos seeds (sem teórica)."""
+    raiz = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
+    if not os.path.isdir(os.path.join(raiz, "node_modules")):
+        raise SystemExit(f"node_modules ausente em {raiz} — rode 'npm install' (a distância teórica vem do motor TS)")
+    tmp = tempfile.mkdtemp(prefix="teorica-")
+    try:
+        arquivos = []
+        for i, seed in enumerate(seeds):
+            arq = os.path.join(tmp, f"{i}.json")
+            with open(arq, "w") as f:
+                json.dump(gerar_pacotes_front.pacote(seed), f)
+            arquivos.append(arq)
+        npx = shutil.which("npx") or raise_sem("npx")
+        res = subprocess.run([npx, "vite-node", os.path.join("backend", "npdev", "tools", "teorica_cenarios.ts"), *arquivos],
+                             cwd=raiz, check=True, capture_output=True, text=True)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return json.loads(res.stdout.strip().splitlines()[-1])
+
+
+def raise_sem(nome):
+    raise SystemExit(f"{nome} não encontrado")
+
+
 def main():
     entradas = []
     for c in CENARIOS:
         produtos = [{"produtoId": f"{c['prefixo']}prod{i:02d}", "peso": w} for i, w in enumerate(c["produtos"], 1)]
         entradas.append({"seed": c["seed"], "inicioTurnoSeg": TURNO[0], "fimTurnoSeg": TURNO[1],
                          "percentualInboundCentesimos": 5000, **c["ordens"], "produtos": produtos})
-    for c, ordens in zip(CENARIOS, gerar_ordens(entradas)):
-        seed = montar(c, ordens)
+    todas = gerar_ordens(entradas)
+    sem_teorica = [montar(c, ordens) for c, ordens in zip(CENARIOS, todas)]
+    teoricas = calcular_teoricas(sem_teorica)
+    for c, ordens in zip(CENARIOS, todas):
+        seed = montar(c, ordens, teoricas[c["codigo"]])
         caminho = os.path.join(DEF, "seeds", c["arquivo"])
         with open(caminho, "w") as f:
             f.write("{\n")

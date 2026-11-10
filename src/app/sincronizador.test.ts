@@ -11,7 +11,7 @@ import { descreverRodada, Sincronizador, situacaoDoItem } from './sincronizador'
 
 const banco = remapearIds(whA as unknown as PacoteCenario, 31).pacote;
 const METRICAS: Metricas = {
-  distanciaRealCm: 824000, distanciaTeoricaCm: 400000, ordensTotal: 100, ordensAtrasadas: 14, eventosConflito: 6, ocupacaoFinalCentesimos: 6200,
+  distanciaRealCm: 557950, distanciaTeoricaCm: 307050, ordensTotal: 60, ordensAtrasadas: 9, eventosConflito: 10, ocupacaoFinalCentesimos: 6200,
 };
 const reg = (extra: Partial<RegistroPartida> = {}): RegistroPartida => ({
   cenarioCodigo: 'WH-A-PEQUENO', politica: 'AbcProximidade', metricas: METRICAS, scoreCentesimos: 5040,

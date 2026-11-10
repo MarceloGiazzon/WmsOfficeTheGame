@@ -84,7 +84,11 @@ suite(`ao vivo (${URL_BASE})`, () => {
     const codigo = `F5-LIVE-${Date.now()}`;
     const r = await globalThis.fetch(`${URL_BASE}/api/sim_cenarios`, {
       method: 'POST', headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigo, nome: 'F5 teste ao vivo', armazemId: wha.armazemId, seed: 5, ativo: true }),
+      // qtdOrdens e distanciaTeoricaCm: o ConcluirPartida confere as métricas contra o cenário (sem eles recusa tudo)
+      body: JSON.stringify({
+        codigo, nome: 'F5 teste ao vivo', armazemId: wha.armazemId, seed: 5, ativo: true,
+        qtdOrdens: METRICAS.ordensTotal, distanciaTeoricaCm: METRICAS.distanciaTeoricaCm,
+      }),
     });
     if (r.status !== 201 && r.status !== 200) throw new Error(`não criou o cenário de teste: ${r.status} ${await r.text()}`);
     cenarioTeste = { id: ((await r.json()) as { id: string }).id, codigo };
@@ -159,7 +163,10 @@ suite(`ao vivo (${URL_BASE})`, () => {
       const politica: Politica = 'AbcProximidade';
       const rest = rodar(pacote, politica);
       const local = rodar(embutido, politica);
-      console.info(`[vivo] ${codigo} ${politica}: REST ${rest.score} (${rest.concluidas} ordens) × embutido ${local.score} (${local.concluidas}) — difere pelo desempate por id (ver uuid.test.ts)`);
+      const veredito = rest.score === local.score && rest.concluidas === local.concluidas
+        ? 'iguais'
+        : 'diferem (desempate por id? ver uuid.test.ts)';
+      console.info(`[vivo] ${codigo} ${politica}: REST ${rest.score} (${rest.concluidas} ordens) × embutido ${local.score} (${local.concluidas}) — ${veredito}`);
       expect(rest.score).toBeGreaterThan(0);
       expect(rest.concluidas).toBeGreaterThanOrEqual(Math.floor(embutido.ordens.length * 0.9));
     }, 120_000);
@@ -180,6 +187,36 @@ suite(`ao vivo (${URL_BASE})`, () => {
     const convidado = await obterPacote('WH-A-PEQUENO', { http: novoCliente(), embutido });
     expect(convidado.origem).toBe('embutido');
   }, 60_000);
+
+  describe('partida jogada de ponta a ponta nos cenários semeados', () => {
+    // O risco que isto cobre: o servidor confere ordensTotal e a distância teórica contra o SimCenario (anti-fraude do
+    // ranking). Se o seed e o motor divergirem, TODA partida legítima seria recusada — só se vê jogando de verdade.
+    it.each([['WH-A-PEQUENO', 'AbcProximidade'], ['WH-B-MEGA', 'Consolidacao']] as const)(
+      '%s (%s): as métricas reais da sim passam nas conferências do servidor — validado, mesmo score', async (codigo, politica) => {
+        const pacote = await carregarPacote(jogador, codigo);
+        const sim = new Simulacao(pacote, politica);
+        for (let i = 0; i < pacote.cenario.fimTurnoSeg - pacote.cenario.inicioTurnoSeg + 5; i++) sim.tick();
+        const fim = sim.snapshot();
+        if (!fim.score.sucesso) throw new Error(fim.score.motivo);
+        const scoreLocal = fim.score.scoreCentesimos;
+        let partidaId: string | null = null;
+        try {
+          const p = await iniciarPartida(jogador, { cenarioId: pacote.cenario.id, politica });
+          partidaId = p.id;
+          const r = await comRetentativa(() => concluirPartida(jogador, p.id, fim.metricas, scoreLocal));
+          expect(r).toMatchObject({ validadoServidor: true, scoreServidorCentesimos: scoreLocal });
+          expect((await ranking(jogador, pacote.cenario.id, { partidaId: p.id })).posicaoDaPartida).not.toBeNull();
+        } finally {
+          // não deixa a partida de teste no ranking dos cenários semeados
+          if (partidaId) {
+            const get = async (caminho: string): Promise<{ id: string; partidaId?: string }[]> =>
+              (await (await globalThis.fetch(`${URL_BASE}/api${caminho}`, { headers: { Authorization: `Bearer ${adminToken}` } })).json()) as { id: string; partidaId?: string }[];
+            for (const sc of (await get('/sim_scores')).filter(x => x.partidaId === partidaId)) await apagar(adminToken, `/sim_scores/${sc.id}`);
+            await apagar(adminToken, `/sim_partidas/${partidaId}`);
+          }
+        }
+      }, 180_000);
+  });
 
   describe('partidas (cenário descartável)', () => {
     it('iniciar → concluir (validado) → ranking com a posição; adulterado fica fora do ranking; conclusão repetida é recusada', async () => {

@@ -1476,7 +1476,7 @@
     {
       "name": "RankingPorCenario",
       "concept": "SimScore",
-      "where": "cenarioId == :cenarioId && validadoServidor == true",
+      "where": "cenarioId == :cenarioId && versaoMotor == :versaoMotor && validadoServidor == true",
       "orderBy": [
         "scoreCentesimos desc",
         "distanciaRealCm"
@@ -1487,10 +1487,15 @@
           "name": "cenarioId",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "versaoMotor",
+          "type": "string",
+          "required": true
         }
       ],
       "metadata": {
-        "purpose": "N3: top 50 por cenario, so scores validados no servidor; desempate pela menor distancia."
+        "purpose": "N3: top 50 por cenario e por versao do motor (scores de versoes diferentes nao se comparam), so scores validados no servidor; desempate pela menor distancia."
       }
     }
   ],
@@ -3613,7 +3618,7 @@
     },
     {
       "name": "ConcluirPartidaProcedure",
-      "description": "N2 (docs/PLANO.md): fecha uma SimPartida. Entrada {partidaId, <metricas>, scoreCentesimos (do cliente)}. SimulacaoCapability.validarScore recalcula o score pela formula oficial; vale sempre o recalculado, e validadoServidor = (score do cliente == recalculado). Procedures NAO sao transacionais (verificado ao vivo: um passo que falha nao desfaz os anteriores), entao a ordem evita estado parcial: (1) valida metricas -- invalidas: devolve {sucesso:false, motivo} sem escrever; (2) le a partida e exige situacao EmAndamento -- senao devolve {sucesso:false, motivo} (patch Concluida->Concluida nao conta como transicao e seria aceito); (3) cria o SimScore primeiro -- se falhar (ex.: unique em partidaId), nada mudou; (4) so entao SimPartida -> Concluida com concluidaEm = horario do servidor. O readConcept vem DEPOIS do capabilityCall de proposito: o runtime serializa todo o estado do procedure para o processo do plugin e falha com ConceptRecord que tem datetime (Jackson sem JSR310). Resposta de sucesso: o envelope do SimScore gravado {conceptName, id, data}. O return so resolve referencias de primeiro nivel.",
+      "description": "N2 (docs/PLANO.md): fecha uma SimPartida. Entrada {partidaId, <metricas>, scoreCentesimos (do cliente)}. SimulacaoCapability.validarScore recalcula o score pela formula oficial; vale sempre o recalculado, e validadoServidor = (score do cliente == recalculado). O servidor NAO aceita as metricas de referencia do cliente: apos ler a partida, le o SimCenario e RECUSA ({sucesso:false, motivo}, sem escrever nada) se ordensTotal != SimCenario.qtdOrdens, se distanciaTeoricaCm != SimCenario.distanciaTeoricaCm ou se distanciaRealCm < metade da teorica (piso de plausibilidade; ver docs/PLANO.md, anti-fraude). Como as referencias conferem, o recalculo sobre as metricas do cliente e o mesmo que se faria com as do servidor. Cenario sem qtdOrdens/distanciaTeoricaCm (campos nulos) tambem recusa: comparacao com nulo e sempre falsa. Isto NAO prova que distanciaReal, atrasos, conflitos e ocupacao sao verdadeiros -- so um replay no servidor provaria. Procedures NAO sao transacionais (verificado ao vivo: um passo que falha nao desfaz os anteriores), entao a ordem evita estado parcial: (1) valida metricas -- invalidas: devolve {sucesso:false, motivo} sem escrever; (2) le a partida e exige situacao EmAndamento -- senao devolve {sucesso:false, motivo} (patch Concluida->Concluida nao conta como transicao e seria aceito); (3) le o cenario da partida e confere as referencias; (4) cria o SimScore (com a versaoMotor da partida) primeiro -- se falhar (ex.: unique em partidaId), nada mudou; (5) so entao SimPartida -> Concluida com concluidaEm = horario do servidor. Os readConcept vem DEPOIS do capabilityCall de proposito: o runtime serializa todo o estado do procedure para o processo do plugin e falha com ConceptRecord que tem datetime (Jackson sem JSR310). Resposta de sucesso: o envelope do SimScore gravado {conceptName, id, data}. O return so resolve referencias de primeiro nivel.",
       "steps": [
         {
           "name": "validar-score",
@@ -3643,41 +3648,111 @@
               "condition": "$partida.situacao == 'EmAndamento'",
               "then": [
                 {
-                  "name": "criar-score",
-                  "type": "patchConcept",
-                  "concept": "SimScore",
-                  "id": "$novoScoreId",
-                  "createIfMissing": true,
-                  "set": {
-                    "partidaId": "$input.partidaId",
-                    "cenarioId": "$partida.cenarioId",
-                    "jogador": "$partida.jogador",
-                    "distanciaRealCm": "$input.distanciaRealCm",
-                    "distanciaTeoricaCm": "$input.distanciaTeoricaCm",
-                    "ordensTotal": "$input.ordensTotal",
-                    "ordensAtrasadas": "$input.ordensAtrasadas",
-                    "eventosConflito": "$input.eventosConflito",
-                    "ocupacaoFinalCentesimos": "$input.ocupacaoFinalCentesimos",
-                    "scoreCentesimos": "$validacao.scoreRecalculado",
-                    "validadoServidor": "$validacao.valido"
-                  },
-                  "target": "score"
+                  "name": "ler-cenario",
+                  "type": "readConcept",
+                  "concept": "SimCenario",
+                  "id": "$partida.cenarioId",
+                  "target": "cenario"
                 },
                 {
-                  "name": "concluir-partida",
-                  "type": "patchConcept",
-                  "concept": "SimPartida",
-                  "id": "$input.partidaId",
-                  "set": {
-                    "situacao": "Concluida",
-                    "concluidaEm": "$validacao.avaliadoEm"
-                  },
-                  "target": "partidaConcluida"
+                  "name": "dobrar-distancia-real",
+                  "type": "computeValue",
+                  "operation": "add",
+                  "left": "$input.distanciaRealCm",
+                  "right": "$input.distanciaRealCm",
+                  "target": "dobroDistanciaReal"
                 },
                 {
-                  "name": "return-score",
-                  "type": "return",
-                  "value": "$score"
+                  "name": "se-ordens-conferem",
+                  "type": "if",
+                  "condition": "$input.ordensTotal == $cenario.qtdOrdens",
+                  "then": [
+                    {
+                      "name": "se-teorica-confere",
+                      "type": "if",
+                      "condition": "$input.distanciaTeoricaCm == $cenario.distanciaTeoricaCm",
+                      "then": [
+                        {
+                          "name": "se-piso-distancia",
+                          "type": "if",
+                          "condition": "$dobroDistanciaReal >= $cenario.distanciaTeoricaCm",
+                          "then": [
+                            {
+                              "name": "criar-score",
+                              "type": "patchConcept",
+                              "concept": "SimScore",
+                              "id": "$novoScoreId",
+                              "createIfMissing": true,
+                              "set": {
+                                "partidaId": "$input.partidaId",
+                                "cenarioId": "$partida.cenarioId",
+                                "jogador": "$partida.jogador",
+                                "distanciaRealCm": "$input.distanciaRealCm",
+                                "distanciaTeoricaCm": "$input.distanciaTeoricaCm",
+                                "ordensTotal": "$input.ordensTotal",
+                                "ordensAtrasadas": "$input.ordensAtrasadas",
+                                "eventosConflito": "$input.eventosConflito",
+                                "ocupacaoFinalCentesimos": "$input.ocupacaoFinalCentesimos",
+                                "scoreCentesimos": "$validacao.scoreRecalculado",
+                                "validadoServidor": "$validacao.valido",
+                                "versaoMotor": "$partida.versaoMotor"
+                              },
+                              "target": "score"
+                            },
+                            {
+                              "name": "concluir-partida",
+                              "type": "patchConcept",
+                              "concept": "SimPartida",
+                              "id": "$input.partidaId",
+                              "set": {
+                                "situacao": "Concluida",
+                                "concluidaEm": "$validacao.avaliadoEm"
+                              },
+                              "target": "partidaConcluida"
+                            },
+                            {
+                              "name": "return-score",
+                              "type": "return",
+                              "value": "$score"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "name": "return-se-piso-distancia",
+                              "type": "return",
+                              "value": {
+                                "sucesso": false,
+                                "valido": false,
+                                "motivo": "distanciaRealCm abaixo da metade da distancia teorica do cenario: implausivel"
+                              }
+                            }
+                          ]
+                        }
+                      ],
+                      "else": [
+                        {
+                          "name": "return-se-teorica-confere",
+                          "type": "return",
+                          "value": {
+                            "sucesso": false,
+                            "valido": false,
+                            "motivo": "distanciaTeoricaCm nao confere com a do cenario"
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "else": [
+                    {
+                      "name": "return-se-ordens-conferem",
+                      "type": "return",
+                      "value": {
+                        "sucesso": false,
+                        "valido": false,
+                        "motivo": "ordensTotal nao confere com as ordens do cenario"
+                      }
+                    }
+                  ]
                 }
               ],
               "else": [

@@ -8,7 +8,7 @@ Dois jogadores de teste (criados pelo admin se não existirem; ficam no banco en
   - não vê, conclui nem abandona a partida de outro jogador;
   - não cria SimScore direto (forjar score era possível antes — corrigido); só via ConcluirPartida;
   - não escreve no WMS nem por flow (sem capability.invoke) nem por aggregate/procedure (access.write);
-  - ranking por cenário: só scores validados, ordenado, visível a todos os jogadores.
+  - ranking por cenário e por versão do motor: só scores validados, ordenado, visível a todos os jogadores.
 
 Uso: python3 backend/npdev/tests/n3_jogador.py [--base ...] [--user admin] [--password ...]
 """
@@ -22,6 +22,11 @@ SENHA_JOGADOR = "Jogo!Teste2026"
 JOGADORES = ["teste-jogador-1", "teste-jogador-2"]
 METRICAS = {"distanciaRealCm": 824000, "distanciaTeoricaCm": 400000, "ordensTotal": 100,
             "ordensAtrasadas": 14, "eventosConflito": 6, "ocupacaoFinalCentesimos": 6200}  # -> 5040
+
+
+# Métricas coerentes com o WH-A-PEQUENO semeado (60 ordens, teórica 307050 cm) -> também 5040.
+METRICAS_WHA = {"distanciaRealCm": 557950, "distanciaTeoricaCm": 307050, "ordensTotal": 60,
+                "ordensAtrasadas": 9, "eventosConflito": 10, "ocupacaoFinalCentesimos": 6200}
 
 
 def out(res):
@@ -48,7 +53,9 @@ def run(adm):
     area = adm.create("areas", {"armazemId": arm["id"], "nome": "N3 Area", "funcao": "Armazenagem"})
     rua = adm.create("ruas", {"areaId": area["id"], "codigo": "N3R1", "qtdPosicoes": 2, "qtdAndares": 1})
     prod = adm.create("produtos", {"nome": "N3 Produto", "qtdCaixasPorPallet": 10})
-    cen = adm.create("sim_cenarios", {"codigo": "N3-ATIVO", "nome": "N3 ativo", "armazemId": arm["id"], "seed": 3})
+    cen = adm.create("sim_cenarios", {"codigo": "N3-ATIVO", "nome": "N3 ativo", "armazemId": arm["id"], "seed": 3,
+                                      "qtdOrdens": METRICAS["ordensTotal"],
+                                      "distanciaTeoricaCm": METRICAS["distanciaTeoricaCm"]})
     inativo = adm.create("sim_cenarios", {"codigo": "N3-INATIVO", "nome": "N3 inativo", "armazemId": arm["id"],
                                           "seed": 4, "ativo": False})
     for i, lib in enumerate([30000, 29000]):
@@ -145,11 +152,18 @@ def run(adm):
           st >= 400 and adm.call("GET", f"sim_partidas/{p1['id']}")[1]["situacao"] == "Concluida", f"{st} {res}")
 
     print("ranking")
-    st, res = j2.call("GET", f"queries/RankingPorCenario?cenarioId={cen['id']}")
+    st, res = j2.call("GET", f"queries/RankingPorCenario?cenarioId={cen['id']}&versaoMotor=0.1.0")
     rows = res.get("rows", []) if st == 200 else []
     check("outro jogador vê o ranking com o score validado de j1",
           [(r["jogador"], r["scoreCentesimos"]) for r in rows] == [(j1.me["username"], 5040)], f"{st} {res}")
-    st, res = j1.call("GET", f"queries/RankingPorCenario?cenarioId={inativo['id']}")
+    check("  o score carrega a versão do motor da partida", [r.get("versaoMotor") for r in rows] == ["0.1.0"], rows)
+    st, res = j2.call("GET", f"queries/RankingPorCenario?cenarioId={cen['id']}&versaoMotor=9.9.9")
+    check("ranking de outra versão do motor é vazio (versões não se misturam)",
+          st == 200 and res.get("rows") == [], f"{st} {res}")
+    st, res = j2.call("GET", f"queries/RankingPorCenario?cenarioId={cen['id']}")
+    check("ranking sem versaoMotor -> 400 (parâmetro obrigatório; nada de misturar versões por omissão)",
+          st == 400, f"{st} {res}")
+    st, res = j1.call("GET", f"queries/RankingPorCenario?cenarioId={inativo['id']}&versaoMotor=0.1.0")
     check("ranking de outro cenário vazio", st == 200 and res.get("rows") == [], f"{st} {res}")
 
     print("outras vias de escrita")
@@ -189,11 +203,19 @@ def run(adm):
         c = por_codigo["WH-A-PEQUENO"]
         st, pa = j1.call("POST", "sim_partidas", {**base_partida, "cenarioId": c["id"], "jogador": j1.me["username"]})
         adm.track("sim_partidas", pa["id"])
-        st, res = j1.flow("ConcluirPartida", {"partidaId": pa["id"], **METRICAS, "scoreCentesimos": 5040})
+        check("WH-A-PEQUENO: o cenário semeado tem as referências do servidor (60 ordens, teórica 307050 cm)",
+              (c.get("qtdOrdens"), c.get("distanciaTeoricaCm")) == (60, 307050), c)
+        st, res = j1.flow("ConcluirPartida", {"partidaId": pa["id"], **METRICAS_WHA, "scoreCentesimos": 5040})
         d = (out(res) or {}).get("data") or {}
         if d.get("id"):
             adm.track("sim_scores", d["id"])
-        _, rk = j2.call("GET", f"queries/RankingPorCenario?cenarioId={c['id']}")
+        # métricas do N3 (100 ordens, teórica 400000) não são as do cenário semeado: recusa, sem score
+        pb = j1.call("POST", "sim_partidas", {**base_partida, "cenarioId": c["id"], "jogador": j1.me["username"]})[1]
+        adm.track("sim_partidas", pb["id"])
+        st2, res2 = j1.flow("ConcluirPartida", {"partidaId": pb["id"], **METRICAS, "scoreCentesimos": 5040})
+        check("WH-A-PEQUENO: métricas de outro cenário são recusadas pelo servidor",
+              st2 == 200 and (out(res2) or {}).get("sucesso") is False, f"{st2} {res2}")
+        _, rk = j2.call("GET", f"queries/RankingPorCenario?cenarioId={c['id']}&versaoMotor=0.1.0")
         check("WH-A-PEQUENO: partida jogada aparece no ranking para outro jogador",
               any(r["id"] == d.get("id") for r in rk.get("rows", [])), f"{res} {rk}")
 

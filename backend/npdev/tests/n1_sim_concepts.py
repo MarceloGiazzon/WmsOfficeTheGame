@@ -40,6 +40,11 @@ def run(api):
                   {**cen_body, "codigo": "N1-X4", "armazemId": "00000000-0000-0000-0000-000000000000"})
     st, got = call("GET", f"sim_cenarios/{cen['id']}")
     check("GET por id", st == 200 and got["codigo"] == "N1-TESTE", f"{st} {got}")
+    check("qtdOrdens e distanciaTeoricaCm são opcionais (vazios por padrão; o ConcluirPartida recusa cenário sem eles)",
+          got.get("qtdOrdens") is None and got.get("distanciaTeoricaCm") is None, got)
+    st, got = call("PUT", f"sim_cenarios/{cen['id']}", {**cen_body, "qtdOrdens": 60, "distanciaTeoricaCm": 307050})
+    check("referências do cenário gravadas (qtdOrdens, distanciaTeoricaCm)",
+          st == 200 and (got["qtdOrdens"], got["distanciaTeoricaCm"]) == (60, 307050), f"{st} {got}")
 
     print("SimOrdem")
     ord_body = {"cenarioId": cen["id"], "numero": "IN-0001", "tipo": "Inbound",
@@ -84,6 +89,7 @@ def run(api):
                   why="SimScoreOcupacaoRange")
     sc = create("sim_scores", sc_body)
     check("score criado, validadoServidor default false", sc["validadoServidor"] is False, sc)
+    check("  versaoMotor é opcional no SimScore (o ConcluirPartida copia o da partida)", sc.get("versaoMotor") is None, sc)
     expect_reject("segundo score para a mesma partida rejeitado (unique)", "POST", "sim_scores", sc_body,
                   why="unique_integrity_failed")
 

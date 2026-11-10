@@ -6,7 +6,7 @@
   "records": [
     {"alias": "WHAentidade", "concept": "Entidade", "data": {"nome": "WH-A Pequeno (jogo)", "tipo": "Estabelecimento", "ativo": true}},
     {"alias": "WHAarmazem", "concept": "Armazem", "data": {"entidadeId": "$ref:WHAentidade", "nome": "WH-A Pequeno", "ativo": true}},
-    {"alias": "WHAcenario", "concept": "SimCenario", "data": {"codigo": "WH-A-PEQUENO", "nome": "WH-A Pequeno", "dificuldade": "Facil", "armazemId": "$ref:WHAarmazem", "seed": 20261110, "qtdDocasInbound": 2, "qtdDocasOutbound": 2, "qtdEquipamentos": 3, "velocidadeEquipamentoCmS": 220, "tempoDescargaSeg": 300, "inicioTurnoSeg": 28800, "fimTurnoSeg": 64800, "ativo": true}},
+    {"alias": "WHAcenario", "concept": "SimCenario", "data": {"codigo": "WH-A-PEQUENO", "nome": "WH-A Pequeno", "dificuldade": "Facil", "armazemId": "$ref:WHAarmazem", "seed": 20261110, "qtdDocasInbound": 2, "qtdDocasOutbound": 2, "qtdEquipamentos": 3, "velocidadeEquipamentoCmS": 220, "tempoDescargaSeg": 300, "inicioTurnoSeg": 28800, "fimTurnoSeg": 64800, "ativo": true, "qtdOrdens": 60, "distanciaTeoricaCm": 307050}},
     {"alias": "WHAareaRecebimento", "concept": "Area", "data": {"armazemId": "$ref:WHAarmazem", "nome": "Area Recebimento", "funcao": "Recebimento", "ativo": true}},
     {"alias": "WHAareaExpedicao", "concept": "Area", "data": {"armazemId": "$ref:WHAarmazem", "nome": "Area Expedicao", "funcao": "Expedicao", "ativo": true}},
     {"alias": "WHAareaArmazenagem", "concept": "Area", "data": {"armazemId": "$ref:WHAarmazem", "nome": "Area Armazenagem", "funcao": "Armazenagem", "ativo": true}},

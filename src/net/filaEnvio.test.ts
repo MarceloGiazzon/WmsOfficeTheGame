@@ -10,8 +10,8 @@ import { ServidorFalso, type Chamada } from './servidorFalso';
 
 const banco = remapearIds(whA as unknown as PacoteCenario, 5).pacote;
 const METRICAS: Metricas = {
-  distanciaRealCm: 824000, distanciaTeoricaCm: 400000, ordensTotal: 100, ordensAtrasadas: 14, eventosConflito: 6, ocupacaoFinalCentesimos: 6200,
-}; // score oficial 50,40
+  distanciaRealCm: 557950, distanciaTeoricaCm: 307050, ordensTotal: 60, ordensAtrasadas: 9, eventosConflito: 10, ocupacaoFinalCentesimos: 6200,
+}; // WH-A-PEQUENO (60 ordens, teórica 307050 cm); score oficial 50,40
 
 const reg = (extra: Partial<RegistroPartida> = {}): RegistroPartida => ({
   cenarioCodigo: 'WH-A-PEQUENO', politica: 'AbcProximidade', metricas: METRICAS, scoreCentesimos: 5040,

@@ -6,7 +6,7 @@
   "records": [
     {"alias": "WHBentidade", "concept": "Entidade", "data": {"nome": "WH-B Mega (jogo)", "tipo": "Estabelecimento", "ativo": true}},
     {"alias": "WHBarmazem", "concept": "Armazem", "data": {"entidadeId": "$ref:WHBentidade", "nome": "WH-B Mega", "ativo": true}},
-    {"alias": "WHBcenario", "concept": "SimCenario", "data": {"codigo": "WH-B-MEGA", "nome": "WH-B Mega", "dificuldade": "Dificil", "armazemId": "$ref:WHBarmazem", "seed": 20261111, "qtdDocasInbound": 4, "qtdDocasOutbound": 4, "qtdEquipamentos": 8, "velocidadeEquipamentoCmS": 220, "tempoDescargaSeg": 300, "inicioTurnoSeg": 28800, "fimTurnoSeg": 64800, "ativo": true}},
+    {"alias": "WHBcenario", "concept": "SimCenario", "data": {"codigo": "WH-B-MEGA", "nome": "WH-B Mega", "dificuldade": "Dificil", "armazemId": "$ref:WHBarmazem", "seed": 20261111, "qtdDocasInbound": 4, "qtdDocasOutbound": 4, "qtdEquipamentos": 8, "velocidadeEquipamentoCmS": 220, "tempoDescargaSeg": 300, "inicioTurnoSeg": 28800, "fimTurnoSeg": 64800, "ativo": true, "qtdOrdens": 400, "distanciaTeoricaCm": 5840060}},
     {"alias": "WHBareaRecebimento", "concept": "Area", "data": {"armazemId": "$ref:WHBarmazem", "nome": "Area Recebimento", "funcao": "Recebimento", "ativo": true}},
     {"alias": "WHBareaExpedicao", "concept": "Area", "data": {"armazemId": "$ref:WHBarmazem", "nome": "Area Expedicao", "funcao": "Expedicao", "ativo": true}},
     {"alias": "WHBareaArmazenagem", "concept": "Area", "data": {"armazemId": "$ref:WHBarmazem", "nome": "Area Armazenagem", "funcao": "Armazenagem", "ativo": true}},

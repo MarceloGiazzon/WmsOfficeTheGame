@@ -5,8 +5,13 @@
 // O servidor é a autoridade do score: `ConcluirPartida` recalcula pela fórmula oficial (Java), grava o SimScore com o
 // valor RECALCULADO e marca `validadoServidor = (score do cliente == recalculado)`. Um score adulterado NÃO é
 // recusado — é gravado como não validado e fica fora do ranking —, então `concluirPartida` devolve
-// `validadoServidor: false` em vez de lançar; recusa de verdade (`recusado`) é métrica inválida ou partida que já
-// não está em andamento.
+// `validadoServidor: false` em vez de lançar; recusa de verdade (`recusado`) é métrica inválida, métrica de referência
+// que não bate com o cenário no servidor (ordensTotal, distância teórica) ou partida que já não está em andamento.
+//
+// Limite do que o servidor garante: ele confere as referências do cenário e a coerência das métricas, mas distância
+// real, atrasos, conflitos e ocupação vêm do cliente — quem montar essas métricas "perfeitas" à mão entra no ranking.
+// Só um replay no servidor (docs/PLANO.md, anti-fraude) fecharia isso. O ranking compara apenas scores da mesma
+// `VERSAO_MOTOR`.
 
 import type { Metricas, Politica } from '../sim/model';
 import { POLITICAS } from '../sim/model';
@@ -88,7 +93,8 @@ export interface ResultadoConclusao {
 
 /** Corpo do flow → erro, quando o HTTP foi 200 mas o procedure disse não (`{sucesso:false, motivo}`). */
 function recusa(motivo: string, corpo: unknown): NpdevError {
-  // "Partida nao esta EmAndamento" (já concluída/abandonada) × métricas inválidas ("ordensAtrasadas > ordensTotal"…)
+  // "Partida nao esta EmAndamento" (já concluída/abandonada) × métricas recusadas ("ordensAtrasadas > ordensTotal",
+  // "ordensTotal nao confere com as ordens do cenario"…)
   const codigo = /EmAndamento/i.test(motivo) ? 'partida_encerrada' : 'metricas_invalidas';
   return new NpdevError('recusado', motivo, { codigo, corpo, status: 200 });
 }
@@ -211,12 +217,14 @@ export interface OpcoesRanking {
   partidaId?: string;
   /** Quantas linhas pedir (o servidor corta em 1000). Padrão 100. */
   limite?: number;
+  /** Versão do motor cujos scores comparar. Padrão: a deste build (`VERSAO_MOTOR`) — scores de versões diferentes não se misturam. */
+  versaoMotor?: string;
 }
 
-/** Ranking do cenário (query `RankingPorCenario`) com a posição do jogador. Leitura pública entre jogadores. */
+/** Ranking do cenário e da versão do motor (query `RankingPorCenario`) com a posição do jogador. Leitura pública entre jogadores. */
 export async function ranking(http: Http, cenarioId: string, opcoes: OpcoesRanking = {}): Promise<Ranking> {
   const eu = exigirUsuario(http);
-  const { rows, total } = await lerQuery(http, 'RankingPorCenario', { cenarioId }, opcoes.limite ?? 100);
+  const { rows, total } = await lerQuery(http, 'RankingPorCenario', { cenarioId, versaoMotor: opcoes.versaoMotor ?? VERSAO_MOTOR }, opcoes.limite ?? 100);
   const entradas: EntradaRanking[] = rows.map((r, i) => {
     const onde = `ranking[${i}]`;
     if (!booleano(r, 'validadoServidor', onde)) throw erroDeFormato(`${onde} não validado veio no ranking`);

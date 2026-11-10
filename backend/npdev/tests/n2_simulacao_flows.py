@@ -2,8 +2,9 @@
 """N2 — verificação ao vivo dos flows da capability `simulacao` (app de pé na 8200).
 
   - CalcularScoreSimulacao: todos os casos de tests/fixtures/score-cases.json (mesmo resultado do teste offline);
-  - ConcluirPartida: score certo, score adulterado, métricas inválidas, partida já concluída, abandonada,
-    inexistente, e atomicidade (falha na criação do score não deixa a partida Concluida);
+  - ConcluirPartida: score certo, score adulterado, métricas inválidas, referências do cenário (ordensTotal, distância
+    teórica, piso da distância real, cenário sem referências), partida já concluída, abandonada, inexistente, e
+    atomicidade (falha na criação do score não deixa a partida Concluida);
   - GerarOrdensSimulacao: determinismo pelo flow;
   - SugerirDestinoJogo: reaproveita a AllocationCapability.
 
@@ -41,11 +42,17 @@ def run(api):
     print("fixtures")
     ent = api.create("entidades", {"nome": "N2 Teste", "tipo": "Estabelecimento"})
     arm = api.create("armazems", {"entidadeId": ent["id"], "nome": "N2 Armazem"})
-    cen = api.create("sim_cenarios", {"codigo": "N2-TESTE", "nome": "Cenario N2", "armazemId": arm["id"], "seed": 7})
+    # As referências do cenário (ordens e distância teórica) são as de METRICAS_A: o servidor as confere.
+    cen = api.create("sim_cenarios", {"codigo": "N2-TESTE", "nome": "Cenario N2", "armazemId": arm["id"], "seed": 7,
+                                      "qtdOrdens": METRICAS_A["ordensTotal"],
+                                      "distanciaTeoricaCm": METRICAS_A["distanciaTeoricaCm"]})
+    cen_sem_ref = api.create("sim_cenarios", {"codigo": "N2-SEM-REF", "nome": "Cenario N2 sem referencias",
+                                              "armazemId": arm["id"], "seed": 8})
 
-    def nova_partida(politica="AbcProximidade"):
-        return api.create("sim_partidas", {"cenarioId": cen["id"], "jogador": api.me["username"], "politica": politica,
-                                           "versaoMotor": "0.1.0", "iniciadaEm": "2026-11-10T08:00:00Z"})
+    def nova_partida(politica="AbcProximidade", cenario=None):
+        return api.create("sim_partidas", {"cenarioId": (cenario or cen)["id"], "jogador": api.me["username"],
+                                           "politica": politica, "versaoMotor": "0.1.0",
+                                           "iniciadaEm": "2026-11-10T08:00:00Z"})
 
     def scores_da(partida):
         _, todos = api.call("GET", "sim_scores")
@@ -71,6 +78,7 @@ def run(api):
     check("  SimScore gravado com métricas e validadoServidor=true",
           len(sc) == 1 and sc[0]["validadoServidor"] is True and sc[0]["scoreCentesimos"] == 5040
           and all(sc[0][k] == v for k, v in METRICAS_A.items()), sc)
+    check("  SimScore leva a versaoMotor da partida (0.1.0)", sc[0].get("versaoMotor") == "0.1.0", sc)
 
     st, res = api.flow("ConcluirPartida", {"partidaId": p1["id"], **METRICAS_A, "scoreCentesimos": 5040})
     check("segunda conclusão da mesma partida recusada",
@@ -99,6 +107,31 @@ def run(api):
           st == 200 and out.get("sucesso") is False and "ordensAtrasadas" in str(out.get("motivo")), f"{st} {res}")
     _, got = api.call("GET", f"sim_partidas/{p3['id']}")
     check("  partida continua EmAndamento e sem score", got["situacao"] == "EmAndamento" and not scores_da(p3), got)
+
+    print("  referências do cenário (o servidor não aceita as do cliente)")
+    def recusada(nome, partida, metricas, trecho):
+        st, res = api.flow("ConcluirPartida", {"partidaId": partida["id"], **metricas, "scoreCentesimos": 5040})
+        out = output(res) or {}
+        _, got = api.call("GET", f"sim_partidas/{partida['id']}")
+        check(f"{nome} -> recusado sem gravar",
+              st == 200 and out.get("sucesso") is False and trecho in str(out.get("motivo"))
+              and got["situacao"] == "EmAndamento" and not scores_da(partida), f"{st} {res} {got}")
+
+    recusada("ordensTotal diferente do cenário (10 em vez de 100)", nova_partida(),
+             {**METRICAS_A, "ordensTotal": 10, "ordensAtrasadas": 0}, "ordensTotal nao confere")
+    recusada("distância teórica inventada (igual à real: penalidade zero)", nova_partida(),
+             {**METRICAS_A, "distanciaTeoricaCm": METRICAS_A["distanciaRealCm"]}, "distanciaTeoricaCm nao confere")
+    recusada("distância real abaixo da metade da teórica", nova_partida(),
+             {**METRICAS_A, "distanciaRealCm": METRICAS_A["distanciaTeoricaCm"] // 2 - 1}, "abaixo da metade")
+    recusada("cenário sem referências (qtdOrdens/distanciaTeoricaCm vazios)", nova_partida(cenario=cen_sem_ref),
+             METRICAS_A, "nao confere")
+    p_piso = nova_partida()
+    st, res = api.flow("ConcluirPartida", {"partidaId": p_piso["id"], **METRICAS_A,
+                                           "distanciaRealCm": METRICAS_A["distanciaTeoricaCm"] // 2,
+                                           "scoreCentesimos": 9999})
+    track_scores(p_piso)
+    check("  exatamente a metade da teórica é aceita (o piso só barra o impossível; não prova a distância)",
+          st == 200 and len(scores_da(p_piso)) == 1, f"{st} {res}")
 
     p4 = nova_partida("WmsReal")
     api.call("PUT", f"sim_partidas/{p4['id']}", {**{k: p4[k] for k in ("cenarioId", "jogador", "politica",

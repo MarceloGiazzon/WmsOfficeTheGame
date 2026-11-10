@@ -5,6 +5,7 @@
 
 import type { Metricas, PacoteCenario } from '../sim/model';
 import { calcularScore } from '../sim/score';
+import { Simulacao } from '../sim/simulation';
 import type { FetchLike } from './npdevClient';
 
 type Linha = Record<string, unknown>;
@@ -103,7 +104,11 @@ export class ServidorFalso {
   /** Linhas como o NPDev devolve: os campos do modelo + `version`/`tenantId` (e `ativo`), que o cliente tem de ignorar. */
   private carregar(p: PacoteCenario): void {
     const extra = { version: 0, tenantId: 'dev' };
-    this.tabela('SimCenario').push({ ...p.cenario, ativo: true, ...extra });
+    // qtdOrdens/distanciaTeoricaCm: as referências que o ConcluirPartida do servidor real confere (vêm do seed; aqui, do motor)
+    this.tabela('SimCenario').push({
+      ...p.cenario, ativo: true, qtdOrdens: p.ordens.length,
+      distanciaTeoricaCm: new Simulacao(p, 'AbcProximidade').distanciaTeoricaCm, ...extra,
+    });
     this.tabela('Armazem').push({ ...p.armazem, entidadeId: uuidFalso(0), ativo: true, latitude: null, longitude: null, ...extra });
     for (const a of p.areas) this.tabela('Area').push({ ...a, ativo: true, ...extra });
     for (const r of p.ruas) this.tabela('Rua').push({ ...r, ativo: true, bloqueiaExpedicao: false, bloqueiaMovimento: false, bloqueiaRecebimento: false, ...extra });
@@ -238,12 +243,14 @@ export class ServidorFalso {
       return resposta(this.tabela('SimCenario').filter(c => c.ativo === true).sort((a, b) => (String(a.codigo) < String(b.codigo) ? -1 : 1)));
     }
     if (nome === 'OrdensPorCenario' || nome === 'RankingPorCenario') {
-      if (!q.cenarioId) return { status: 400, corpo: { timestamp: 'x', status: 400, error: 'Bad Request', path: `/api/queries/${nome}` } };
+      if (!q.cenarioId || (nome === 'RankingPorCenario' && !q.versaoMotor)) {
+        return { status: 400, corpo: { timestamp: 'x', status: 400, error: 'Bad Request', path: `/api/queries/${nome}` } };
+      }
       if (nome === 'OrdensPorCenario') {
         return resposta(this.tabela('SimOrdem').filter(o => o.cenarioId === q.cenarioId)
           .sort((a, b) => Number(a.liberacaoSeg) - Number(b.liberacaoSeg) || (String(a.numero) < String(b.numero) ? -1 : 1)));
       }
-      return resposta([...this.scores.values()].filter(s => s.cenarioId === q.cenarioId && s.validadoServidor === true)
+      return resposta([...this.scores.values()].filter(s => s.cenarioId === q.cenarioId && s.versaoMotor === q.versaoMotor && s.validadoServidor === true)
         .sort((a, b) => Number(b.scoreCentesimos) - Number(a.scoreCentesimos) || Number(a.distanciaRealCm) - Number(b.distanciaRealCm)));
     }
     return { status: 404, corpo: { timestamp: 'x', status: 404, error: 'Not Found', path: `/api/queries/${nome}` } };
@@ -289,13 +296,21 @@ export class ServidorFalso {
     const calculado = calcularScore(metricas);
     if (!calculado.sucesso) return this.envelope({ sucesso: false, valido: false, motivo: calculado.motivo });
     if (partida.situacao !== 'EmAndamento') return this.envelope({ sucesso: false, valido: false, motivo: 'Partida nao esta EmAndamento' });
+    // conferências contra o SimCenario (mesmos motivos do ConcluirPartidaProcedure)
+    const cenario = this.tabela('SimCenario').find(x => x.id === partida.cenarioId);
+    const recusar = (motivo: string) => this.envelope({ sucesso: false, valido: false, motivo });
+    if (metricas.ordensTotal !== cenario?.qtdOrdens) return recusar('ordensTotal nao confere com as ordens do cenario');
+    if (metricas.distanciaTeoricaCm !== cenario?.distanciaTeoricaCm) return recusar('distanciaTeoricaCm nao confere com a do cenario');
+    if (metricas.distanciaRealCm * 2 < metricas.distanciaTeoricaCm) {
+      return recusar('distanciaRealCm abaixo da metade da distancia teorica do cenario: implausivel');
+    }
     const id = uuidFalso(this.contador++ + 300000);
     const score: Linha = {
       id, partidaId: partida.id, cenarioId: partida.cenarioId, jogador, distanciaRealCm: metricas.distanciaRealCm,
       distanciaTeoricaCm: metricas.distanciaTeoricaCm, ordensTotal: metricas.ordensTotal, ordensAtrasadas: metricas.ordensAtrasadas,
       eventosConflito: metricas.eventosConflito, ocupacaoFinalCentesimos: metricas.ocupacaoFinalCentesimos,
       scoreCentesimos: calculado.scoreCentesimos, validadoServidor: calculado.scoreCentesimos === entrada.scoreCentesimos,
-      version: 0, tenantId: 'dev',
+      versaoMotor: partida.versaoMotor, version: 0, tenantId: 'dev',
     };
     this.scores.set(id, score);
     partida.situacao = 'Concluida';

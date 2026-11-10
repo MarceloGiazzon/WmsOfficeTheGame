@@ -24,7 +24,11 @@
     { "name": "eventosConflito", "type": "integer", "required": true, "default": 0, "ui": { "label": "Conflitos" } },
     { "name": "ocupacaoFinalCentesimos", "type": "integer", "required": true, "ui": { "label": "Ocupacao final (centesimos de %)" } },
     { "name": "scoreCentesimos", "type": "integer", "required": true, "ui": { "label": "Score (centesimos)" } },
-    { "name": "validadoServidor", "type": "boolean", "required": true, "default": false, "ui": { "label": "Validado no servidor" } }
+    { "name": "validadoServidor", "type": "boolean", "required": true, "default": false, "ui": { "label": "Validado no servidor" } },
+    {
+      "name": "versaoMotor", "type": "string", "maxLength": 40,
+      "ui": { "label": "Versao do motor" }
+    }
   ],
   "access": {
     "write": "jogador == $user.id || $user.roles.contains('ADMIN')"

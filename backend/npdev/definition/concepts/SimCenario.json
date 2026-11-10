@@ -24,7 +24,15 @@
     { "name": "tempoDescargaSeg", "type": "integer", "required": true, "default": 300, "ui": { "label": "Tempo de descarga (s)" } },
     { "name": "inicioTurnoSeg", "type": "integer", "required": true, "default": 28800, "ui": { "label": "Inicio do turno (s)" } },
     { "name": "fimTurnoSeg", "type": "integer", "required": true, "default": 64800, "ui": { "label": "Fim do turno (s)" } },
-    { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } }
+    { "name": "ativo", "type": "boolean", "required": true, "default": true, "ui": { "label": "Ativo" } },
+    {
+      "name": "qtdOrdens", "type": "integer",
+      "ui": { "label": "Ordens do cenario" }
+    },
+    {
+      "name": "distanciaTeoricaCm", "type": "long",
+      "ui": { "label": "Distancia teorica (cm)" }
+    }
   ],
   "access": {
     "write": "$user.roles.contains('ADMIN')"
