@@ -1,0 +1,41 @@
+{
+  "name": "SimExportacao",
+  "ui": { "label": "Exportacao ao WmsOffice" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "partidaId", "type": "reference", "required": true,
+      "reference": { "target": "SimPartida", "onDelete": "cascade" },
+      "ui": { "label": "Partida" }
+    },
+    { "name": "alvoUrl", "type": "string", "required": true, "minLength": 1, "maxLength": 200, "ui": { "label": "URL do alvo" } },
+    {
+      "name": "situacao", "type": "enum", "required": true,
+      "values": ["Solicitada", "EmAndamento", "Concluida", "Falhou"],
+      "default": "Solicitada",
+      "ui": { "label": "Situacao" }
+    },
+    {
+      "name": "solicitadaPor", "type": "string", "required": true, "minLength": 1, "maxLength": 100,
+      "ui": { "label": "Solicitada por (username)" }
+    },
+    { "name": "solicitadaEm", "type": "datetime", "required": true, "ui": { "label": "Solicitada em" } },
+    { "name": "iniciadaEm", "type": "datetime", "ui": { "label": "Iniciada em" } },
+    { "name": "concluidaEm", "type": "datetime", "ui": { "label": "Concluida em" } },
+    { "name": "passo", "type": "string", "maxLength": 80, "ui": { "label": "Passo atual" } },
+    { "name": "progressoCentesimos", "type": "integer", "ui": { "label": "Progresso (centesimos de %)" } },
+    { "name": "armazemAlvoId", "type": "string", "maxLength": 40, "ui": { "label": "Armazem criado no alvo" } },
+    { "name": "totalChamadas", "type": "integer", "ui": { "label": "Chamadas REST" } },
+    { "name": "mensagem", "type": "string", "maxLength": 500, "ui": { "label": "Mensagem" } }
+  ],
+  "access": {
+    "read": "solicitadaPor == $user.id || $user.roles.contains('ADMIN')",
+    "write": "solicitadaPor == $user.id || $user.roles.contains('ADMIN')"
+  },
+  "invariants": [
+    {
+      "name": "SimExportacaoProgressoRange", "type": "expression",
+      "expr": "progressoCentesimos == null || progressoCentesimos >= 0 && progressoCentesimos <= 10000"
+    }
+  ]
+}

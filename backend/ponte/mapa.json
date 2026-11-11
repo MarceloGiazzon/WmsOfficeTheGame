@@ -1,0 +1,273 @@
+{
+  "_leia": [
+    "Dicionário da ponte Jogo <-> WmsOffice corporativo (docs/INTEGRACAO_CORPORATIVO.md §6, docs/ponte/PLANO.md §5).",
+    "É lido pelo código (backend/ponte/mapa.py) E é documentação: mudar uma regra = mudar aqui + exemplos/mini/esperado.json.",
+    "Gramática dos valores em 'campos' (função preencher() — PLANO.md §5.3):",
+    "  literal (número, booleano, null, texto sem chaves)  -> copiado como está;",
+    "  \"{a.b}\" (o texto INTEIRO é um marcador)           -> o valor do contexto, com o tipo original (int continua int);",
+    "  \"texto {a.b} texto\"                               -> texto formatado (str() de cada marcador);",
+    "  {\"$ref\": \"modelo-de-chave\"}                       -> o modelo é preenchido e vira {\"$ref\": \"chave\"}; o executor",
+    "                                                       troca pelo id do registro no ALVO (lido do diário).",
+    "  Marcador ausente no contexto = ERRO (nunca vira string vazia). Campo cujo valor final é null é OMITIDO do corpo.",
+    "Chaves: identificam cada registro no diário (backend/ponte/estado/*.jsonl). Usam os ids da FONTE (jogo), nunca os do alvo."
+  ],
+  "versao": 1,
+  "fusoHorario": "America/Sao_Paulo",
+
+  "conceitos": {
+    "Entidade":             { "endpoint": "entidades" },
+    "Armazem":              { "endpoint": "armazems" },
+    "Area":                 { "endpoint": "areas" },
+    "Rua":                  { "endpoint": "ruas" },
+    "LocalArmazenagem":     { "endpoint": "local_armazenagems" },
+    "Produto":              { "endpoint": "produtos" },
+    "PerfilAlocacao":       { "endpoint": "perfil_alocacaos" },
+    "RankingRua":           { "endpoint": "ranking_ruas" },
+    "CrossDocking":         { "endpoint": "cross_dockings", "_nota": "só se cria pelo flow AtivarCrossDocking (POST direto dá 500); PUT {situacao} funciona" },
+    "Lote":                 { "endpoint": "lotes" },
+    "LocalArmazenagemLote": { "endpoint": "local_armazenagem_lotes" },
+    "Movimento":            { "endpoint": "movimentos" },
+    "MovimentoItem":        { "endpoint": "movimento_items" },
+    "MovimentoItemPosicao": { "endpoint": "movimento_item_posicaos" },
+    "Recebimento":          { "endpoint": "recebimentos" },
+    "RecebimentoLote":      { "endpoint": "recebimento_lotes" },
+    "Expedicao":            { "endpoint": "expedicaos" },
+    "ExpedicaoItem":        { "endpoint": "expedicao_items" },
+    "HistoricoMovimentacao":{ "endpoint": "historico_movimentacaos" },
+    "SimCenario":           { "endpoint": "sim_cenarios" },
+    "SimOrdem":             { "endpoint": "sim_ordems" },
+    "SimPartida":           { "endpoint": "sim_partidas" },
+    "SimEvento":            { "endpoint": "sim_eventos", "_nota": "novo no P1 (backend do jogo)" },
+    "SimExportacao":        { "endpoint": "sim_exportacaos", "_nota": "novo no P1 (backend do jogo)" }
+  },
+
+  "ciclos": {
+    "_nota": "Ordem obrigatória dos estados (pular = 422). 'via' diz como se chega a cada estado: 'criar' (estado do POST), 'put' (PUT parcial {campo: estado}) ou o nome do flow (corpo = GET do registro + {campo: estado}). Antes de cada passo, o executor faz GET e só age se o estado atual for o ANTERIOR (repetir um flow num estado terminal devolve OK e DUPLICA o histórico).",
+    "Recebimento": { "campo": "estagio", "passos": [
+      { "estado": "PreRecebimento", "via": "criar" },
+      { "estado": "Enderecado", "via": "put" },
+      { "estado": "Conferido", "via": "put" },
+      { "estado": "Armazenado", "via": "ConfirmarRecebimento" } ] },
+    "Expedicao": { "campo": "estagio", "passos": [
+      { "estado": "PreExpedicao", "via": "criar" },
+      { "estado": "DemandaGerada", "via": "put" },
+      { "estado": "MovimentacaoConcluida", "via": "put" },
+      { "estado": "SaidaConfirmada", "via": "ConfirmarSaidaExpedicao" } ] },
+    "Movimento": { "campo": "situacao", "passos": [
+      { "estado": "Pendente", "via": "criar" },
+      { "estado": "Concluido", "via": "ConfirmarMovimentacao" } ] }
+  },
+
+  "jogoParaCorporativo": {
+    "_nota": "Ordem de execução = ordem destas seções. Contexto comum a todas: partida.{id,curto,politica}, cenario.*, data (AAAA-MM-DD), score.texto (' · score 82,86' ou ''), rotulo.",
+
+    "compartilhados": {
+      "_nota": "Achados no alvo por 'buscarPor' (GET /api/concepts/<C>/page?campo=valor); só criados se não existirem. NUNCA apagados pelo limpar.",
+      "escopo": {
+        "chave": "entidade:escopo", "conceito": "Entidade",
+        "buscarPor": { "nome": "WmsOffice: The Game", "tipo": "Estabelecimento" },
+        "campos": { "nome": "WmsOffice: The Game", "tipo": "Estabelecimento", "ativo": true }
+      },
+      "produto": {
+        "_para": "cada produto do pacote que aparece em alguma ordem exportada ou no estoque inicial",
+        "chave": "produto:{produto.codigo}", "conceito": "Produto",
+        "buscarPor": { "codigo": "{produto.codigo}" },
+        "campos": { "nome": "{produto.nome}", "codigo": "{produto.codigo}", "qtdCaixasPorPallet": "{produto.qtdCaixasPorPallet}",
+                    "diasValidadePadrao": "{produto.diasValidadePadrao}", "ativo": true }
+      }
+    },
+
+    "topologia": {
+      "_nota": "Sempre um armazém ESPELHO novo por exportação — nunca escrever na topologia do cenário (na :8200 isso mudaria o próximo turno do jogo).",
+      "armazem": { "chave": "armazem", "conceito": "Armazem",
+        "campos": { "entidadeId": { "$ref": "entidade:escopo" }, "nome": "{cenario.nome} · partida {partida.curto} · {data}", "ativo": true } },
+      "area": { "_para": "cada area do pacote", "chave": "area:{area.id}", "conceito": "Area",
+        "campos": { "armazemId": { "$ref": "armazem" }, "nome": "{area.nome}", "funcao": "{area.funcao}", "ativo": true } },
+      "rua": { "_para": "cada rua do pacote", "chave": "rua:{rua.id}", "conceito": "Rua",
+        "campos": { "areaId": { "$ref": "area:{rua.areaId}" }, "codigo": "{rua.codigo}", "qtdPosicoes": "{rua.qtdPosicoes}",
+                    "qtdAndares": "{rua.qtdAndares}", "bloqueiaRecebimento": false, "bloqueiaExpedicao": false,
+                    "bloqueiaMovimento": false, "ativo": true } },
+      "local": { "_para": "cada local do pacote", "chave": "local:{local.id}", "conceito": "LocalArmazenagem",
+        "_regra": "situacaoInicial = 'Bloqueado' se o local da fonte é Bloqueado; senão 'Disponivel'. A situação final vem em 'situacaoFinal'.",
+        "campos": { "ruaId": { "$ref": "rua:{local.ruaId}" }, "posicao": "{local.posicao}", "andar": "{local.andar}",
+                    "situacao": "{situacaoInicial}" } },
+      "perfil": { "chave": "perfil", "conceito": "PerfilAlocacao",
+        "campos": { "nome": "{cenario.nome} · partida {partida.curto}", "ocupacaoIdealPercent": 80, "ativo": true } },
+      "ranking": { "_para": "cada item de pacote.rankingRuas", "chave": "ranking:{ranking.ruaId}", "conceito": "RankingRua",
+        "campos": { "perfilAlocacaoId": { "$ref": "perfil" }, "ruaId": { "$ref": "rua:{ranking.ruaId}" },
+                    "prioridade": "{ranking.prioridade}" } }
+    },
+
+    "unidades": {
+      "_nota": "1 palete = Produto.qtdCaixasPorPallet unidades (suposição registrada em INTEGRACAO §10.4).",
+      "caixas": "produto.qtdCaixasPorPallet",
+      "validadeDiasPadrao": 365,
+      "dataValidade": "data + (produto.diasValidadePadrao ou validadeDiasPadrao) dias"
+    },
+
+    "cargaInicial": {
+      "_para": "eventos EstoqueInicial do rastro (sempre exportados, mesmo com --ordens)",
+      "lote": { "_para": "cada produto com estoque inicial", "chave": "lote:inicial:{produto.id}", "conceito": "Lote",
+        "campos": { "entidadeId": { "$ref": "entidade:escopo" }, "produtoId": { "$ref": "produto:{produto.codigo}" },
+                    "dataValidade": "{dataValidade}", "ocorrencia": "Normal", "situacao": "Recebido", "quantidade": "{quantidade}" } },
+      "movimento": { "chave": "mov:inicial", "conceito": "Movimento",
+        "campos": { "entidadeId": { "$ref": "entidade:escopo" }, "tipo": "MovtoLivre", "dataMovimento": "{data}", "situacao": "Pendente" } },
+      "item": { "_para": "cada produto com estoque inicial", "chave": "item:inicial:{produto.id}", "conceito": "MovimentoItem",
+        "campos": { "movimentoId": { "$ref": "mov:inicial" }, "produtoId": { "$ref": "produto:{produto.codigo}" },
+                    "loteId": { "$ref": "lote:inicial:{produto.id}" }, "quantidade": "{quantidade}" } },
+      "posicao": { "_para": "cada evento EstoqueInicial", "chave": "pos:{evento.seq}", "conceito": "MovimentoItemPosicao",
+        "campos": { "movimentoItemId": { "$ref": "item:inicial:{evento.produtoId}" }, "localArmazenagemId": { "$ref": "local:{evento.localId}" },
+                    "produtoId": { "$ref": "produto:{produto.codigo}" }, "loteId": { "$ref": "lote:inicial:{evento.produtoId}" },
+                    "papel": "Destino", "quantidade": "{caixas}" } },
+      "confirmar": { "chave": "mov:inicial", "ciclo": "Movimento", "ate": "Concluido" }
+    },
+
+    "entrada": {
+      "_para": "cada SimOrdem Inbound com >= 1 evento Putaway ou CrossDock (ordemId) — ordens sem evento NÃO são exportadas",
+      "_contexto": "ordem, produto, paletes = nº de eventos Putaway+CrossDock da ordem, quantidade = paletes*caixas, concluida = existe OrdemConcluida da ordem, temCrossDock",
+      "lote": { "chave": "lote:{ordem.id}", "conceito": "Lote",
+        "campos": { "entidadeId": { "$ref": "entidade:escopo" }, "produtoId": { "$ref": "produto:{produto.codigo}" },
+                    "dataValidade": "{dataValidade}", "ocorrencia": "Normal", "situacao": "Recebido", "quantidade": "{quantidade}" } },
+      "movimento": { "chave": "mov:{ordem.id}", "conceito": "Movimento",
+        "campos": { "entidadeId": { "$ref": "entidade:escopo" }, "tipo": "Recebimento", "dataMovimento": "{data}", "situacao": "Pendente" } },
+      "item": { "chave": "item:{ordem.id}", "conceito": "MovimentoItem",
+        "campos": { "movimentoId": { "$ref": "mov:{ordem.id}" }, "produtoId": { "$ref": "produto:{produto.codigo}" },
+                    "loteId": { "$ref": "lote:{ordem.id}" }, "quantidade": "{quantidade}" } },
+      "documento": { "chave": "rec:{ordem.id}", "conceito": "Recebimento",
+        "campos": { "entidadeId": { "$ref": "entidade:escopo" }, "movimentoId": { "$ref": "mov:{ordem.id}" },
+                    "dataRecebimento": "{data}", "estagio": "PreRecebimento", "situacao": "Normal", "nfePendente": false,
+                    "divergenciaItensXNotas": false, "crossDockingAtivo": false,
+                    "observacao": "WmsOffice: The Game · partida {partida.curto} · ordem {ordem.numero} · política {partida.politica}{score.texto}" } },
+      "documentoLote": { "chave": "reclote:{ordem.id}", "conceito": "RecebimentoLote",
+        "campos": { "recebimentoId": { "$ref": "rec:{ordem.id}" }, "loteId": { "$ref": "lote:{ordem.id}" },
+                    "quantidade": "{quantidade}", "crossDocking": "{temCrossDock}" } },
+      "avancarAntes": { "chave": "rec:{ordem.id}", "ciclo": "Recebimento", "ate": "Conferido" },
+      "posicaoPutaway": { "_para": "cada evento Putaway da ordem", "chave": "pos:{evento.seq}", "conceito": "MovimentoItemPosicao",
+        "campos": { "movimentoItemId": { "$ref": "item:{ordem.id}" }, "localArmazenagemId": { "$ref": "local:{evento.localId}" },
+                    "produtoId": { "$ref": "produto:{produto.codigo}" }, "loteId": { "$ref": "lote:{ordem.id}" },
+                    "papel": "Destino", "quantidade": "{caixas}" } },
+      "posicaoCrossDock": { "_para": "cada evento CrossDock com ordemId = esta ordem", "chave": "pos:{evento.seq}:destino", "conceito": "MovimentoItemPosicao",
+        "_regra": "o palete vai para a DOCA DE SAÍDA (evento.localDestinoId); não mexe na ocupação",
+        "campos": { "movimentoItemId": { "$ref": "item:{ordem.id}" }, "localArmazenagemId": { "$ref": "local:{evento.localDestinoId}" },
+                    "produtoId": { "$ref": "produto:{produto.codigo}" }, "loteId": { "$ref": "lote:{ordem.id}" },
+                    "papel": "Destino", "quantidade": "{caixas}" } },
+      "seConcluida": [
+        { "chave": "mov:{ordem.id}", "ciclo": "Movimento", "ate": "Concluido" },
+        { "chave": "rec:{ordem.id}", "ciclo": "Recebimento", "ate": "Armazenado" }
+      ]
+    },
+
+    "saida": {
+      "_para": "cada SimOrdem Outbound com >= 1 evento Picking (ordemId) ou CrossDock (ordemSaidaId)",
+      "_contexto": "ordem, produto, demanda = ordem.quantidadePaletes*caixas, saidas = eventos Picking+CrossDock da ordem, todosSairam = len(saidas) == ordem.quantidadePaletes, concluida, lotes = agrupamento das saidas pelo lote (ver 'loteDoPalete')",
+      "loteDoPalete": "Picking: o lote que ocupa evento.localId naquele momento (replay do rastro em ordem de seq). CrossDock: lote:{evento.ordemId}.",
+      "movimento": { "chave": "mov:{ordem.id}", "conceito": "Movimento",
+        "campos": { "entidadeId": { "$ref": "entidade:escopo" }, "tipo": "Expedicao", "dataMovimento": "{data}", "situacao": "Pendente" } },
+      "documento": { "chave": "exp:{ordem.id}", "conceito": "Expedicao",
+        "campos": { "entidadeId": { "$ref": "entidade:escopo" }, "movimentoId": { "$ref": "mov:{ordem.id}" },
+                    "dataExpedicao": "{data}", "tipo": "Normal", "estagio": "PreExpedicao", "situacao": "Normal",
+                    "crossDockingAtivo": false } },
+      "documentoItem": { "chave": "expitem:{ordem.id}", "conceito": "ExpedicaoItem",
+        "campos": { "expedicaoId": { "$ref": "exp:{ordem.id}" }, "produtoId": { "$ref": "produto:{produto.codigo}" },
+                    "quantidade": "{demanda}", "autoFinalizacao": false } },
+      "avancarAntes": { "chave": "exp:{ordem.id}", "ciclo": "Expedicao", "ate": "DemandaGerada" },
+      "item": { "_para": "cada lote distinto entre as saidas (ordem da 1ª aparição)", "chave": "item:{ordem.id}:{loteChave}", "conceito": "MovimentoItem",
+        "campos": { "movimentoId": { "$ref": "mov:{ordem.id}" }, "produtoId": { "$ref": "produto:{produto.codigo}" },
+                    "loteId": { "$ref": "{loteChave}" }, "quantidade": "{quantidade}" } },
+      "posicaoPicking": { "_para": "cada evento Picking da ordem", "chave": "pos:{evento.seq}", "conceito": "MovimentoItemPosicao",
+        "campos": { "movimentoItemId": { "$ref": "item:{ordem.id}:{loteChave}" }, "localArmazenagemId": { "$ref": "local:{evento.localId}" },
+                    "produtoId": { "$ref": "produto:{produto.codigo}" }, "loteId": { "$ref": "{loteChave}" },
+                    "papel": "Origem", "quantidade": "{caixas}" } },
+      "posicaoCrossDock": { "_para": "cada evento CrossDock com ordemSaidaId = esta ordem", "chave": "pos:{evento.seq}:origem", "conceito": "MovimentoItemPosicao",
+        "campos": { "movimentoItemId": { "$ref": "item:{ordem.id}:{loteChave}" }, "localArmazenagemId": { "$ref": "local:{evento.localDestinoId}" },
+                    "produtoId": { "$ref": "produto:{produto.codigo}" }, "loteId": { "$ref": "{loteChave}" },
+                    "papel": "Origem", "quantidade": "{caixas}" } },
+      "seTodosSairam": { "chave": "exp:{ordem.id}", "ciclo": "Expedicao", "ate": "MovimentacaoConcluida" },
+      "seConcluida": [
+        { "chave": "mov:{ordem.id}", "ciclo": "Movimento", "ate": "Concluido" },
+        { "chave": "exp:{ordem.id}", "ciclo": "Expedicao", "ate": "SaidaConfirmada" }
+      ]
+    },
+
+    "crossDocking": {
+      "_para": "cada par (ordemId, ordemSaidaId) de eventos CrossDock do rastro, quando as DUAS ordens estão exportadas (T3.4). Vem depois das ordens (os dois documentos já existem) e antes da ocupação final. Desligue com --sem-crossdocking.",
+      "_contexto": "ordem = a Inbound, saida = a Outbound, produto, quantidade = nº de paletes do par * caixas, posicao = nº de ordem do par (1, 2, ...), data",
+      "_porque": "O flow AtivarCrossDocking cria a baia (Area 'Cross-Docking' + Rua 'CD' + um LocalArmazenagem novo) no PRIMEIRO armazém da Entidade, que num alvo com vários espelhos não é o desta exportação. O executor deixa o flow criar o registro e MOVE a baia para a Rua 'CD' do armazém espelho (abaixo); se a Rua/Area que o flow provisionou lá ficarem vazias, apaga as duas.",
+      "area": { "chave": "cd:area", "conceito": "Area",
+        "campos": { "armazemId": { "$ref": "armazem" }, "nome": "Cross-Docking", "funcao": "CrossDocking", "ativo": true } },
+      "rua": { "chave": "cd:rua", "conceito": "Rua",
+        "campos": { "areaId": { "$ref": "cd:area" }, "codigo": "CD", "qtdPosicoes": 9999, "qtdAndares": 1,
+                    "bloqueiaRecebimento": false, "bloqueiaExpedicao": false, "bloqueiaMovimento": false, "ativo": true } },
+      "registro": { "chave": "cd:{ordem.id}:{saida.id}", "conceito": "CrossDocking", "ciclo": "CrossDocking",
+        "_corpo": "corpo do flow AtivarCrossDocking (cria com situacao Ativo e liga crossDockingAtivo nos dois documentos)",
+        "campos": { "recebimentoId": { "$ref": "rec:{ordem.id}" }, "expedicaoId": { "$ref": "exp:{saida.id}" },
+                    "produtoId": { "$ref": "produto:{produto.codigo}" }, "quantidade": "{quantidade}", "dataAtivacao": "{data}" },
+        "_se": "as duas ordens têm OrdemConcluida -> PUT situacao Concluido e crossDockingAtivo=false nos dois documentos (o que o ConcluirCrossDockingProcedure do produto faz; não há flow); senão fica Ativo com as flags ligadas." },
+      "baia": { "chave": "cd:baia:{ordem.id}:{saida.id}", "conceito": "LocalArmazenagem",
+        "campos": { "ruaId": { "$ref": "cd:rua" }, "posicao": "{posicao}", "andar": 1, "situacao": "Ocupado" } }
+    },
+
+    "propostaRanking": {
+      "_para": "`ponte.py propor-ranking` (T3.4): o jogo propõe ao corporativo a ordem de ruas da MELHOR partida de um cenário que veio de lá. Vai para o armazém de ORIGEM (cenario.procedenciaUrl / procedenciaArmazemId), não para um espelho.",
+      "_regra": "Melhor partida = a de maior SimScore.scoreCentesimos entre as validadas pelo servidor (empate: a que concluiu antes). Ordem das ruas de armazenagem: mais paletes guardados (eventos Putaway) primeiro; empate: quem recebeu o primeiro palete antes; depois as ruas sem nenhum palete, na ordem em que o cenário já as tinha. Prioridade 1..n (menor = preferida). As ruas do jogo e da origem se casam por rua.codigo.",
+      "_seguranca": "É só uma PROPOSTA: um PerfilAlocacao NOVO, ativo = false e sem Produto ligado, com as RankingRua dele. Nenhum perfil nem RankingRua existente é alterado, então a alocação do corporativo não muda até alguém ligar produtos a esse perfil. `limpar --diario` apaga tudo.",
+      "perfil": { "chave": "proposta:perfil", "conceito": "PerfilAlocacao",
+        "campos": { "nome": "Proposta do jogo · {cenario.codigo} · partida {partida.curto}", "ocupacaoIdealPercent": "{ocupacaoIdealPercent}", "ativo": false } },
+      "ranking": { "_para": "cada rua de armazenagem", "chave": "proposta:ranking:{rua.codigo}", "conceito": "RankingRua",
+        "campos": { "perfilAlocacaoId": { "$ref": "proposta:perfil" }, "ruaId": "{ruaOrigemId}", "prioridade": "{prioridade}" } }
+    },
+
+    "ocupacaoFinal": {
+      "_regra": "Replay do rastro (só eventos exportados): EstoqueInicial/Putaway somam +caixas em (localId, lote); Picking subtrai do lote que estava no local. CrossDock não mexe. Grava o valor ABSOLUTO de cada par tocado, inclusive 0 (upsert: procura por localArmazenagemId+loteId; acha -> PUT {quantidade}; não acha -> POST).",
+      "chave": "ocup:{local.id}:{loteChave}", "conceito": "LocalArmazenagemLote",
+      "campos": { "localArmazenagemId": { "$ref": "local:{local.id}" }, "loteId": { "$ref": "{loteChave}" }, "quantidade": "{quantidade}" }
+    },
+
+    "situacaoFinal": {
+      "_regra": "Para cada local de rua de área Armazenagem: 'Ocupado' se a soma da ocupação final do local > 0, senão 'Disponivel'. Bloqueado fica Bloqueado. Docas ficam Disponivel. PUT parcial {situacao} só se diferente do atual. O Mapa do Armazém pinta por ESTE campo, não pela ocupação.",
+      "conceito": "LocalArmazenagem", "chave": "local:{local.id}"
+    },
+
+    "historico": {
+      "_regra": "Depois de todos os ciclos: para cada movimento exportado, listar HistoricoMovimentacao por movimentoId (/page) e dar PUT {ocorridoEm, descricao} em cada linha conforme o 'evento'. O servidor deixa os dois nulos; aqui a hora do JOGO volta para o corporativo.",
+      "tempos": {
+        "Recebimento": { "Enderecado": "ordem.liberacaoSeg", "Conferido": "primeiroEvento.tSeg", "Armazenado": "conclusao.tSeg", "Concluido": "conclusao.tSeg" },
+        "Expedicao": { "DemandaGerada": "ordem.liberacaoSeg", "MovimentacaoConcluida": "ultimoEvento.tSeg", "SaidaConfirmada": "conclusao.tSeg", "Concluido": "conclusao.tSeg" },
+        "MovtoLivre": { "Concluido": "cenario.inicioTurnoSeg - 1" }
+      },
+      "ocorridoEm": "data + tSeg segundos no fusoHorario, gravado em UTC 'AAAA-MM-DDTHH:MM:SSZ'",
+      "descricao": "WmsOffice: The Game · {documento} · {evento} · {hora}",
+      "_documento": "ordem.numero para entradas/saídas; 'carga inicial' para mov:inicial. {hora} = HH:MM:SS do jogo."
+    }
+  },
+
+  "corporativoParaJogo": {
+    "_nota": "P2. Lê da ORIGEM (corporativo) e grava no JOGO (:8200). Chaves do diário usam os ids da ORIGEM com prefixo 'imp:'.",
+    "areasCopiadas": ["Armazenagem", "Recebimento", "Expedicao"],
+    "docas": "locais de andar 1 das ruas de área Recebimento (entrada) / Expedicao (saída), por (rua.codigo, posicao); copiar só as N primeiras de cada tipo (--max-docas, padrão 2) e gravar a rua da doca com qtdPosicoes = nº de docas copiadas dela, qtdAndares = 1. É o que src/sim/layout.ts construirLayout usa como doca.",
+    "locaisArmazenagem": "todos os locais das ruas de área Armazenagem; situacao 'Bloqueado' copiada, qualquer outra vira 'Disponivel' (o estoque do turno é sorteado pelo jogo).",
+    "produtos": "produtos ativos da origem (até --max-produtos, padrão 30, por código); gravados com codigo 'CORP-{codigo}' (máx. 30 chars) e perfilAlocacaoId = perfil copiado.",
+    "ranking": "RankingRua da origem para as ruas de armazenagem copiadas (do primeiro perfil que tiver alguma); sem nenhum, prioridade 1..n pela ordem de rua.codigo.",
+    "cenario": {
+      "chave": "imp:cenario", "conceito": "SimCenario",
+      "campos": { "codigo": "{codigo}", "nome": "{armazemOrigem.nome} (corporativo)", "dificuldade": "{dificuldade}",
+                  "armazemId": { "$ref": "imp:armazem" }, "seed": "{seed}",
+                  "qtdDocasInbound": "{docasEntrada}", "qtdDocasOutbound": "{docasSaida}", "qtdEquipamentos": "{equipamentos}",
+                  "velocidadeEquipamentoCmS": 220, "tempoDescargaSeg": 300, "inicioTurnoSeg": 28800, "fimTurnoSeg": 64800,
+                  "ativo": true, "procedencia": "Corporativo", "procedenciaUrl": "{origemUrl}",
+                  "procedenciaArmazemId": "{armazemOrigem.id}", "procedenciaEm": "{agoraIso}" },
+      "dificuldade": "por nº de locais de armazenagem: < 100 Facil, < 500 Medio, < 1500 Dificil, senão Extremo",
+      "equipamentos": "max(2, min(8, round(locaisArmazenagem / 150)))",
+      "seed": "--seed, ou int(sha1(armazemOrigem.id)[:8], 16) & 0x7fffffff"
+    },
+    "ordens": {
+      "flow": "GerarOrdensSimulacao",
+      "entrada": { "seed": "{seed}", "inicioTurnoSeg": 28800, "fimTurnoSeg": 64800, "qtdOrdens": "{qtdOrdens}",
+                   "produtos": "[{produtoId: <id no JOGO>, peso}]", "slaMinSeg": 1800, "slaMaxSeg": 5400, "paletesMin": 1, "paletesMax": 3 },
+      "qtdOrdens": "--qtd-ordens, ou min(400, max(20, round(locaisArmazenagem * 1.2)))",
+      "peso": "i-ésimo produto por código (i = 1..n): max(1, round(100 / i ** 1.1)) — mesma curva do WH-B",
+      "gravar": "POST sim_ordems {cenarioId, numero, tipo, liberacaoSeg, slaSeg, produtoId, quantidadePaletes} para cada ordem devolvida (output.ordens)"
+    },
+    "referencias": "qtdOrdens = nº de ordens gravadas; distanciaTeoricaCm = npx vite-node backend/npdev/tools/teorica_cenarios.ts <pacote.json montado com os ids do jogo>. PUT sim_cenarios/{id} com os dois. Sem eles o ConcluirPartida recusa a partida."
+  }
+}

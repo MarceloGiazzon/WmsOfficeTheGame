@@ -1,0 +1,563 @@
+{
+ "cenario": {
+  "id": "WHAcross",
+  "codigo": "WHA-CROSS",
+  "nome": "WH-A com cross-dock (fixture da ponte)",
+  "dificuldade": "Facil",
+  "armazemId": "WHAarmazem",
+  "seed": 20261110,
+  "qtdDocasInbound": 2,
+  "qtdDocasOutbound": 2,
+  "qtdEquipamentos": 3,
+  "velocidadeEquipamentoCmS": 220,
+  "tempoDescargaSeg": 300,
+  "inicioTurnoSeg": 28800,
+  "fimTurnoSeg": 64800
+ },
+ "armazem": {
+  "id": "WHAarmazem",
+  "nome": "WH-A Pequeno"
+ },
+ "areas": [
+  {
+   "id": "WHAareaRecebimento",
+   "armazemId": "WHAarmazem",
+   "nome": "Area Recebimento",
+   "funcao": "Recebimento"
+  },
+  {
+   "id": "WHAareaExpedicao",
+   "armazemId": "WHAarmazem",
+   "nome": "Area Expedicao",
+   "funcao": "Expedicao"
+  },
+  {
+   "id": "WHAareaArmazenagem",
+   "armazemId": "WHAarmazem",
+   "nome": "Area Armazenagem",
+   "funcao": "Armazenagem"
+  }
+ ],
+ "ruas": [
+  {
+   "id": "WHAdocaIn",
+   "areaId": "WHAareaRecebimento",
+   "codigo": "DOCA-IN",
+   "qtdPosicoes": 2,
+   "qtdAndares": 1
+  },
+  {
+   "id": "WHAdocaOut",
+   "areaId": "WHAareaExpedicao",
+   "codigo": "DOCA-OUT",
+   "qtdPosicoes": 2,
+   "qtdAndares": 1
+  },
+  {
+   "id": "WHArua01",
+   "areaId": "WHAareaArmazenagem",
+   "codigo": "R01",
+   "qtdPosicoes": 12,
+   "qtdAndares": 1
+  },
+  {
+   "id": "WHArua02",
+   "areaId": "WHAareaArmazenagem",
+   "codigo": "R02",
+   "qtdPosicoes": 12,
+   "qtdAndares": 1
+  },
+  {
+   "id": "WHArua03",
+   "areaId": "WHAareaArmazenagem",
+   "codigo": "R03",
+   "qtdPosicoes": 12,
+   "qtdAndares": 1
+  },
+  {
+   "id": "WHArua04",
+   "areaId": "WHAareaArmazenagem",
+   "codigo": "R04",
+   "qtdPosicoes": 12,
+   "qtdAndares": 1
+  }
+ ],
+ "locais": [
+  {
+   "id": "WHAdocaIn-P01-A1",
+   "ruaId": "WHAdocaIn",
+   "posicao": 1,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHAdocaIn-P02-A1",
+   "ruaId": "WHAdocaIn",
+   "posicao": 2,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHAdocaOut-P01-A1",
+   "ruaId": "WHAdocaOut",
+   "posicao": 1,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHAdocaOut-P02-A1",
+   "ruaId": "WHAdocaOut",
+   "posicao": 2,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P01-A1",
+   "ruaId": "WHArua01",
+   "posicao": 1,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P02-A1",
+   "ruaId": "WHArua01",
+   "posicao": 2,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P03-A1",
+   "ruaId": "WHArua01",
+   "posicao": 3,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P04-A1",
+   "ruaId": "WHArua01",
+   "posicao": 4,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P05-A1",
+   "ruaId": "WHArua01",
+   "posicao": 5,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P06-A1",
+   "ruaId": "WHArua01",
+   "posicao": 6,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P07-A1",
+   "ruaId": "WHArua01",
+   "posicao": 7,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P08-A1",
+   "ruaId": "WHArua01",
+   "posicao": 8,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P09-A1",
+   "ruaId": "WHArua01",
+   "posicao": 9,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P10-A1",
+   "ruaId": "WHArua01",
+   "posicao": 10,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P11-A1",
+   "ruaId": "WHArua01",
+   "posicao": 11,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua01-P12-A1",
+   "ruaId": "WHArua01",
+   "posicao": 12,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P01-A1",
+   "ruaId": "WHArua02",
+   "posicao": 1,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P02-A1",
+   "ruaId": "WHArua02",
+   "posicao": 2,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P03-A1",
+   "ruaId": "WHArua02",
+   "posicao": 3,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P04-A1",
+   "ruaId": "WHArua02",
+   "posicao": 4,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P05-A1",
+   "ruaId": "WHArua02",
+   "posicao": 5,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P06-A1",
+   "ruaId": "WHArua02",
+   "posicao": 6,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P07-A1",
+   "ruaId": "WHArua02",
+   "posicao": 7,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P08-A1",
+   "ruaId": "WHArua02",
+   "posicao": 8,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P09-A1",
+   "ruaId": "WHArua02",
+   "posicao": 9,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P10-A1",
+   "ruaId": "WHArua02",
+   "posicao": 10,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P11-A1",
+   "ruaId": "WHArua02",
+   "posicao": 11,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua02-P12-A1",
+   "ruaId": "WHArua02",
+   "posicao": 12,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P01-A1",
+   "ruaId": "WHArua03",
+   "posicao": 1,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P02-A1",
+   "ruaId": "WHArua03",
+   "posicao": 2,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P03-A1",
+   "ruaId": "WHArua03",
+   "posicao": 3,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P04-A1",
+   "ruaId": "WHArua03",
+   "posicao": 4,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P05-A1",
+   "ruaId": "WHArua03",
+   "posicao": 5,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P06-A1",
+   "ruaId": "WHArua03",
+   "posicao": 6,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P07-A1",
+   "ruaId": "WHArua03",
+   "posicao": 7,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P08-A1",
+   "ruaId": "WHArua03",
+   "posicao": 8,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P09-A1",
+   "ruaId": "WHArua03",
+   "posicao": 9,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P10-A1",
+   "ruaId": "WHArua03",
+   "posicao": 10,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P11-A1",
+   "ruaId": "WHArua03",
+   "posicao": 11,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua03-P12-A1",
+   "ruaId": "WHArua03",
+   "posicao": 12,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P01-A1",
+   "ruaId": "WHArua04",
+   "posicao": 1,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P02-A1",
+   "ruaId": "WHArua04",
+   "posicao": 2,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P03-A1",
+   "ruaId": "WHArua04",
+   "posicao": 3,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P04-A1",
+   "ruaId": "WHArua04",
+   "posicao": 4,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P05-A1",
+   "ruaId": "WHArua04",
+   "posicao": 5,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P06-A1",
+   "ruaId": "WHArua04",
+   "posicao": 6,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P07-A1",
+   "ruaId": "WHArua04",
+   "posicao": 7,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P08-A1",
+   "ruaId": "WHArua04",
+   "posicao": 8,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P09-A1",
+   "ruaId": "WHArua04",
+   "posicao": 9,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P10-A1",
+   "ruaId": "WHArua04",
+   "posicao": 10,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P11-A1",
+   "ruaId": "WHArua04",
+   "posicao": 11,
+   "andar": 1,
+   "situacao": "Disponivel"
+  },
+  {
+   "id": "WHArua04-P12-A1",
+   "ruaId": "WHArua04",
+   "posicao": 12,
+   "andar": 1,
+   "situacao": "Disponivel"
+  }
+ ],
+ "produtos": [
+  {
+   "id": "WHAprod01",
+   "codigo": "WHA-P01",
+   "nome": "WHA Produto 01 (classe A, peso 40)",
+   "qtdCaixasPorPallet": 20
+  },
+  {
+   "id": "WHAprod02",
+   "codigo": "WHA-P02",
+   "nome": "WHA Produto 02 (classe A, peso 30)",
+   "qtdCaixasPorPallet": 30
+  },
+  {
+   "id": "WHAprod03",
+   "codigo": "WHA-P03",
+   "nome": "WHA Produto 03 (classe B, peso 25)",
+   "qtdCaixasPorPallet": 40
+  },
+  {
+   "id": "WHAprod04",
+   "codigo": "WHA-P04",
+   "nome": "WHA Produto 04 (classe B, peso 12)",
+   "qtdCaixasPorPallet": 10
+  },
+  {
+   "id": "WHAprod05",
+   "codigo": "WHA-P05",
+   "nome": "WHA Produto 05 (classe B, peso 10)",
+   "qtdCaixasPorPallet": 20
+  },
+  {
+   "id": "WHAprod06",
+   "codigo": "WHA-P06",
+   "nome": "WHA Produto 06 (classe B, peso 8)",
+   "qtdCaixasPorPallet": 30
+  },
+  {
+   "id": "WHAprod07",
+   "codigo": "WHA-P07",
+   "nome": "WHA Produto 07 (classe C, peso 7)",
+   "qtdCaixasPorPallet": 40
+  },
+  {
+   "id": "WHAprod08",
+   "codigo": "WHA-P08",
+   "nome": "WHA Produto 08 (classe C, peso 4)",
+   "qtdCaixasPorPallet": 10
+  },
+  {
+   "id": "WHAprod09",
+   "codigo": "WHA-P09",
+   "nome": "WHA Produto 09 (classe C, peso 3)",
+   "qtdCaixasPorPallet": 20
+  },
+  {
+   "id": "WHAprod10",
+   "codigo": "WHA-P10",
+   "nome": "WHA Produto 10 (classe C, peso 3)",
+   "qtdCaixasPorPallet": 30
+  },
+  {
+   "id": "WHAprod11",
+   "codigo": "WHA-P11",
+   "nome": "WHA Produto 11 (classe C, peso 2)",
+   "qtdCaixasPorPallet": 40
+  },
+  {
+   "id": "WHAprod12",
+   "codigo": "WHA-P12",
+   "nome": "WHA Produto 12 (classe C, peso 2)",
+   "qtdCaixasPorPallet": 10
+  }
+ ],
+ "ordens": [
+  {
+   "id": "WHAcross-IN-0001",
+   "numero": "IN-0001",
+   "tipo": "Inbound",
+   "liberacaoSeg": 28801,
+   "slaSeg": 7200,
+   "produtoId": "WHAprod01",
+   "quantidadePaletes": 2
+  },
+  {
+   "id": "WHAcross-OUT-0001",
+   "numero": "OUT-0001",
+   "tipo": "Outbound",
+   "liberacaoSeg": 28810,
+   "slaSeg": 7200,
+   "produtoId": "WHAprod01",
+   "quantidadePaletes": 31
+  }
+ ],
+ "rankingRuas": [
+  {
+   "ruaId": "WHArua01",
+   "prioridade": 1
+  },
+  {
+   "ruaId": "WHArua02",
+   "prioridade": 2
+  },
+  {
+   "ruaId": "WHArua03",
+   "prioridade": 3
+  },
+  {
+   "ruaId": "WHArua04",
+   "prioridade": 4
+  }
+ ]
+}

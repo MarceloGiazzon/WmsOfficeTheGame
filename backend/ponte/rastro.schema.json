@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rastro-v1",
+  "title": "Rastro de uma partida (formato de arquivo da ponte)",
+  "description": "O que aconteceu num turno, palete a palete. Gerado por src/sim/rastro.ts (Simulacao.rastro()) e, online, gravado como linhas de SimEvento. Documentação: o projeto não usa biblioteca de JSON Schema (só stdlib); a validação equivalente está em backend/ponte/fonte.py (validar_rastro). Regras que o schema não expressa estão em 'x-regras'.",
+  "type": "object",
+  "required": ["formato", "partidaId", "cenarioId", "cenarioCodigo", "versaoMotor", "politicaInicial", "eventos"],
+  "properties": {
+    "formato": { "const": "rastro-v1" },
+    "partidaId": { "type": "string", "description": "id da SimPartida (UUID) — ou um UUID fixo nos exemplos" },
+    "cenarioId": { "type": "string", "description": "id do cenário no pacote (alias no pacote embutido, UUID no servidor)" },
+    "cenarioCodigo": { "type": "string" },
+    "versaoMotor": { "type": "string", "description": "VERSAO_MOTOR de src/net/partidas.ts" },
+    "politicaInicial": { "enum": ["AbcProximidade", "FifoPrimeiraLivre", "Consolidacao", "CrossDocking", "WmsReal"] },
+    "scoreCentesimos": { "type": ["integer", "null"], "description": "opcional; só entra no texto da observação" },
+    "eventos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["seq", "tipo", "tSeg", "ordemId", "ordemSaidaId", "produtoId", "localId", "localDestinoId"],
+        "additionalProperties": false,
+        "properties": {
+          "seq": { "type": "integer", "minimum": 0 },
+          "tipo": { "enum": ["EstoqueInicial", "Putaway", "Picking", "CrossDock", "OrdemConcluida"] },
+          "tSeg": { "type": "integer", "description": "segundos desde 00:00 do dia do turno; EstoqueInicial pode ser < inicioTurnoSeg (até 30 dias antes, negativo)" },
+          "ordemId": { "type": ["string", "null"] },
+          "ordemSaidaId": { "type": ["string", "null"] },
+          "produtoId": { "type": ["string", "null"] },
+          "localId": { "type": ["string", "null"] },
+          "localDestinoId": { "type": ["string", "null"] }
+        }
+      }
+    }
+  },
+  "x-regras": [
+    "seq começa em 0 e cresce de 1 em 1, sem buracos, na ordem em que o motor registrou.",
+    "Todos os EstoqueInicial vêm antes de qualquer outro tipo.",
+    "Fora os EstoqueInicial, tSeg nunca diminui de um evento para o seguinte.",
+    "EstoqueInicial: produtoId e localId preenchidos; ordemId, ordemSaidaId, localDestinoId nulos.",
+    "Putaway: ordemId (Inbound), produtoId, localId (local de armazenagem onde o palete foi GUARDADO). O resto nulo.",
+    "Picking: ordemId (Outbound), produtoId, localId (local de onde o palete SAIU; tSeg = quando saiu do local). O resto nulo.",
+    "CrossDock: ordemId (Inbound de onde veio), ordemSaidaId (Outbound que recebeu), produtoId, localId = doca de entrada, localDestinoId = doca de saída.",
+    "OrdemConcluida: só ordemId; aparece no máximo uma vez por ordem, DEPOIS do último palete da ordem (no mesmo tSeg é permitido).",
+    "Putaway num local exige que ele esteja vazio no replay; Picking exige que esteja ocupado pelo mesmo produto."
+  ]
+}

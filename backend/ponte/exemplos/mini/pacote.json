@@ -1,0 +1,45 @@
+{
+  "cenario": {
+    "id": "MINIcenario", "codigo": "MINI", "nome": "Mini (fixture da ponte)", "dificuldade": "Facil",
+    "armazemId": "MINIarmazem", "seed": 1,
+    "qtdDocasInbound": 1, "qtdDocasOutbound": 1, "qtdEquipamentos": 1,
+    "velocidadeEquipamentoCmS": 220, "tempoDescargaSeg": 300, "inicioTurnoSeg": 28800, "fimTurnoSeg": 64800
+  },
+  "armazem": { "id": "MINIarmazem", "nome": "Mini" },
+  "areas": [
+    { "id": "MINIareaRec", "armazemId": "MINIarmazem", "nome": "Area Recebimento", "funcao": "Recebimento" },
+    { "id": "MINIareaExp", "armazemId": "MINIarmazem", "nome": "Area Expedicao", "funcao": "Expedicao" },
+    { "id": "MINIareaArm", "armazemId": "MINIarmazem", "nome": "Area Armazenagem", "funcao": "Armazenagem" }
+  ],
+  "ruas": [
+    { "id": "MINIdocaIn", "areaId": "MINIareaRec", "codigo": "DOCA-IN", "qtdPosicoes": 1, "qtdAndares": 1 },
+    { "id": "MINIdocaOut", "areaId": "MINIareaExp", "codigo": "DOCA-OUT", "qtdPosicoes": 1, "qtdAndares": 1 },
+    { "id": "MINIrua01", "areaId": "MINIareaArm", "codigo": "R01", "qtdPosicoes": 3, "qtdAndares": 1 },
+    { "id": "MINIrua02", "areaId": "MINIareaArm", "codigo": "R02", "qtdPosicoes": 3, "qtdAndares": 1 }
+  ],
+  "locais": [
+    { "id": "MINIdocaIn-P01-A1", "ruaId": "MINIdocaIn", "posicao": 1, "andar": 1, "situacao": "Disponivel" },
+    { "id": "MINIdocaOut-P01-A1", "ruaId": "MINIdocaOut", "posicao": 1, "andar": 1, "situacao": "Disponivel" },
+    { "id": "MINIrua01-P01-A1", "ruaId": "MINIrua01", "posicao": 1, "andar": 1, "situacao": "Disponivel" },
+    { "id": "MINIrua01-P02-A1", "ruaId": "MINIrua01", "posicao": 2, "andar": 1, "situacao": "Disponivel" },
+    { "id": "MINIrua01-P03-A1", "ruaId": "MINIrua01", "posicao": 3, "andar": 1, "situacao": "Disponivel" },
+    { "id": "MINIrua02-P01-A1", "ruaId": "MINIrua02", "posicao": 1, "andar": 1, "situacao": "Disponivel" },
+    { "id": "MINIrua02-P02-A1", "ruaId": "MINIrua02", "posicao": 2, "andar": 1, "situacao": "Disponivel" },
+    { "id": "MINIrua02-P03-A1", "ruaId": "MINIrua02", "posicao": 3, "andar": 1, "situacao": "Disponivel" }
+  ],
+  "produtos": [
+    { "id": "MINIprod01", "codigo": "MINI-P01", "nome": "MINI Produto 01", "qtdCaixasPorPallet": 20 },
+    { "id": "MINIprod02", "codigo": "MINI-P02", "nome": "MINI Produto 02", "qtdCaixasPorPallet": 10 }
+  ],
+  "ordens": [
+    { "id": "MINIord-IN-0001", "numero": "IN-0001", "tipo": "Inbound", "liberacaoSeg": 28900, "slaSeg": 3600, "produtoId": "MINIprod01", "quantidadePaletes": 2 },
+    { "id": "MINIord-OUT-0001", "numero": "OUT-0001", "tipo": "Outbound", "liberacaoSeg": 29000, "slaSeg": 3600, "produtoId": "MINIprod02", "quantidadePaletes": 1 },
+    { "id": "MINIord-IN-0003", "numero": "IN-0003", "tipo": "Inbound", "liberacaoSeg": 29500, "slaSeg": 3600, "produtoId": "MINIprod01", "quantidadePaletes": 1 },
+    { "id": "MINIord-OUT-0002", "numero": "OUT-0002", "tipo": "Outbound", "liberacaoSeg": 29600, "slaSeg": 3600, "produtoId": "MINIprod01", "quantidadePaletes": 1 },
+    { "id": "MINIord-IN-0002", "numero": "IN-0002", "tipo": "Inbound", "liberacaoSeg": 60000, "slaSeg": 3600, "produtoId": "MINIprod02", "quantidadePaletes": 2 }
+  ],
+  "rankingRuas": [
+    { "ruaId": "MINIrua01", "prioridade": 1 },
+    { "ruaId": "MINIrua02", "prioridade": 2 }
+  ]
+}

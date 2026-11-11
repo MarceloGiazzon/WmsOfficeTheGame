@@ -26,3 +26,6 @@ android/capacitor-cordova-android-plugins/
 *.aab
 *.keystore
 *.jks
+
+# Diários das exportações da ponte (em tempo de execução)
+backend/ponte/estado/

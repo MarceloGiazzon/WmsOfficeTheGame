@@ -1,0 +1,26 @@
+{
+  "formato": "rastro-v1",
+  "partidaId": "00000000-0000-4000-8000-00000000a11e",
+  "cenarioId": "MINIcenario",
+  "cenarioCodigo": "MINI",
+  "versaoMotor": "0.3.0",
+  "politicaInicial": "AbcProximidade",
+  "scoreCentesimos": 8286,
+  "eventos": [
+    { "seq": 0,  "tipo": "EstoqueInicial", "tSeg": 20000, "ordemId": null, "ordemSaidaId": null, "produtoId": "MINIprod02", "localId": "MINIrua02-P01-A1", "localDestinoId": null },
+    { "seq": 1,  "tipo": "EstoqueInicial", "tSeg": 21000, "ordemId": null, "ordemSaidaId": null, "produtoId": "MINIprod02", "localId": "MINIrua02-P02-A1", "localDestinoId": null },
+    { "seq": 2,  "tipo": "EstoqueInicial", "tSeg": 22000, "ordemId": null, "ordemSaidaId": null, "produtoId": "MINIprod01", "localId": "MINIrua01-P03-A1", "localDestinoId": null },
+
+    { "seq": 3,  "tipo": "Putaway",        "tSeg": 29300, "ordemId": "MINIord-IN-0001",  "ordemSaidaId": null, "produtoId": "MINIprod01", "localId": "MINIrua01-P01-A1", "localDestinoId": null },
+    { "seq": 4,  "tipo": "Picking",        "tSeg": 29350, "ordemId": "MINIord-OUT-0001", "ordemSaidaId": null, "produtoId": "MINIprod02", "localId": "MINIrua02-P01-A1", "localDestinoId": null },
+    { "seq": 5,  "tipo": "OrdemConcluida", "tSeg": 29400, "ordemId": "MINIord-OUT-0001", "ordemSaidaId": null, "produtoId": null, "localId": null, "localDestinoId": null },
+    { "seq": 6,  "tipo": "Putaway",        "tSeg": 29420, "ordemId": "MINIord-IN-0001",  "ordemSaidaId": null, "produtoId": "MINIprod01", "localId": "MINIrua01-P02-A1", "localDestinoId": null },
+    { "seq": 7,  "tipo": "OrdemConcluida", "tSeg": 29420, "ordemId": "MINIord-IN-0001",  "ordemSaidaId": null, "produtoId": null, "localId": null, "localDestinoId": null },
+
+    { "seq": 8,  "tipo": "CrossDock",      "tSeg": 30200, "ordemId": "MINIord-IN-0003",  "ordemSaidaId": "MINIord-OUT-0002", "produtoId": "MINIprod01", "localId": "MINIdocaIn-P01-A1", "localDestinoId": "MINIdocaOut-P01-A1" },
+    { "seq": 9,  "tipo": "OrdemConcluida", "tSeg": 30200, "ordemId": "MINIord-IN-0003",  "ordemSaidaId": null, "produtoId": null, "localId": null, "localDestinoId": null },
+    { "seq": 10, "tipo": "OrdemConcluida", "tSeg": 30200, "ordemId": "MINIord-OUT-0002", "ordemSaidaId": null, "produtoId": null, "localId": null, "localDestinoId": null },
+
+    { "seq": 11, "tipo": "Putaway",        "tSeg": 60500, "ordemId": "MINIord-IN-0002",  "ordemSaidaId": null, "produtoId": "MINIprod02", "localId": "MINIrua02-P03-A1", "localDestinoId": null }
+  ]
+}
