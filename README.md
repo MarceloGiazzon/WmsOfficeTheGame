@@ -173,3 +173,11 @@ Estado em 2026-11-10; o acompanhamento detalhado (fases N0–N5 e F0–F7, decis
 3. **Etapa 3 — Expansão das Regras Logísticas** ✅: as cinco políticas do §4 estão no motor, com testes de paridade TS × Java para as regras de alocação. A **WmsOffice Real** é decidida pelo servidor quando há login (flow `SugerirDestinoJogo`; o jogo para o relógio enquanto espera cada resposta, ~50 ms) e cai para a porta TS, que é a mesma regra, sem login ou se o servidor falhar; a tela de resultado diz de onde vieram os destinos.
 4. **Etapa 4 — Portabilidade Mobile** ◐: Capacitor 6 + projeto Android, `.apk` de debug, layout de toque e fontes locais. Faltam testar em aparelho ou emulador, apontar o APK para a URL do backend (com CORS) e o build de release.
 5. **Integridade do ranking** ◻: validação por replay no servidor (§5.4).
+6. **Ponte com o WmsOffice corporativo** ✅: o jogo e o corporativo trocam dados nos dois sentidos (`backend/ponte`, ferramenta Python). Depois de uma partida, o botão **Enviar ao WmsOffice** leva o turno ao corporativo como documentos reais — recebimentos armazenados, expedições confirmadas, movimentos concluídos, ocupação final no Mapa do Armazém e histórico com a **hora do jogo**; e um armazém criado no corporativo vira cenário jogável (selo "do WmsOffice corporativo"). O motor grava o rastro do turno (`src/sim/rastro.ts`), que o cliente envia como `SimEvento`. Veja [backend/ponte/README.md](backend/ponte/README.md) e o roteiro de 5 minutos em [docs/ponte/DEMO.md](docs/ponte/DEMO.md).
+
+```text
+   jogo (:8200)                                              corporativo (:8100)
+   partida + rastro (SimEvento) ──► ponte.py exportar ─────► armazém espelho · Recebimentos · Expedições
+   SimExportacao (pedido do botão) ◄─ ponte.py vigiar          Movimentos · ocupação · histórico (hora do jogo)
+   SimCenario (procedencia) ◄───── ponte.py importar ◄─────── Armazém · Áreas · Ruas · Locais · Produtos
+```

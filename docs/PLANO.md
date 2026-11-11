@@ -941,5 +941,5 @@ Marcos:
 3. O ranking é global ou por usuário/tenant?
 4. ~~Correção no manifesto do produto WmsOffice (N0)~~: decidido em 2026-11-10 — **mantida** (o produto passa a gerar
    no NPDev atual; backup do estado anterior em `AppGen/apps/_backups/WmsOffice-2026-11-10-pre-n0.tar.gz`).
-5. Haverá validação por replay (o servidor reexecuta a partida)? Isso exige o motor em Java também — fora de escopo por ora.
+5. Haverá validação por replay (o servidor reexecuta a partida)? Isso exige o motor em Java também — fora de escopo por ora. **Atualização (ponte Jogo ↔ WmsOffice):** o motor agora grava o rastro da partida (`src/sim/rastro.ts`, uma linha de `SimEvento` por evento: Putaway, Picking, CrossDock…), o que *habilita* o replay no servidor — mas conferir o rastro contra as ordens e o estoque ainda é outra tarefa (ver [docs/ponte/PLANO.md](ponte/PLANO.md) §12).
    Sem ela, o ranking só é confiável contra erro e adulteração ingênua, não contra métricas forjadas com cuidado (N2, anti-fraude).
