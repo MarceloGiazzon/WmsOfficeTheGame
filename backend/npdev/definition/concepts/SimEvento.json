@@ -1,0 +1,55 @@
+{
+  "name": "SimEvento",
+  "ui": { "label": "Evento da partida (rastro)" },
+  "fields": [
+    { "name": "id", "type": "uuid", "id": true, "required": true, "ui": { "label": "ID" } },
+    {
+      "name": "partidaId", "type": "reference", "required": true,
+      "reference": { "target": "SimPartida", "onDelete": "cascade" },
+      "ui": { "label": "Partida" }
+    },
+    {
+      "name": "jogador", "type": "string", "required": true, "minLength": 1, "maxLength": 100,
+      "ui": { "label": "Jogador (username)" }
+    },
+    { "name": "seq", "type": "integer", "required": true, "ui": { "label": "Sequencia" } },
+    {
+      "name": "tipo", "type": "enum", "required": true,
+      "values": ["EstoqueInicial", "Putaway", "Picking", "CrossDock", "OrdemConcluida"],
+      "ui": { "label": "Tipo" }
+    },
+    { "name": "tSeg", "type": "integer", "required": true, "ui": { "label": "Segundo do dia" } },
+    {
+      "name": "ordemId", "type": "reference", "required": false,
+      "reference": { "target": "SimOrdem", "onDelete": "nullify" },
+      "ui": { "label": "Ordem" }
+    },
+    {
+      "name": "ordemSaidaId", "type": "reference", "required": false,
+      "reference": { "target": "SimOrdem", "onDelete": "nullify" },
+      "ui": { "label": "Ordem de saida (cross-dock)" }
+    },
+    {
+      "name": "produtoId", "type": "reference", "required": false,
+      "reference": { "target": "Produto", "onDelete": "nullify" },
+      "ui": { "label": "Produto" }
+    },
+    {
+      "name": "localId", "type": "reference", "required": false,
+      "reference": { "target": "LocalArmazenagem", "onDelete": "nullify" },
+      "ui": { "label": "Local" }
+    },
+    {
+      "name": "localDestinoId", "type": "reference", "required": false,
+      "reference": { "target": "LocalArmazenagem", "onDelete": "nullify" },
+      "ui": { "label": "Local de destino (cross-dock)" }
+    }
+  ],
+  "access": {
+    "read": "jogador == $user.id || $user.roles.contains('ADMIN')",
+    "write": "jogador == $user.id || $user.roles.contains('ADMIN')"
+  },
+  "invariants": [
+    { "name": "SimEventoSeqNonNegative", "type": "expression", "expr": "seq >= 0" }
+  ]
+}

@@ -32,7 +32,11 @@
     {
       "name": "distanciaTeoricaCm", "type": "long",
       "ui": { "label": "Distancia teorica (cm)" }
-    }
+    },
+    { "name": "procedencia", "type": "enum", "values": ["Jogo", "Corporativo"], "ui": { "label": "Procedencia" } },
+    { "name": "procedenciaUrl", "type": "string", "maxLength": 200, "ui": { "label": "URL de origem" } },
+    { "name": "procedenciaArmazemId", "type": "string", "maxLength": 40, "ui": { "label": "Armazem de origem (id)" } },
+    { "name": "procedenciaEm", "type": "datetime", "ui": { "label": "Importado em" } }
   ],
   "access": {
     "write": "$user.roles.contains('ADMIN')"

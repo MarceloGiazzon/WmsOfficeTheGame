@@ -229,6 +229,14 @@
         ],
         "SimScore": [
           "read"
+        ],
+        "SimEvento": [
+          "read",
+          "create"
+        ],
+        "SimExportacao": [
+          "read",
+          "create"
         ]
       }
     }
@@ -387,6 +395,12 @@
     },
     {
       "$ref": "concepts/SimScore.json"
+    },
+    {
+      "$ref": "concepts/SimEvento.json"
+    },
+    {
+      "$ref": "concepts/SimExportacao.json"
     }
   ],
   "aggregates": [
