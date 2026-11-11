@@ -33,6 +33,8 @@ export interface ResumoCenario {
   docasSaida: number;
   inicioTurnoSeg: number;
   fimTurnoSeg: number;
+  /** `'Corporativo'` = o cenário nasceu de um armazém do WmsOffice (a tela mostra o selo); ausente = do jogo. */
+  procedencia?: 'Corporativo';
 }
 
 export interface PacoteCarregado {
@@ -88,6 +90,7 @@ export function resumirCenario(pacote: PacoteCenario, origem: OrigemCenario): Re
     docasSaida: posicoes(ruasDe('Expedicao')),
     inicioTurnoSeg: cenario.inicioTurnoSeg,
     fimTurnoSeg: cenario.fimTurnoSeg,
+    ...(cenario.procedencia === 'Corporativo' ? { procedencia: 'Corporativo' as const } : {}),
   };
 }
 

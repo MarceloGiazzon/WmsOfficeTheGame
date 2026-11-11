@@ -69,6 +69,8 @@ export class ServidorFalso {
     this.maxPagina = o.maxPagina ?? 1000;
     this.semLeitura = new Set(o.semLeituraDe ?? []);
     for (const p of o.pacotes) this.carregar(p);
+    this.tabela('SimExportacao');
+    this.tabela('SimEvento'); // existe (vazia) mesmo sem nenhum evento gravado: o /page responde 200, não 400
   }
 
   readonly fetch: FetchLike = (url, init) => this.tratar(url, init);
@@ -93,6 +95,19 @@ export class ServidorFalso {
   /** Cria um usuário (role Jogador por padrão). */
   adicionarUsuario(nome: string, senha: string, roles: string[] = ['Jogador']): void {
     this.usuarios[nome] = { senha, roles };
+  }
+
+  /** Linhas de `SimEvento` gravadas (o rastro das partidas), como o /page as devolve (`tSeg`). */
+  get eventos(): readonly Linha[] {
+    return this.tabela('SimEvento');
+  }
+
+  /**
+   * Linhas de `SimExportacao` (pedidos ao WmsOffice). O teste faz o papel do `ponte.py vigiar` mudando `situacao`, `passo`,
+   * `progressoCentesimos`, `armazemAlvoId` e `mensagem` direto aqui (o jogador não edita; só a ponte).
+   */
+  get exportacoes(): Linha[] {
+    return this.tabela('SimExportacao');
   }
 
   contar(filtro: (c: Chamada) => boolean): number {
@@ -181,6 +196,8 @@ export class ServidorFalso {
     if (c.metodo === 'GET' && (m = /^\/queries\/(\w+)$/.exec(c.caminho))) return this.query(m[1], c.query, jogador);
     if (c.metodo === 'GET' && (m = /^\/concepts\/(\w+)\/page$/.exec(c.caminho))) return this.pagina(m[1], c.query, jogador);
     if (c.metodo === 'POST' && c.caminho === '/sim_partidas') return this.criarPartida(c.corpo as Linha, jogador);
+    if (c.metodo === 'POST' && c.caminho === '/sim_eventos') return this.criarEvento(c.corpo as Linha, jogador);
+    if (c.metodo === 'POST' && c.caminho === '/sim_exportacaos') return this.criarExportacao(c.corpo as Linha, jogador);
     if (c.metodo === 'POST' && (m = /^\/flows\/(\w+)\/execute$/.exec(c.caminho))) return this.flow(m[1], c.corpo as Linha, jogador);
     return { status: 404, corpo: { timestamp: 'x', status: 404, error: 'Not Found', path: `/api${c.caminho}` } };
   }
@@ -216,7 +233,8 @@ export class ServidorFalso {
 
   private visivel(conceito: string, linhas: Linha[], jogador: string): Linha[] {
     // regra por linha de SimPartida: só o dono; os outros concepts do jogo são legíveis
-    return conceito === 'SimPartida' ? linhas.filter(l => l.jogador === jogador) : linhas;
+    return conceito === 'SimPartida' || conceito === 'SimEvento' ? linhas.filter(l => l.jogador === jogador)
+      : conceito === 'SimExportacao' ? linhas.filter(l => l.solicitadaPor === jogador) : linhas;
   }
 
   private pagina(conceito: string, q: Record<string, string>, jogador: string): Resposta {
@@ -273,6 +291,43 @@ export class ServidorFalso {
       iniciadaEm: c.iniciadaEm, concluidaEm: null, version: 0, tenantId: 'dev',
     };
     this.partidas.set(id, linha);
+    return { status: 201, corpo: linha };
+  }
+
+  /**
+   * `SimEvento` (rastro). Imita a esquisitice verificada ao vivo: o campo `tSeg` se ESCREVE `tseg` (mandar `tSeg` dá 422)
+   * e o /page o devolve como `tSeg`. Só o dono grava (regra por linha) e a partida tem de existir e ser dele.
+   */
+  private criarEvento(c: Linha, jogador: string): Resposta {
+    if (c.jogador !== jogador) return { status: 403, corpo: { code: 'ROW_SCOPE_DENIED', message: 'Row-level access rule denied the write' } };
+    if (typeof c.tseg !== 'number') {
+      return { status: 422, corpo: { code: 'invariant_failed', concept: 'SimEvento', invariant: 'required(tSeg)', path: 'tSeg', message: "Entity SimEvento: required field 'tSeg' is missing (ref=required(tSeg))" } };
+    }
+    const partida = this.partidas.get(String(c.partidaId));
+    if (!partida || partida.jogador !== jogador) {
+      return { status: 422, corpo: { code: 'bond_target_not_found', concept: 'SimEvento', path: 'partidaId', message: 'Referenced SimPartida was not found' } };
+    }
+    const id = uuidFalso(this.contador++ + 400000);
+    const { tseg, ...resto } = c;
+    const linha: Linha = {
+      id, ordemId: null, ordemSaidaId: null, produtoId: null, localId: null, localDestinoId: null, ...resto, tSeg: tseg, version: 0, tenantId: 'dev',
+    };
+    this.tabela('SimEvento').push(linha);
+    return { status: 201, corpo: { ...linha, tseg, tSeg: undefined } };
+  }
+
+  /** `SimExportacao`: o jogador pede (situacao `Solicitada`); quem a muda é a ponte. Só para a própria partida. */
+  private criarExportacao(c: Linha, jogador: string): Resposta {
+    if (c.solicitadaPor !== jogador) return { status: 403, corpo: { code: 'ROW_SCOPE_DENIED', message: 'Row-level access rule denied the write' } };
+    const partida = this.partidas.get(String(c.partidaId));
+    if (!partida || partida.jogador !== jogador) {
+      return { status: 422, corpo: { code: 'bond_target_not_found', concept: 'SimExportacao', path: 'partidaId', message: 'Referenced SimPartida was not found' } };
+    }
+    const linha: Linha = {
+      id: uuidFalso(this.contador++ + 500000), situacao: 'Solicitada', iniciadaEm: null, concluidaEm: null, passo: null,
+      progressoCentesimos: null, armazemAlvoId: null, totalChamadas: null, mensagem: null, ...c, version: 0, tenantId: 'dev',
+    };
+    this.tabela('SimExportacao').push(linha);
     return { status: 201, corpo: linha };
   }
 

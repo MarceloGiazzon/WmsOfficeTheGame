@@ -19,6 +19,7 @@ import { Malha, type Trecho } from './pathing';
 import { candidatosWmsReal, escolherDestino, escolherOrigens, type ContextoPolitica } from './politicas';
 import { calcularScore, type ResultadoScore } from './score';
 import { sugerirDestino, type CandidatoDestino } from './wmsReal';
+import type { EventoRastro, EventoRastroSemSeq } from './rastro';
 import { calcularDistanciaTeorica } from './teorica';
 
 export type { EstadoLocal } from './model';
@@ -165,6 +166,8 @@ export class Simulacao {
   private readonly ordens: OrdemEstado[];
   private proximaOrdem = 0;
   private eventos: Evento[] = [];
+  /** Rastro para a ponte com o WmsOffice (src/sim/rastro.ts): só anotado, o motor nunca lê. */
+  private readonly eventosRastro: EventoRastro[] = [];
 
   private readonly docasEntrada: DocaInterna[];
   private readonly docasSaida: DocaInterna[];
@@ -219,6 +222,9 @@ export class Simulacao {
     }
     this.locaisDisponiveis = livres.length - estoque.length;
     this.estoqueInicial = estoque.length;
+    for (const p of estoque) {
+      this.anotar({ tipo: 'EstoqueInicial', tSeg: p.entradaSeg, ordemId: null, ordemSaidaId: null, produtoId: p.produtoId, localId: p.localId, localDestinoId: null });
+    }
 
     this.ordens = [...pacote.ordens]
       .sort((a, b) => a.liberacaoSeg - b.liberacaoSeg || a.numero.localeCompare(b.numero))
@@ -490,8 +496,18 @@ export class Simulacao {
     this.tarefasDesordenadas = true;
   }
 
+  private anotar(e: EventoRastroSemSeq): void {
+    this.eventosRastro.push({ seq: this.eventosRastro.length, ...e });
+  }
+
+  /** O rastro do turno até agora (ver src/sim/rastro.ts). Só leitura: nada no motor depende dele. */
+  rastro(): readonly Readonly<EventoRastro>[] {
+    return this.eventosRastro;
+  }
+
   private concluirOrdem(o: OrdemEstado): void {
     o.concluidaSeg = this.relogioSeg;
+    this.anotar({ tipo: 'OrdemConcluida', tSeg: this.relogioSeg, ordemId: o.ordem.id, ordemSaidaId: null, produtoId: null, localId: null, localDestinoId: null });
     this.abertas.delete(o);
     this.ordensConcluidas++;
     const atrasada = this.relogioSeg > o.prazoSeg;
@@ -575,6 +591,7 @@ export class Simulacao {
       ...this.mover(t.doca.acesso, destino.acesso),
       { t: 'operar', seg: this.tempoLocal(destinoId), aoFim: () => {
         e.carga = null;
+        this.anotar({ tipo: 'Putaway', tSeg: this.relogioSeg, ordemId: t.ordem.ordem.id, ordemSaidaId: null, produtoId, localId: destinoId, localDestinoId: null });
         Object.assign(estado, { situacao: 'Ocupado', produtoId, entradaSeg: this.relogioSeg });
         estado.acessos++;
         this.paletesGuardados++;
@@ -594,6 +611,7 @@ export class Simulacao {
       ...this.mover(e.posicao, origem.acesso),
       { t: 'operar', seg: this.tempoLocal(t.origemId), aoFim: () => {
         e.carga = produtoId;
+        this.anotar({ tipo: 'Picking', tSeg: this.relogioSeg, ordemId: t.ordem.ordem.id, ordemSaidaId: null, produtoId, localId: t.origemId, localDestinoId: null });
         Object.assign(estado, { situacao: 'Disponivel', produtoId: null, reservadoSaida: false });
         estado.acessos++;
         this.paletesRetirados++;
@@ -616,6 +634,7 @@ export class Simulacao {
       ...this.mover(t.doca.acesso, t.docaSaida.acesso),
       { t: 'operar', seg: TEMPO_DOCA_SEG, aoFim: () => {
         e.carga = null;
+        this.anotar({ tipo: 'CrossDock', tSeg: this.relogioSeg, ordemId: t.ordem.ordem.id, ordemSaidaId: t.saida.ordem.id, produtoId, localId: t.doca.localId, localDestinoId: t.docaSaida.localId });
         this.paletesCruzados++;
         this.terminarPalete(t.ordem);
         this.terminarPalete(t.saida);

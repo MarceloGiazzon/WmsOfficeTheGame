@@ -199,3 +199,19 @@ describe('validarPacote', () => {
     }
   });
 });
+
+describe('procedência do cenário (ponte Jogo ↔ WmsOffice)', () => {
+  it('um cenário importado do corporativo carrega com procedencia "Corporativo"; os do jogo não têm o campo', async () => {
+    const importado = structuredClone(doBanco.A);
+    importado.cenario.codigo = 'CORP-teste';
+    (importado.cenario as { procedencia?: string }).procedencia = 'Corporativo';
+    const servidor = new ServidorFalso({ pacotes: [doBanco.A, importado] });
+    const cliente = new NpdevClient({ fetch: servidor.fetch });
+    await cliente.login('jogador', 'senha-certa');
+    expect((await listarCenarios(cliente)).map(c => [c.codigo, c.procedencia])).toEqual([['CORP-teste', 'Corporativo'], ['WH-A-PEQUENO', undefined]]);
+    const pacote = await carregarPacote(cliente, 'CORP-teste');
+    expect(pacote.cenario.procedencia).toBe('Corporativo');
+    expect(validarPacote(JSON.parse(JSON.stringify(pacote))).cenario.procedencia).toBe('Corporativo'); // sobrevive ao cache
+    expect(Object.keys((await carregarPacote(cliente, 'WH-A-PEQUENO')).cenario)).not.toContain('procedencia');
+  });
+});

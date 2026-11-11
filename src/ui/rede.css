@@ -83,6 +83,16 @@
 .aviso-envio.envio-recusada, .aviso-envio.envio-falhou { color: var(--accent-red); border-color: var(--accent-red); }
 .aviso-mensagem { user-select: text; -webkit-user-select: text; line-height: 1.4; }
 .aviso-acao { align-self: flex-start; }
+
+/* "Enviar ao WmsOffice" (ponte Jogo ↔ WmsOffice) */
+.bloco-wms { margin-top: 0.6rem; padding: 0.6rem 0.75rem; border: 1px solid var(--borda, #334155); border-radius: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.bloco-wms .wms-titulo { margin: 0; font-weight: 600; font-size: 0.85rem; }
+.bloco-wms .wms-texto { margin: 0; font-size: 0.85rem; line-height: 1.35; overflow-wrap: anywhere; }
+.bloco-wms.wms-falhou .wms-texto { color: #fca5a5; }
+.bloco-wms .wms-barra { height: 0.4rem; border-radius: 0.2rem; background: rgba(148, 163, 184, 0.25); overflow: hidden; }
+.bloco-wms .wms-barra > span { display: block; height: 100%; background: #38bdf8; transition: width 0.3s; }
+.bloco-wms .wms-endereco { margin: 0; font-size: 0.85rem; overflow-wrap: anywhere; }
+.bloco-wms .wms-url { user-select: all; font-family: ui-monospace, monospace; }
 .tabela-ranking tr.meu td { color: var(--accent-cyan); }
 .tabela-ranking tr.separador td { text-align: center; color: var(--text-muted); border-bottom: none; padding: 0 8px; line-height: 1; }
 
@@ -93,3 +103,7 @@
 @media (max-width: 560px) {
   .rede-nome { max-width: 10ch; }
 }
+
+/* cenário importado do WmsOffice corporativo (ponte Jogo ↔ WmsOffice) */
+.selo-procedencia { background: rgba(251, 191, 36, 0.16); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+.bloco-wms a { color: #38bdf8; text-decoration: underline; }

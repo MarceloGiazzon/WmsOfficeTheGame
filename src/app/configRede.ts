@@ -16,3 +16,16 @@ export function baseDaApi(urlServidor?: string | null): string {
 
 /** A base configurada neste build. */
 export const BASE_API: string = baseDaApi(import.meta.env.VITE_NPDEV_URL);
+
+/**
+ * `VITE_PONTE_ALVO_URL` → endereço do WmsOffice do botão "Enviar ao WmsOffice". Ausente = `http://localhost:8100` (o
+ * corporativo de desenvolvimento); vazia = o build não tem o botão (`null`). A ponte (backend/ponte) só executa alvos da
+ * sua lista permitida (`PONTE_ALVOS_PERMITIDOS`), então este valor sozinho não escolhe para onde ela escreve.
+ */
+export function alvoDaPonte(url?: string | null): string | null {
+  if (url === undefined || url === null) return 'http://localhost:8100';
+  const limpo = url.trim().replace(/\/+$/, '');
+  return limpo === '' ? null : limpo;
+}
+
+export const ALVO_PONTE: string | null = alvoDaPonte(import.meta.env.VITE_PONTE_ALVO_URL);

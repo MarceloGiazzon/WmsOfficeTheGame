@@ -106,12 +106,12 @@ describe('montarBreakdown', () => {
 describe('resultadoDaPartida', () => {
   it('só existe com o turno terminado; copia métricas e trocas do snapshot', () => {
     const sim = new Simulacao(pacoteA, 'AbcProximidade');
-    expect(resultadoDaPartida(sim.snapshot(), pacoteA.cenario)).toBeNull();
+    expect(resultadoDaPartida(sim.snapshot(), pacoteA.cenario, sim.rastro())).toBeNull();
     for (let i = 0; i < 3600; i++) sim.tick();
     sim.setPolitica('FifoPrimeiraLivre');
     while (!sim.terminado) sim.tick();
     const s = sim.snapshot();
-    const r = resultadoDaPartida(s, pacoteA.cenario)!;
+    const r = resultadoDaPartida(s, pacoteA.cenario, sim.rastro())!;
     expect(r.cenarioCodigo).toBe('WH-A-PEQUENO');
     expect(r.politicaInicial).toBe('AbcProximidade');
     expect(r.politicaFinal).toBe('FifoPrimeiraLivre');
@@ -119,6 +119,8 @@ describe('resultadoDaPartida', () => {
     expect(r.trocasPolitica).not.toBe(s.trocasPolitica);
     expect(r.metricas).toEqual(sim.metricas());
     expect(r.ordensConcluidas).toBe(s.ordensConcluidas);
+    expect(r.rastro).toEqual(sim.rastro());
+    expect(r.rastro).not.toBe(sim.rastro()); // cópia: sobrevive ao motor
     // o resultado reproduz o score oficial a partir das métricas
     const oficial = score(r.metricas);
     expect(r.scoreCentesimos).toBe(oficial.scoreCentesimos);
@@ -128,7 +130,7 @@ describe('resultadoDaPartida', () => {
   it('o breakdown de uma partida de verdade fecha com o score', () => {
     const sim = new Simulacao(pacoteA, 'FifoPrimeiraLivre');
     while (!sim.terminado) sim.tick();
-    const r = resultadoDaPartida(sim.snapshot(), pacoteA.cenario)!;
+    const r = resultadoDaPartida(sim.snapshot(), pacoteA.cenario, sim.rastro())!;
     const b = montarBreakdown(r.metricas, r.penalidades, r.scoreCentesimos);
     const bruto = b.base - b.totalPenalidades + b.bonus;
     expect(b.scoreCentesimos).toBe(Math.min(10_000, bruto));

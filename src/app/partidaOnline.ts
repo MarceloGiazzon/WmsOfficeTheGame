@@ -22,7 +22,9 @@ import { ehNpdevError, NpdevError } from '../net/erros';
 import type { FilaEnvio, ItemFila, RegistroPartida, ResultadoRegistro } from '../net/filaEnvio';
 import type { Http } from '../net/npdevClient';
 import { buscarCenario } from '../net/pacote';
+import { EnvioWmsOffice } from './envioWmsOffice';
 import { abandonarPartida, iniciarPartida, ranking, type PartidaServidor, type ResultadoConclusao } from '../net/partidas';
+import { enviarRastro } from '../net/rastro';
 import type { Abandonos } from './abandonos';
 import { formatarScore } from './formato';
 import type { OrigemCenario } from './fonteCenarios';
@@ -40,6 +42,10 @@ export interface DepsPartidaOnline {
   /** Depois do envio: a hora de esvaziar o que ficou na fila de partidas anteriores. */
   aoTerminar?: () => void;
   agora?: () => Date;
+  /** Endereço do WmsOffice para o botão "Enviar ao WmsOffice" (ex.: `http://localhost:8100`). Sem ele, não há botão. */
+  alvoWmsOffice?: string | null;
+  /** Para os testes do acompanhamento (padrão: setTimeout). */
+  esperar?: (ms: number) => Promise<void>;
 }
 
 export interface DadosPartida {
@@ -59,6 +65,7 @@ export class PartidaOnline {
   private dono: string | null;
   private criacao: Promise<PartidaServidor | null>;
   private situacao: 'andamento' | 'concluida' | 'desistida' = 'andamento';
+  private envioWms: EnvioWmsOffice | null = null;
   /** Por que a partida não foi criada no servidor ao iniciar (a fila cria no envio; é só informação). */
   erroInicio: unknown = null;
 
@@ -101,6 +108,7 @@ export class PartidaOnline {
 
   /** Trocar de cenário ou reiniciar no meio do turno: abandona a partida do servidor. No-op se já terminou. */
   async desistir(): Promise<void> {
+    this.envioWms?.parar(); // o jogador saiu desta tela de resultado: deixa de consultar
     if (this.situacao !== 'andamento') return;
     this.situacao = 'desistida';
     await this.abandonarNoServidor();
@@ -193,7 +201,7 @@ export class PartidaOnline {
 
   private async paraExtras(res: ResultadoRegistro, r: ResultadoPartida, jogador: string): Promise<ExtrasResultado> {
     switch (res.estado) {
-      case 'enviado': return this.extrasEnviado(res.resultado, r);
+      case 'enviado': return this.comRastro(await this.extrasEnviado(res.resultado, r), res.resultado.partidaId, r, jogador);
       case 'rejeitado': return extrasRejeitado(res.item);
       case 'pendente': return extrasPendente(res.erro, jogador, this.dep.http.usuario);
       case 'convidado': return this.extrasConvidado(r); // sem sessão e sem dono: não deveria chegar aqui
@@ -215,6 +223,39 @@ export class PartidaOnline {
     return extras;
   }
 
+  /**
+   * Depois que o servidor aceitou a partida, manda o rastro (para a ponte com o WmsOffice). Falha NUNCA derruba o
+   * resultado: vira uma frase nos extras. Partida que ficou `pendente` na fila não manda rastro (limitação aceita: o
+   * rastro só existe na memória desta aba e a fila guarda só o resultado).
+   */
+  private async comRastro(extras: ExtrasResultado, partidaId: string, r: ResultadoPartida, jogador: string): Promise<ExtrasResultado> {
+    if (r.rastro.length === 0) return extras;
+    // pacote embutido: os ids dos locais/ordens/produtos são aliases do seed, não existem no banco
+    if (this.dados.origem === 'embutido') return semRastro(extras, 'o cenário embutido usa ids que o servidor não conhece');
+    try {
+      await enviarRastro(this.dep.http, partidaId, jogador, r.rastro);
+      return this.comBotaoWmsOffice(extras, partidaId, jogador);
+    } catch (e) {
+      if (!ehNpdevError(e)) console.error('Falha inesperada ao enviar o rastro', e);
+      return semRastro(extras, mensagemDeErro(e));
+    }
+  }
+
+  /** Rastro no servidor: já dá para pedir o envio ao WmsOffice. A cada mudança de estado a tela recebe os extras de novo. */
+  private comBotaoWmsOffice(extras: ExtrasResultado, partidaId: string, jogador: string): ExtrasResultado {
+    const alvo = this.dep.alvoWmsOffice;
+    if (!alvo) return extras;
+    this.envioWms?.parar();
+    const base = extras;
+    const envio: EnvioWmsOffice = new EnvioWmsOffice({
+      http: this.dep.http, partidaId, jogador, alvoUrl: alvo, esperar: this.dep.esperar,
+      aoMudar: estado => this.aoNovosExtras?.({ ...base, wmsOffice: { estado, pedir } }),
+    });
+    const pedir = (): void => { void envio.solicitar(); };
+    this.envioWms = envio;
+    return { ...base, wmsOffice: { estado: envio.estado, pedir } };
+  }
+
   private async cenarioId(codigo: string): Promise<string> {
     // pacote da rede: o id é o do banco; os demais (cache de outra época, embutido) só se resolvem pelo código
     if (this.dados.origem === 'rede') return this.dados.cenarioId;
@@ -223,6 +264,12 @@ export class PartidaOnline {
 }
 
 // ---- mensagens (puras, testadas) ------------------------------------------------------------------------------------
+
+/** O rastro não foi enviado: avisa, sem esconder o resto do resultado. */
+function semRastro(extras: ExtrasResultado, motivo: string): ExtrasResultado {
+  const aviso = `O rastro não foi enviado; esta partida não poderá ir ao WmsOffice. (${motivo})`;
+  return { ...extras, mensagem: extras.mensagem ? `${extras.mensagem} ${aviso}` : aviso };
+}
 
 function extrasDivergente(c: ResultadoConclusao): ExtrasResultado {
   return {

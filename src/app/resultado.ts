@@ -5,8 +5,10 @@
 // `ResultadoPartida` é também o que a F5 manda ao servidor (`ConcluirPartida`): métricas + política + trocas.
 
 import type { Cenario, Dificuldade, Metricas, Politica } from '../sim/model';
+import type { EventoRastro } from '../sim/rastro';
 import type { Penalidades } from '../sim/score';
 import type { Snapshot, TrocaPolitica } from '../sim/simulation';
+import type { EstadoWmsOffice } from './envioWmsOffice';
 import { formatarCentesimos, formatarKm, formatarPercentual, plural } from './formato';
 import { ROTULO_ORIGEM, type OrigemCenario } from './fonteCenarios';
 
@@ -26,10 +28,12 @@ export interface ResultadoPartida {
   ordensConcluidas: number;
   scoreCentesimos: number;
   penalidades: Penalidades;
+  /** O que aconteceu no turno, palete a palete (src/sim/rastro.ts). Copiado. Vai ao servidor depois do resultado (net/rastro.ts). */
+  rastro: EventoRastro[];
 }
 
 /** Resultado do turno que acabou, ou null se o turno ainda não terminou ou o score não pôde ser calculado. */
-export function resultadoDaPartida(s: Snapshot, cenario: Cenario): ResultadoPartida | null {
+export function resultadoDaPartida(s: Snapshot, cenario: Cenario, rastro: readonly Readonly<EventoRastro>[]): ResultadoPartida | null {
   if (!s.terminado || !s.score.sucesso) return null;
   const trocas = s.trocasPolitica.map(t => ({ ...t }));
   return {
@@ -45,6 +49,7 @@ export function resultadoDaPartida(s: Snapshot, cenario: Cenario): ResultadoPart
     ordensConcluidas: s.ordensConcluidas,
     scoreCentesimos: s.score.scoreCentesimos,
     penalidades: { ...s.score.penalidades },
+    rastro: rastro.map(e => ({ ...e })),
   };
 }
 
@@ -210,6 +215,8 @@ export interface ExtrasResultado {
   envio?: SituacaoEnvio;
   /** Botão ao lado do aviso (ex.: "Entrar e enviar esta partida", para quem jogou como convidado). */
   acao?: { rotulo: string; aoClicar: () => void };
+  /** "Enviar ao WmsOffice": só existe com a partida no servidor e o rastro enviado (ponte Jogo ↔ WmsOffice). */
+  wmsOffice?: { estado: EstadoWmsOffice; pedir: () => void };
 }
 
 export interface EstadoEnvio {

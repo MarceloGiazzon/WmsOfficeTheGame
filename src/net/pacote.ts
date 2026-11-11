@@ -47,6 +47,8 @@ const paraCenario = (r: Obj, onde = 'cenario'): Cenario => ({
   tempoDescargaSeg: inteiro(r, 'tempoDescargaSeg', onde),
   inicioTurnoSeg: inteiro(r, 'inicioTurnoSeg', onde),
   fimTurnoSeg: inteiro(r, 'fimTurnoSeg', onde),
+  // opcional: só aparece quando o cenário veio do WmsOffice corporativo (qualquer outro valor/ausência = do jogo)
+  ...(r.procedencia === 'Corporativo' ? { procedencia: 'Corporativo' as const } : {}),
 });
 
 const paraArmazem = (r: Obj, onde = 'armazem'): Armazem => ({ id: texto(r, 'id', onde), nome: texto(r, 'nome', onde) });

@@ -27,6 +27,8 @@ export interface Cenario {
   tempoDescargaSeg: number;
   inicioTurnoSeg: number;
   fimTurnoSeg: number;
+  /** Só `'Corporativo'` quando o cenário nasceu de um armazém do WmsOffice (ponte, `backend/ponte`); ausente = do jogo. */
+  procedencia?: 'Corporativo';
 }
 
 export interface Armazem { id: string; nome: string; }

@@ -273,7 +273,7 @@ class Jogo {
     this.fase = 'encerrada';
     this.decisor?.parar();
     this.definirVelocidade(0);
-    const resultado = this.pacote ? resultadoDaPartida(s, this.pacote.cenario) : null;
+    const resultado = this.pacote ? resultadoDaPartida(s, this.pacote.cenario, this.sim?.rastro() ?? []) : null;
     if (!resultado) return; // sem ordens no cenário não há score: o log e o HUD já mostram "—"
     this.ultimoResultado = resultado;
     this.ultimosExtras = this.extrasCom({ ...this.partidaOnline?.extrasIniciais() });

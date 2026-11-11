@@ -10,6 +10,13 @@ const pacoteA = whA as unknown as PacoteCenario;
 const pacoteB = whB as unknown as PacoteCenario;
 
 describe('resumirCenario', () => {
+  it('procedência: só o cenário do corporativo leva o selo', () => {
+    expect(resumirCenario(pacoteA, 'embutido')).not.toHaveProperty('procedencia');
+    const importado = structuredClone(pacoteA);
+    importado.cenario.procedencia = 'Corporativo';
+    expect(resumirCenario(importado, 'rede').procedencia).toBe('Corporativo');
+  });
+
   it('WH-A: números do cartão vêm do pacote', () => {
     const r = resumirCenario(pacoteA, 'embutido');
     expect(r).toMatchObject({

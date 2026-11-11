@@ -8,8 +8,9 @@ import { concluirPartida, iniciarPartida } from '../net/partidas';
 import { ServidorFalso, type Chamada } from '../net/servidorFalso';
 import type { Metricas, PacoteCenario } from '../sim/model';
 import { calcularScore } from '../sim/score';
+import { Simulacao } from '../sim/simulation';
 import { Abandonos } from './abandonos';
-import { PartidaOnline, type DadosPartida } from './partidaOnline';
+import { PartidaOnline, type DadosPartida, type DepsPartidaOnline } from './partidaOnline';
 import type { ExtrasResultado, ResultadoPartida } from './resultado';
 
 const banco = remapearIds(whA as unknown as PacoteCenario, 21).pacote;
@@ -26,7 +27,7 @@ function resultado(extra: Partial<ResultadoPartida> = {}, metricas: Metricas = M
     cenarioCodigo: 'WH-A-PEQUENO', cenarioNome: 'WH-A Pequeno', dificuldade: 'Facil', politicaInicial: 'AbcProximidade', politicaFinal: 'Consolidacao',
     trocasPolitica: [{ seg: 28800, politica: 'AbcProximidade' }, { seg: 40000, politica: 'Consolidacao' }], inicioTurnoSeg: 28800, fimTurnoSeg: 64800,
     metricas, ordensConcluidas: 80, scoreCentesimos: r.sucesso ? r.scoreCentesimos : 0,
-    penalidades: r.sucesso ? r.penalidades : { distancia: 0, atraso: 0, conflito: 0, bonusOcupacao: 0 }, ...extra,
+    penalidades: r.sucesso ? r.penalidades : { distancia: 0, atraso: 0, conflito: 0, bonusOcupacao: 0 }, rastro: [], ...extra,
   };
 }
 
@@ -47,7 +48,8 @@ async function montar(opcoes: { logado?: boolean; armazenamento?: ArmazenamentoJ
   const abandonos = new Abandonos(armazenamento, cliente);
   const aoTerminar = vi.fn();
   const pedirLogin = vi.fn(async () => { await cliente.login('ana', 's'); return true; });
-  const nova = (d: DadosPartida = dados()) => new PartidaOnline({ http: cliente, fila, abandonos, aoTerminar, pedirLogin }, d);
+  const nova = (d: DadosPartida = dados(), extra: Partial<DepsPartidaOnline> = {}) =>
+    new PartidaOnline({ http: cliente, fila, abandonos, aoTerminar, pedirLogin, ...extra }, d);
   return { servidor, cliente, fila, abandonos, aoTerminar, pedirLogin, nova, armazenamento };
 }
 
@@ -378,5 +380,113 @@ describe('recusas e falhas', () => {
   it('extras iniciais: "enviando" quando vai enviar; nada para convidado', async () => {
     expect((await montar()).nova().extrasIniciais()).toEqual({ envio: 'enviando' });
     expect((await montar({ logado: false })).nova().extrasIniciais()).toEqual({});
+  });
+});
+
+describe('rastro da partida (ponte com o WmsOffice)', () => {
+  const rastro = (() => {
+    const sim = new Simulacao(banco, 'AbcProximidade');
+    while (!sim.terminado) sim.tick();
+    return sim.rastro().map(e => ({ ...e }));
+  })();
+  const ehPostEvento = (c: Chamada) => c.metodo === 'POST' && c.caminho === '/sim_eventos';
+
+  it('depois de o servidor aceitar a partida, envia o rastro inteiro e o resultado não muda', async () => {
+    const { servidor, nova } = await montar();
+    const extras = await nova().concluir(resultado({ rastro }));
+    expect(extras).toMatchObject({ validadoServidor: true, posicaoRanking: 1 });
+    expect(extras.mensagem).toBeUndefined();
+    expect(servidor.eventos).toHaveLength(rastro.length);
+    const partidaId = [...servidor.partidas.keys()][0];
+    expect(servidor.eventos.every(e => e.partidaId === partidaId && e.jogador === 'ana')).toBe(true);
+  });
+
+  it('rastro vazio: nenhuma chamada a SimEvento', async () => {
+    const { servidor, nova } = await montar();
+    await nova().concluir(resultado());
+    expect(servidor.chamadas.some(c => c.caminho.includes('SimEvento') || c.caminho.includes('sim_eventos'))).toBe(false);
+  });
+
+  it('falha no envio do rastro NÃO derruba o resultado: a mensagem avisa que a partida não irá ao WmsOffice', async () => {
+    const { servidor, nova, fila } = await montar();
+    servidor.falharProximas(1000, { status: 503, corpo: { error: 'indisponivel' } }, ehPostEvento);
+    const extras = await nova().concluir(resultado({ rastro }));
+    expect(extras).toMatchObject({ validadoServidor: true, posicaoRanking: 1 });
+    expect(extras.mensagem).toContain('O rastro não foi enviado; esta partida não poderá ir ao WmsOffice.');
+    expect(await fila.listar()).toEqual([]); // a partida em si foi enviada e saiu da fila
+  });
+
+  it('pacote embutido: não envia (ids são aliases) e avisa', async () => {
+    const { servidor, nova } = await montar();
+    const extras = await nova(dados({ origem: 'embutido' })).concluir(resultado({ rastro }));
+    expect(extras.validadoServidor).toBe(true);
+    expect(extras.mensagem).toContain('O rastro não foi enviado');
+    expect(servidor.chamadas.some(ehPostEvento)).toBe(false);
+  });
+
+  it('partida pendente na fila (rede caída) não manda rastro', async () => {
+    const { servidor, nova } = await montar();
+    const p = nova();
+    servidor.rede = false;
+    const extras = await p.concluir(resultado({ rastro }));
+    expect(extras.envio).toBe('pendente');
+    servidor.rede = true;
+    expect(servidor.eventos).toHaveLength(0);
+  });
+
+  it('convidado não envia nada', async () => {
+    const { servidor, nova } = await montar({ logado: false });
+    await nova().concluir(resultado({ rastro }));
+    expect(servidor.chamadas.some(ehPostEvento)).toBe(false);
+  });
+});
+
+describe('botão "Enviar ao WmsOffice"', () => {
+  const rastro = (() => {
+    const sim = new Simulacao(banco, 'AbcProximidade');
+    while (!sim.terminado) sim.tick();
+    return sim.rastro().map(e => ({ ...e }));
+  })();
+  const ALVO = 'http://localhost:8100';
+  const semEspera = { esperar: async () => {} };
+
+  it('com o rastro enviado e um alvo configurado, os extras trazem o botão (estado disponivel)', async () => {
+    const { nova } = await montar();
+    const extras = await nova(dados(), { alvoWmsOffice: ALVO, ...semEspera }).concluir(resultado({ rastro }));
+    expect(extras.wmsOffice?.estado).toEqual({ tipo: 'disponivel' });
+    expect(extras.validadoServidor).toBe(true);
+  });
+
+  it('pedir() cria o pedido e a tela recebe os extras de novo a cada mudança, até Concluida', async () => {
+    const { nova, servidor } = await montar();
+    const p = nova(dados(), { alvoWmsOffice: ALVO, esperar: async () => { Object.assign(servidor.exportacoes[0], { situacao: 'Concluida' }); } });
+    const recebidos: ExtrasResultado[] = [];
+    p.aoNovosExtras = e => recebidos.push(e);
+    const extras = await p.concluir(resultado({ rastro }));
+    extras.wmsOffice!.pedir();
+    await vi.waitFor(() => expect(recebidos.at(-1)?.wmsOffice?.estado.tipo).toBe('concluida'));
+    expect(servidor.exportacoes).toHaveLength(1);
+    expect(servidor.exportacoes[0]).toMatchObject({ alvoUrl: ALVO, solicitadaPor: 'ana', partidaId: [...servidor.partidas.keys()][0] });
+    expect(recebidos.every(e => e.validadoServidor === true && e.posicaoRanking === 1)).toBe(true); // o resto do resultado acompanha
+    expect(recebidos.at(-1)?.wmsOffice?.estado).toEqual({ tipo: 'concluida', url: `${ALVO}/mapa-armazem.html` });
+  });
+
+  it('sem alvo configurado (build sem o botão) não há botão', async () => {
+    const { nova } = await montar();
+    const extras = await nova(dados(), { alvoWmsOffice: null }).concluir(resultado({ rastro }));
+    expect(extras.wmsOffice).toBeUndefined();
+  });
+
+  it('se o rastro não foi enviado, não há botão (a ponte não teria o que exportar)', async () => {
+    const { nova, servidor } = await montar();
+    servidor.falharProximas(1000, { status: 503, corpo: { error: 'x' } }, c => c.metodo === 'POST' && c.caminho === '/sim_eventos');
+    const extras = await nova(dados(), { alvoWmsOffice: ALVO }).concluir(resultado({ rastro }));
+    expect(extras.wmsOffice).toBeUndefined();
+    expect(extras.mensagem).toContain('O rastro não foi enviado');
+  });
+
+  it('sem rastro (partida vazia) não há botão', async () => {
+    const { nova } = await montar();
+    expect((await nova(dados(), { alvoWmsOffice: ALVO }).concluir(resultado())).wmsOffice).toBeUndefined();
   });
 });

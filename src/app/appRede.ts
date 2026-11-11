@@ -13,7 +13,7 @@ import { TelaFila } from '../ui/filaPendentes';
 import { IndicadorRede } from '../ui/indicadorRede';
 import { TelaLogin } from '../ui/login';
 import { Abandonos } from './abandonos';
-import { BASE_API } from './configRede';
+import { ALVO_PONTE, BASE_API } from './configRede';
 import type { FonteCenarios, PacoteCarregado } from './fonteCenarios';
 import { DecisorWmsReal } from './decisorWmsReal';
 import { FonteEmbutida } from './fonteEmbutida';
@@ -135,7 +135,7 @@ export function ligarRede(opcoes: OpcoesAppRede): AppRede {
       if (carregado.aviso) avisos.mostrar(carregado.aviso, 'alerta');
       const { cenario } = carregado.pacote;
       return new PartidaOnline(
-        { http: rede.cliente, fila: rede.fila, abandonos, pedirLogin: () => pedirLogin(), aoTerminar: () => { void sincronizador.sincronizar(); } },
+        { http: rede.cliente, fila: rede.fila, abandonos, pedirLogin: () => pedirLogin(), aoTerminar: () => { void sincronizador.sincronizar(); }, alvoWmsOffice: ALVO_PONTE },
         { cenarioCodigo: cenario.codigo, cenarioId: cenario.id, politica, origem: carregado.origem },
       );
     },

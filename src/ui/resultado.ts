@@ -9,6 +9,7 @@
 
 import { formatarKm, formatarPercentual, formatarHorario, formatarDuracao, formatarPontos, formatarScore, plural } from '../app/formato';
 import { ROTULO_DIFICULDADE } from '../app/fonteCenarios';
+import { textoWmsOffice, type EstadoWmsOffice } from '../app/envioWmsOffice';
 import { TEXTO_POLITICA } from '../app/politicasTexto';
 import {
   estadoEnvio, montarBreakdown, rotuloOrigem, segmentosPolitica,
@@ -83,7 +84,25 @@ export class TelaResultado {
         h('p', { class: `aviso-envio envio-${envio.tipo}`, role: 'status' }, envio.texto),
         extras?.mensagem ? h('p', { class: 'aviso-mensagem' }, extras.mensagem) : null,
         extras?.acao ? h('button', { class: 'btn-secundario aviso-acao', type: 'button', onclick: extras.acao.aoClicar }, extras.acao.rotulo) : null,
+        extras?.wmsOffice ? this.blocoWmsOffice(extras.wmsOffice.estado, extras.wmsOffice.pedir) : null,
         origem ? h('p', { class: 'aviso-origem' }, h('span', { class: 'selo selo-origem' }, `Cenário: ${origem}`)) : null),
+    );
+  }
+
+  /** "Enviar ao WmsOffice": o texto e o botão de cada estado (src/app/envioWmsOffice.ts) e, no fim, o endereço copiável. */
+  private blocoWmsOffice(estado: EstadoWmsOffice, pedir: () => void): HTMLElement {
+    const t = textoWmsOffice(estado);
+    return h('div', { class: `bloco-wms wms-${estado.tipo}`, role: 'status', 'aria-live': 'polite' },
+      h('p', { class: 'wms-titulo' }, 'WmsOffice corporativo'),
+      h('p', { class: 'wms-texto' }, t.texto),
+      t.percentual !== null && estado.tipo === 'andamento'
+        ? h('div', { class: 'wms-barra', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': t.percentual },
+          h('span', { style: `width:${t.percentual}%` }))
+        : null,
+      t.botao ? h('button', { class: 'btn-secundario aviso-acao', type: 'button', onclick: pedir }, t.botao) : null,
+      estado.tipo === 'concluida' ? h('p', { class: 'wms-endereco' },
+        h('a', { href: estado.url, target: '_blank', rel: 'noopener' }, 'Ver no WmsOffice'), ' · ',
+        h('code', { class: 'wms-url', title: 'Endereço do Mapa do Armazém (clique para selecionar)' }, estado.url)) : null,
     );
   }
 
